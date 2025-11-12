@@ -300,7 +300,7 @@ bool TestSettings()
 	// App and library versions, http://github.com/weidai11/cryptopp/issues/371
 	const int v1 = LibraryVersion();
 	const int v2 = HeaderVersion();
-	if(v1/10 == v2/10)
+	if(v1/100 == v2/100)
 		std::cout << "passed:  ";
 	else
 	{

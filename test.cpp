@@ -433,7 +433,7 @@ int scoped_main(int argc, char *argv[])
 		}
 		else if (command == "V")
 		{
-			std::cout << CRYPTOPP_VERSION / 100 << '.' << (CRYPTOPP_VERSION % 100) / 10 << '.' << CRYPTOPP_VERSION % 10 << std::endl;
+			std::cout << CRYPTOPP_VERSION / 10000 << '.' << (CRYPTOPP_VERSION / 100) % 100 << '.' << CRYPTOPP_VERSION % 100 << std::endl;
 		}
 		else
 		{

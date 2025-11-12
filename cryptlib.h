@@ -3324,15 +3324,17 @@ public:
 ///   {
 ///      cout << "Potential version mismatch" << endl;
 ///
-///      const int lmaj = (LibraryVersion() / 100U) % 10;
-///      const int lmin = (LibraryVersion() / 10U) % 10;
-///      const int hmaj = (HeaderVersion() / 100U) % 10;
-///      const int hmin = (HeaderVersion() / 10U) % 10;
+///      const int lmaj = LibraryVersion() / 10000U;           // Year
+///      const int lmin = (LibraryVersion() / 100U) % 100;     // Month
+///      const int hmaj = HeaderVersion() / 10000U;            // Year
+///      const int hmin = (HeaderVersion() / 100U) % 100;      // Month
 ///
 ///      if(lmaj != hmaj)
-///         cout << "Major version mismatch" << endl;
+///         cout << "Year mismatch (library: " << lmaj
+///              << ", headers: " << hmaj << ")" << endl;
 ///      else if(lmin != hmin)
-///         cout << "Minor version mismatch" << endl;
+///         cout << "Month mismatch (library: " << lmin
+///              << ", headers: " << hmin << ")" << endl;
 ///   }
 /// </pre>
 /// \sa HeaderVersion(), <A HREF="http://github.com/weidai11/cryptopp/issues/371">GitHub Issue 371</A>.
@@ -3355,15 +3357,17 @@ extern "C" {
 ///   {
 ///      cout << "Potential version mismatch" << endl;
 ///
-///      const int lmaj = (LibraryVersion() / 100U) % 10;
-///      const int lmin = (LibraryVersion() / 10U) % 10;
-///      const int hmaj = (HeaderVersion() / 100U) % 10;
-///      const int hmin = (HeaderVersion() / 10U) % 10;
+///      const int lmaj = LibraryVersion() / 10000U;           // Year
+///      const int lmin = (LibraryVersion() / 100U) % 100;     // Month
+///      const int hmaj = HeaderVersion() / 10000U;            // Year
+///      const int hmin = (HeaderVersion() / 100U) % 100;      // Month
 ///
 ///      if(lmaj != hmaj)
-///         cout << "Major version mismatch" << endl;
+///         cout << "Year mismatch (library: " << lmaj
+///              << ", headers: " << hmaj << ")" << endl;
 ///      else if(lmin != hmin)
-///         cout << "Minor version mismatch" << endl;
+///         cout << "Month mismatch (library: " << lmin
+///              << ", headers: " << hmin << ")" << endl;
 ///   }
 /// </pre>
 /// \sa LibraryVersion(), <A HREF="http://github.com/weidai11/cryptopp/issues/371">GitHub Issue 371</A>.

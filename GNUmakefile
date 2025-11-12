@@ -1135,10 +1135,11 @@ ifeq ($(findstring lean,$(MAKECMDGOALS)),lean)
 endif # Dead code stripping
 
 # For Shared Objects, Diff, Dist/Zip rules
+# Extract version: CRYPTOPP_VERSION encodes as YEAR*10000 + MONTH*100 + INCREMENT
 LIB_VER := $(shell $(GREP) "define CRYPTOPP_VERSION" config_ver.h | cut -d" " -f 3)
-LIB_MAJOR := $(shell echo $(LIB_VER) | cut -c 1)
-LIB_MINOR := $(shell echo $(LIB_VER) | cut -c 2)
-LIB_PATCH := $(shell echo $(LIB_VER) | cut -c 3)
+LIB_MAJOR := $(shell echo "$(LIB_VER)" | awk '{print int($$1/10000)}')
+LIB_MINOR := $(shell echo "$(LIB_VER)" | awk '{print int(($$1/100)%100)}')
+LIB_PATCH := $(shell echo "$(LIB_VER)" | awk '{print int($$1%100)}')
 
 ifeq ($(strip $(LIB_PATCH)),)
   LIB_PATCH := 0

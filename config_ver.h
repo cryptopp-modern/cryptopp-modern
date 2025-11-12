@@ -22,35 +22,42 @@
 #ifndef CRYPTOPP_CONFIG_VERSION_H
 #define CRYPTOPP_CONFIG_VERSION_H
 
-/// \brief Library major version
-/// \details CRYPTOPP_MAJOR reflects the major version of the library the
-///  headers came from. It is not necessarily the version of the library built
-///  as a shared object if versions are inadvertently mixed and matched.
+/// \brief Library release year
+/// \details CRYPTOPP_MAJOR reflects the year of the library release.
+///  Starting with Crypto++ 2025.11, the library uses calendar versioning
+///  (YEAR.MONTH.INCREMENT) instead of semantic versioning (MAJOR.MINOR.REVISION).
 /// \sa CRYPTOPP_VERSION, LibraryVersion(), HeaderVersion()
-/// \since Crypto++ 8.2
-#define CRYPTOPP_MAJOR 8
-/// \brief Library minor version
-/// \details CRYPTOPP_MINOR reflects the minor version of the library the
-///  headers came from. It is not necessarily the version of the library built
-///  as a shared object if versions are inadvertently mixed and matched.
+/// \since Crypto++ 8.2 (semantic versioning), Crypto++ 2025.11 (calendar versioning)
+#define CRYPTOPP_MAJOR 2025
+
+/// \brief Library release month
+/// \details CRYPTOPP_MINOR reflects the month (1-12) of the library release.
+///  Starting with Crypto++ 2025.11, this represents the release month rather
+///  than the minor version number.
 /// \sa CRYPTOPP_VERSION, LibraryVersion(), HeaderVersion()
-/// \since Crypto++ 8.2
-#define CRYPTOPP_MINOR 9
-/// \brief Library revision number
-/// \details CRYPTOPP_REVISION reflects the revision number of the library the
-///  headers came from. It is not necessarily the revision of the library built
-///  as a shared object if versions are inadvertently mixed and matched.
+/// \since Crypto++ 8.2 (semantic versioning), Crypto++ 2025.11 (calendar versioning)
+#define CRYPTOPP_MINOR 11
+
+/// \brief Library release increment
+/// \details CRYPTOPP_REVISION reflects the incremental release number within
+///  the same year and month (0-99). Multiple releases in the same month increment
+///  this value. Zero indicates the first release of the month.
 /// \sa CRYPTOPP_VERSION, LibraryVersion(), HeaderVersion()
-/// \since Crypto++ 8.2
+/// \since Crypto++ 8.2 (semantic versioning), Crypto++ 2025.11 (calendar versioning)
 #define CRYPTOPP_REVISION 0
 
 /// \brief Full library version
-/// \details CRYPTOPP_VERSION reflects the version of the library the headers
-///  came from. It is not necessarily the version of the library built as a
-///  shared object if versions are inadvertently mixed and matched.
+/// \details CRYPTOPP_VERSION uses calendar versioning (YEAR.MONTH.INCREMENT)
+///  encoded as: YEAR*10000 + MONTH*100 + INCREMENT
+/// \details For example, the November 2025 release is version 2025.11.0,
+///  encoded as 20251100.
+/// \details Prior to Crypto++ 2025.11, semantic versioning was used (8.9.0)
+///  with encoding MAJOR*100 + MINOR*10 + REVISION. The change was necessary
+///  because the old encoding could not represent version 8.10.0.
+/// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/1239">GitHub Issue 1239</A>
 /// \sa CRYPTOPP_MAJOR, CRYPTOPP_MINOR, CRYPTOPP_REVISION, LibraryVersion(), HeaderVersion()
 /// \since Crypto++ 5.6
-#define CRYPTOPP_VERSION 890
+#define CRYPTOPP_VERSION 20251100
 
 // Compiler version macros
 
