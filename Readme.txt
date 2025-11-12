@@ -1,5 +1,5 @@
 Crypto++: free C++ Class Library of Cryptographic Schemes
-Version 8.9 - October 1, 2023
+Version 2025.11 - November 2025
 
 Crypto++ Library is a free C++ class library of cryptographic schemes.
 Currently the library contains the following algorithms:
@@ -28,10 +28,10 @@ Currently the library contains the following algorithms:
                                    Poly1305, Poly1305 (IETF), SipHash, Two-Track-MAC,
                                    VMAC
 
-                                   BLAKE2s, BLAKE2b, Keccack (F1600), LSH (256/512),
-                   hash functions  SHA-1, SHA-2 (224/256/384/512), SHA-3 (224/256),
-                                   SHA-3 (384/512), SHAKE (128/256), SipHash, SM3, Tiger,
-                                   RIPEMD (128/160/256/320), WHIRLPOOL
+                                   BLAKE2s, BLAKE2b, BLAKE3, Keccack (F1600),
+                   hash functions  LSH (256/512), SHA-1, SHA-2 (224/256/384/512),
+                                   SHA-3 (224/256), SHA-3 (384/512), SHAKE (128/256),
+                                   SipHash, SM3, Tiger, RIPEMD (128/160/256/320), WHIRLPOOL
 
                                    RSA, DSA, Deterministic DSA, ElGamal,
           public-key cryptography  Nyberg-Rueppel (NR), Rabin-Williams (RW), LUC,
@@ -58,7 +58,8 @@ Other features include:
   * pseudo random number generators (PRNG): ANSI X9.17 appendix C, RandomPool,
     DARN, VIA Padlock, RDRAND, RDSEED, NIST Hash and HMAC DRBGs
   * password based key derivation functions: PBKDF1 and PBKDF2 from PKCS #5,
-    PBKDF from PKCS #12 appendix B, HKDF from RFC 5869, Scrypt from RFC 7914
+    PBKDF from PKCS #12 appendix B, HKDF from RFC 5869, Scrypt from RFC 7914,
+    Argon2 from RFC 9106
   * Shamir's secret sharing scheme and Rabin's information dispersal algorithm
     (IDA)
   * fast multi-precision integer (bignum) and polynomial operations
@@ -293,6 +294,17 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2025.11.0 - November 2025
+      - minor release, recompile of programs required
+      - expanded community input and support
+        * cryptopp-modern fork for active development
+      - migrated to calendar versioning (YEAR.MONTH.INCREMENT)
+      - add BLAKE3 cryptographic hash function
+      - add Argon2 password hashing (RFC 9106)
+        * supports Argon2d, Argon2i, and Argon2id variants
+      - fix timing attack in PKCS#1 v1.5 padding validation (CVE-2022-4304)
+      - improve ESIGN compatibility with static analyzers
 
 8.9.0 - October 1, 2023
       - minor release, recompile of programs required
