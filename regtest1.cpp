@@ -17,6 +17,7 @@
 #include "sha3.h"
 #include "shake.h"
 #include "blake2.h"
+#include "blake3.h"
 #include "sha.h"
 #include "sha3.h"
 #include "sm3.h"
@@ -117,6 +118,7 @@ void RegisterFactories1()
 	RegisterDefaultFactoryFor<HashTransformation, SM3>();
 	RegisterDefaultFactoryFor<HashTransformation, BLAKE2s>();
 	RegisterDefaultFactoryFor<HashTransformation, BLAKE2b>();
+	RegisterDefaultFactoryFor<HashTransformation, BLAKE3>();
 	RegisterDefaultFactoryFor<HashTransformation, LSH224>();
 	RegisterDefaultFactoryFor<HashTransformation, LSH256>();
 	RegisterDefaultFactoryFor<HashTransformation, LSH384>();

@@ -2360,7 +2360,7 @@ bool ValidateBLAKE3()
 	}
 
 	// Use test vectors file for comprehensive testing
-	pass = RunTestDataFile("TestVectors/blake3.txt", MakeParameters(Name::TruncatedDigestSize(), 32)) && pass;
+	pass = RunTestDataFile("TestVectors/blake3.txt") && pass;
 
 	return pass;
 }
