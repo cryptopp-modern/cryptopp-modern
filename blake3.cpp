@@ -387,7 +387,7 @@ void BLAKE3::TruncatedFinal(byte *hash, size_t size)
 
 		// Use Output() for proper XOF support
 		Output(m_state.m_chunk.m_cv.data(), m_state.m_chunk.m_buf.data(),
-		      m_state.m_chunk.m_buf_len, 0, flags, hash, size);
+		      m_state.m_chunk.m_buf_len, m_state.m_chunk.m_chunkCounter, flags, hash, size);
 	} else {
 		// Multi-chunk tree hashing - match reference implementation's roll-up merge
 		// The output structure stores INPUTS for compression (input_cv + block),
