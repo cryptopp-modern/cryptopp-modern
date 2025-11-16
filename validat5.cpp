@@ -2350,7 +2350,9 @@ bool ValidateBLAKE3()
 		                             "\x9b\xcb\x25\xc9\xad\xc1\x12\xb7\xcc\x9a\x93\xca\xe4\x1f\x32\x62";
 		BLAKE3 hash;
 		std::string digest;
-		StringSource(digest.data(), 0, true, new HashFilter(hash, new StringSink(digest)));
+		digest.resize(32);
+		hash.Update(NULLPTR, 0);
+		hash.TruncatedFinal(BytePtr(digest), BytePtrSize(digest));
 
 		fail = (digest != expected);
 		pass = !fail && pass;
@@ -2358,7 +2360,7 @@ bool ValidateBLAKE3()
 	}
 
 	// Use test vectors file for comprehensive testing
-	pass = RunTestDataFile("TestVectors/blake3.txt", MakeParameters(Name::TruncatedSize(), 32)) && pass;
+	pass = RunTestDataFile("TestVectors/blake3.txt", MakeParameters(Name::TruncatedDigestSize(), 32)) && pass;
 
 	return pass;
 }
