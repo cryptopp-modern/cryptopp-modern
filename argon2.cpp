@@ -472,15 +472,21 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen, const byte *password,
     if (params.GetValue("Parallelism", parallelism) == false)
         parallelism = defaultParallelism;
 
-    ConstByteArrayParameter salt, secret, associatedData;
-    (void)params.GetValue("Salt", salt);
-    (void)params.GetValue("Secret", secret);
-    (void)params.GetValue("AssociatedData", associatedData);
+    // Extract parameters and make local copies since m_temp is reused
+    ConstByteArrayParameter saltParam, secretParam, associatedDataParam;
+    std::string saltCopy, secretCopy, associatedDataCopy;
+
+    if (params.GetValue("Salt", saltParam))
+        saltCopy.assign((const char*)saltParam.begin(), saltParam.size());
+    if (params.GetValue("Secret", secretParam))
+        secretCopy.assign((const char*)secretParam.begin(), secretParam.size());
+    if (params.GetValue("AssociatedData", associatedDataParam))
+        associatedDataCopy.assign((const char*)associatedDataParam.begin(), associatedDataParam.size());
 
     return DeriveKey(derived, derivedLen, password, passwordLen,
-        salt.begin(), salt.size(), timeCost, memoryCost, parallelism,
-        secret.begin(), secret.size(),
-        associatedData.begin(), associatedData.size());
+        (const byte*)saltCopy.data(), saltCopy.size(), timeCost, memoryCost, parallelism,
+        (const byte*)secretCopy.data(), secretCopy.size(),
+        (const byte*)associatedDataCopy.data(), associatedDataCopy.size());
 }
 
 size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
