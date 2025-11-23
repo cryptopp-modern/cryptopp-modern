@@ -203,34 +203,34 @@
   <!-- Source Files -->
   <ItemGroup>
     <ClCompile Include="adhoc.cpp" />
-    <ClCompile Include="test.cpp" />
-    <ClCompile Include="bench1.cpp" />
-    <ClCompile Include="bench2.cpp" />
-    <ClCompile Include="bench3.cpp" />
-    <ClCompile Include="datatest.cpp" />
-    <ClCompile Include="dlltest.cpp" />
-    <ClCompile Include="fipsalgt.cpp" />
-    <ClCompile Include="regtest1.cpp" />
-    <ClCompile Include="regtest2.cpp" />
-    <ClCompile Include="regtest3.cpp" />
-    <ClCompile Include="regtest4.cpp" />
-    <ClCompile Include="validat0.cpp" />
-    <ClCompile Include="validat1.cpp" />
-    <ClCompile Include="validat2.cpp" />
-    <ClCompile Include="validat3.cpp" />
-    <ClCompile Include="validat4.cpp" />
-    <ClCompile Include="validat5.cpp" />
-    <ClCompile Include="validat6.cpp" />
-    <ClCompile Include="validat7.cpp" />
-    <ClCompile Include="validat8.cpp" />
-    <ClCompile Include="validat9.cpp" />
-    <ClCompile Include="validat10.cpp" />
+    <ClCompile Include="src\test\test.cpp" />
+    <ClCompile Include="src\test\bench1.cpp" />
+    <ClCompile Include="src\test\bench2.cpp" />
+    <ClCompile Include="src\test\bench3.cpp" />
+    <ClCompile Include="src\test\datatest.cpp" />
+    <ClCompile Include="src\test\dlltest.cpp" />
+    <ClCompile Include="src\core\fipsalgt.cpp" />
+    <ClCompile Include="src\test\regtest1.cpp" />
+    <ClCompile Include="src\test\regtest2.cpp" />
+    <ClCompile Include="src\test\regtest3.cpp" />
+    <ClCompile Include="src\test\regtest4.cpp" />
+    <ClCompile Include="src\test\validat0.cpp" />
+    <ClCompile Include="src\test\validat1.cpp" />
+    <ClCompile Include="src\test\validat2.cpp" />
+    <ClCompile Include="src\test\validat3.cpp" />
+    <ClCompile Include="src\test\validat4.cpp" />
+    <ClCompile Include="src\test\validat5.cpp" />
+    <ClCompile Include="src\test\validat6.cpp" />
+    <ClCompile Include="src\test\validat7.cpp" />
+    <ClCompile Include="src\test\validat8.cpp" />
+    <ClCompile Include="src\test\validat9.cpp" />
+    <ClCompile Include="src\test\validat10.cpp" />
   </ItemGroup>
   <!-- Header Files -->
   <ItemGroup>
-    <ClInclude Include="bench.h" />
-    <ClInclude Include="factory.h" />
-    <ClInclude Include="validate.h" />
+    <ClInclude Include="include\cryptopp\bench.h" />
+    <ClInclude Include="include\cryptopp\factory.h" />
+    <ClInclude Include="include\cryptopp\validate.h" />
   </ItemGroup>
   <!-- Test Vectors -->
   <ItemGroup>

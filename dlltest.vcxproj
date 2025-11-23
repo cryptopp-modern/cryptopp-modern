@@ -126,7 +126,7 @@
   </ItemDefinitionGroup>
   <!-- Source Files -->
   <ItemGroup>
-    <ClCompile Include="dlltest.cpp" />
+    <ClCompile Include="src\test\dlltest.cpp" />
   </ItemGroup>
   <!-- Back to Visual Studio boilerplate -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

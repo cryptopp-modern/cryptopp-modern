@@ -119,39 +119,38 @@ jobs:
           exit 1
         fi
 
-  # Windows MSVC builds (DISABLED - vcxproj files need Phase 2 path updates)
-  # TODO: Update all .vcxproj files with src/ and include/ paths
-  # windows-msvc:
-  #   name: Windows MSVC 2022
-  #   runs-on: windows-2022
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform: [x64, Win32]
-  #       configuration: [Release, Debug]
-  #
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #
-  #   - name: Setup MSBuild
-  #     uses: microsoft/setup-msbuild@v2
-  #
-  #   - name: Build library and tests
-  #     run: msbuild cryptest.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m
-  #
-  #   - name: Run validation tests
-  #     if: matrix.configuration == 'Release'
-  #     shell: cmd
-  #     run: |
-  #       cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
-  #       cryptest.exe v
-  #
-  #   - name: Run test vectors
-  #     if: matrix.configuration == 'Release'
-  #     shell: cmd
-  #     run: |
-  #       cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
-  #       cryptest.exe tv all
+  # Windows MSVC builds
+  windows-msvc:
+    name: Windows MSVC 2022
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, Win32]
+        configuration: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build library and tests
+      run: msbuild cryptest.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m
+
+    - name: Run validation tests
+      if: matrix.configuration == 'Release'
+      shell: cmd
+      run: |
+        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
+        cryptest.exe v
+
+    - name: Run test vectors
+      if: matrix.configuration == 'Release'
+      shell: cmd
+      run: |
+        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
+        cryptest.exe tv all
 
   # macOS with Apple Clang
   macos:
