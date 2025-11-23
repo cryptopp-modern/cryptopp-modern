@@ -1,5 +1,5 @@
 Crypto++: free C++ Class Library of Cryptographic Schemes
-Version 2025.11 - November 2025
+Version 2025.12 - December 2025 (Release Candidate)
 
 Crypto++ Library is a free C++ class library of cryptographic schemes.
 Currently the library contains the following algorithms:
@@ -297,6 +297,31 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2025.12.0 - December 2025 (Release Candidate)
+      - major release, recompile of programs required
+      - complete project reorganization
+        * organized 204 source files into categorized src/ subdirectories
+        * src/core/ - core infrastructure (37 files)
+        * src/hash/ - hash functions (32 files)
+        * src/kdf/ - key derivation (2 files)
+        * src/symmetric/ - block/stream ciphers (58 files)
+        * src/pubkey/ - public key cryptography (26 files)
+        * src/mac/ - message authentication codes (6 files)
+        * src/modes/ - cipher modes (9 files)
+        * src/encoding/ - encoding/compression (8 files)
+        * src/random/ - random number generation (9 files)
+        * src/util/ - utilities (3 files)
+        * src/test/ - test files (23 files)
+      - updated all build systems for new structure
+        * GNUmakefile, MSVC project files, nmake
+      - maintained backward compatibility
+        * flat include/cryptopp/ structure preserved
+        * drop-in replacement for Crypto++ 8.9.0
+      - multi-platform CI/CD testing
+        * 45+ build configurations on GitHub Actions
+        * Windows MSVC 2022, Linux GCC/Clang, macOS Apple Clang
+        * sanitizer testing (ASan, UBSan)
 
 2025.11.0 - November 2025
       - minor release, recompile of programs required
