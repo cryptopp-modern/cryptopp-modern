@@ -61,6 +61,7 @@
       <ErrorReporting>None</ErrorReporting>
       <WarningLevel>Level4</WarningLevel>
       <DisableSpecificWarnings>4231; 4251; 4275; 4355; 4505</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CallingConvention>StdCall</CallingConvention>
       <PrecompiledHeader />
       <AdditionalOptions>$(AdditionalOptions)</AdditionalOptions>
