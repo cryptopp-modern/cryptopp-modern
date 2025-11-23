@@ -2,7 +2,7 @@ name: Phase 2 Testing
 
 on:
   push:
-    branches: [ phase2 ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
     paths-ignore:
