@@ -394,8 +394,42 @@ cpuid64.obj: src\core\cpuid64.asm
 #.cpp.obj:
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXXFLAGS_EXPORTS) /c $<
 
-.cpp.obj:
+# Inference rules for source directories
+{src\core}.cpp.obj:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
 
-.asm.obj:
+{src\hash}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\kdf}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\symmetric}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\pubkey}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\mac}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\modes}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\encoding}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\random}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\util}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\test}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\core}.asm.obj:
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /c $<
+
+{src\random}.asm.obj:
 	$(AS) $(CPPFLAGS) $(ASFLAGS) /c $<
