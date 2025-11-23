@@ -2,33 +2,33 @@
 //                CryptoPP::Test namespace added by JW in February 2017.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "asn.h"
-#include "oids.h"
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
 
-#include "sha.h"
-#include "sha3.h"
+#include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
 
-#include "dh.h"
-#include "luc.h"
-#include "mqv.h"
-#include "xtr.h"
-#include "hmqv.h"
-#include "pubkey.h"
-#include "xtrcrypt.h"
-#include "eccrypto.h"
+#include <cryptopp/dh.h>
+#include <cryptopp/luc.h>
+#include <cryptopp/mqv.h>
+#include <cryptopp/xtr.h>
+#include <cryptopp/hmqv.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/xtrcrypt.h>
+#include <cryptopp/eccrypto.h>
 
 // Curve25519
-#include "xed25519.h"
-#include "donna.h"
-#include "naclite.h"
+#include <cryptopp/xed25519.h>
+#include <cryptopp/donna.h>
+#include <cryptopp/naclite.h>
 
 #include <iostream>
 #include <iomanip>

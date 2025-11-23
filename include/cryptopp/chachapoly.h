@@ -14,10 +14,10 @@
 #ifndef CRYPTOPP_CHACHA_POLY1305_H
 #define CRYPTOPP_CHACHA_POLY1305_H
 
-#include "cryptlib.h"
-#include "authenc.h"
-#include "chacha.h"
-#include "poly1305.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/authenc.h>
+#include <cryptopp/chacha.h>
+#include <cryptopp/poly1305.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

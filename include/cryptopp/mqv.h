@@ -7,12 +7,12 @@
 #ifndef CRYPTOPP_MQV_H
 #define CRYPTOPP_MQV_H
 
-#include "cryptlib.h"
-#include "gfpcrypt.h"
-#include "modarith.h"
-#include "integer.h"
-#include "algebra.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/gfpcrypt.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/algebra.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

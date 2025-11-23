@@ -1,12 +1,12 @@
 // basecode.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "basecode.h"
-#include "fltrimpl.h"
+#include <cryptopp/basecode.h>
+#include <cryptopp/fltrimpl.h>
 #include <ctype.h>
 
 NAMESPACE_BEGIN(CryptoPP)

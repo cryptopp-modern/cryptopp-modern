@@ -9,13 +9,13 @@
 //              performed better than the reference implementation and our initial attempts. The only downside
 //              was the missing big endian port.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "kalyna.h"
-#include "argnames.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/kalyna.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(KalynaTab)

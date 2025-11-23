@@ -1,8 +1,8 @@
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cbcmac.h"
+#include <cryptopp/cbcmac.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

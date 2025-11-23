@@ -2,8 +2,8 @@
 
 // Thanks to Leonard Janke for the suggestion for AutoSeededRandomPool.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
@@ -18,8 +18,8 @@
 
 #if !defined(NO_OS_DEPENDENCE) && defined(OS_RNG_AVAILABLE)
 
-#include "osrng.h"
-#include "rng.h"
+#include <cryptopp/osrng.h>
+#include <cryptopp/rng.h>
 
 // FreeBSD links /dev/urandom -> /dev/random. It showed up when we added
 // O_NOFOLLOW to harden the non-blocking generator. Use Arc4Random instead

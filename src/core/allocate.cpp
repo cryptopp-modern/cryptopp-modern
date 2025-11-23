@@ -4,15 +4,15 @@
 // and misc.cpp. They were extracted in September 2019 to sidestep a circular
 // dependency with misc.h and secblock.h.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "allocate.h"
-#include "stdcpp.h"
-#include "misc.h"
-#include "trap.h"
+#include <cryptopp/allocate.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/trap.h>
 
 // for memalign
 #if defined(CRYPTOPP_MEMALIGN_AVAILABLE) || defined(CRYPTOPP_MM_MALLOC_AVAILABLE) || defined(QNX)

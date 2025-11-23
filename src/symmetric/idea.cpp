@@ -1,9 +1,9 @@
 // idea.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "idea.h"
-#include "misc.h"
-#include "secblock.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/idea.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

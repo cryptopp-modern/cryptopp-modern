@@ -18,11 +18,11 @@
 #ifndef CRYPTOPP_RANDPOOL_H
 #define CRYPTOPP_RANDPOOL_H
 
-#include "cryptlib.h"
-#include "filters.h"
-#include "secblock.h"
-#include "smartptr.h"
-#include "aes.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/aes.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

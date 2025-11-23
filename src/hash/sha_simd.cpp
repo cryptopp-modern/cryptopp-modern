@@ -6,10 +6,10 @@
 //    because additional CXXFLAGS are required to enable the
 //    appropriate instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
-#include "sha.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/misc.h>
 
 #if defined(CRYPTOPP_DISABLE_SHA_ASM)
 # undef CRYPTOPP_X86_ASM_AVAILABLE
@@ -35,7 +35,7 @@
 #endif
 
 #if CRYPTOPP_POWER8_SHA_AVAILABLE
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY

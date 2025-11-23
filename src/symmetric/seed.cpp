@@ -1,9 +1,9 @@
 // seed.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "seed.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/seed.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

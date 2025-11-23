@@ -5,11 +5,11 @@
 //    source file is needed because additional CXXFLAGS are required to enable
 //    the appropriate instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "cham.h"
-#include "misc.h"
+#include <cryptopp/cham.h>
+#include <cryptopp/misc.h>
 
 // Uncomment for benchmarking C++ against SSE or NEON.
 // Do so in both simon.cpp and simon_simd.cpp.
@@ -17,7 +17,7 @@
 // #undef CRYPTOPP_ARM_NEON_AVAILABLE
 
 #if (CRYPTOPP_SSSE3_AVAILABLE)
-#include "adv_simd.h"
+#include <cryptopp/adv_simd.h>
 # include <pmmintrin.h>
 # include <tmmintrin.h>
 #endif

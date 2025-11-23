@@ -7,8 +7,8 @@
 #ifndef CRYPTOPP_CMAC_H
 #define CRYPTOPP_CMAC_H
 
-#include "seckey.h"
-#include "secblock.h"
+#include <cryptopp/seckey.h>
+#include <cryptopp/secblock.h>
 
 /// \brief Enable CMAC and wide block ciphers
 /// \details CMAC is only defined for AES. The library can support wide

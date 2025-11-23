@@ -2,13 +2,13 @@
 //                 Based on public domain code by Keru Kuro. Kuro's code is
 //                 available at http://cppcrypto.sourceforge.net/.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "threefish.h"
-#include "misc.h"
-#include "algparam.h"
-#include "argnames.h"
+#include <cryptopp/threefish.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/argnames.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

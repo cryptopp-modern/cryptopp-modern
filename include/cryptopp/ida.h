@@ -6,14 +6,14 @@
 #ifndef CRYPTOPP_IDA_H
 #define CRYPTOPP_IDA_H
 
-#include "cryptlib.h"
-#include "mqueue.h"
-#include "filters.h"
-#include "channels.h"
-#include "secblock.h"
-#include "gf2_32.h"
-#include "stdcpp.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/mqueue.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/channels.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/gf2_32.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

@@ -6,13 +6,13 @@
 #ifndef CRYPTOPP_ALGPARAM_H
 #define CRYPTOPP_ALGPARAM_H
 
-#include "config.h"
-#include "cryptlib.h"
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
 
-#include "smartptr.h"
-#include "secblock.h"
-#include "integer.h"
-#include "misc.h"
+#include <cryptopp/smartptr.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/misc.h>
 
 #include <string>
 #include <typeinfo>

@@ -4,45 +4,45 @@
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "factory.h"
-#include "bench.h"
-#include "cpu.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/cpu.h>
 
 // For MAC's
-#include "hmac.h"
-#include "cmac.h"
-#include "dmac.h"
-#include "vmac.h"
-#include "ttmac.h"
+#include <cryptopp/hmac.h>
+#include <cryptopp/cmac.h>
+#include <cryptopp/dmac.h>
+#include <cryptopp/vmac.h>
+#include <cryptopp/ttmac.h>
 
 // Ciphers
-#include "md5.h"
-#include "keccak.h"
-#include "sha.h"
-#include "sha3.h"
-#include "blake2.h"
-#include "ripemd.h"
-#include "chacha.h"
-#include "poly1305.h"
-#include "siphash.h"
-#include "panama.h"
+#include <cryptopp/md5.h>
+#include <cryptopp/keccak.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/chacha.h>
+#include <cryptopp/poly1305.h>
+#include <cryptopp/siphash.h>
+#include <cryptopp/panama.h>
 
 // Stream ciphers
-#include "arc4.h"
-#include "seal.h"
-#include "wake.h"
-#include "chacha.h"
-#include "salsa.h"
-#include "rabbit.h"
-#include "hc128.h"
-#include "hc256.h"
-#include "panama.h"
-#include "sosemanuk.h"
+#include <cryptopp/arc4.h>
+#include <cryptopp/seal.h>
+#include <cryptopp/wake.h>
+#include <cryptopp/chacha.h>
+#include <cryptopp/salsa.h>
+#include <cryptopp/rabbit.h>
+#include <cryptopp/hc128.h>
+#include <cryptopp/hc256.h>
+#include <cryptopp/panama.h>
+#include <cryptopp/sosemanuk.h>
 
 // Block for CMAC
-#include "aes.h"
-#include "des.h"
+#include <cryptopp/aes.h>
+#include <cryptopp/des.h>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)

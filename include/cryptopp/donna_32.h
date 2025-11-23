@@ -12,7 +12,7 @@
 #define CRYPTOPP_DONNA_32_H
 #ifndef CRYPTOPP_DOXYGEN_PROCESSING
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(Donna)

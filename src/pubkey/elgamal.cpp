@@ -1,9 +1,9 @@
 // elgamal.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "elgamal.h"
-#include "asn.h"
-#include "nbtheory.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/elgamal.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/nbtheory.h>
 
 // Squash MS LNK4221 and libtool warnings
 extern const char ELGAMAL_FNAME[] = __FILE__;

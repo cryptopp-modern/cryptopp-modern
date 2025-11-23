@@ -1,13 +1,13 @@
 // ida.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "ida.h"
-#include "stdcpp.h"
-#include "algebra.h"
-#include "polynomi.h"
-#include "polynomi.cpp"
+#include <cryptopp/ida.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/algebra.h>
+#include <cryptopp/polynomi.h>
+#include "../core/polynomi.cpp"
 
 NAMESPACE_BEGIN(CryptoPP)
 

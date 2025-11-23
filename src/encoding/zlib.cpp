@@ -5,11 +5,11 @@
 // (RFC 1950) that the library implements. This file is part of a
 // complete reimplementation of the zlib compression format.
 
-#include "pch.h"
-#include "zlib.h"
-#include "zdeflate.h"
-#include "zinflate.h"
-#include "secblock.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/zlib.h>
+#include <cryptopp/zdeflate.h>
+#include <cryptopp/zinflate.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

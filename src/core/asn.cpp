@@ -1,14 +1,14 @@
 // asn.cpp - originally written and placed in the public domain by Wei Dai
 //           CryptoPP::Test namespace added by JW in February 2017
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cryptlib.h"
-#include "asn.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/misc.h>
 
 #include <iostream>
 #include <iomanip>

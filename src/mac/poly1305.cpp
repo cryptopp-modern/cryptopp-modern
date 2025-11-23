@@ -19,11 +19,11 @@
 //   holder and contributors may be used to endorse or promote products
 //   derived from this software without specific prior written permission.
 
-#include "pch.h"
-#include "cryptlib.h"
-#include "poly1305.h"
-#include "aes.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/poly1305.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/cpu.h>
 
 ////////////////////////////// Common Poly1305 //////////////////////////////
 

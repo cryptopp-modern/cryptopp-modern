@@ -14,11 +14,11 @@
 //    * Intel Broadwell, 2.3 GHz: AVX2 at 3828 MB/s; 0.58 cpb.
 //    * AMD Bulldozer,   3.3 GHz: AVX2 at 1680 MB/s; 1.47 cpb.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "chacha.h"
-#include "misc.h"
+#include <cryptopp/chacha.h>
+#include <cryptopp/misc.h>
 
 #if defined(CRYPTOPP_AVX2_AVAILABLE)
 # include <xmmintrin.h>

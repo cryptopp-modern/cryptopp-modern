@@ -8,11 +8,11 @@
 #define CRYPTOPP_DEFAULT_NO_DLL
 #endif
 
-#include "dll.h"
-#include "cryptlib.h"
-#include "smartptr.h"
-#include "filters.h"
-#include "oids.h"
+#include <cryptopp/dll.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/oids.h>
 
 USING_NAMESPACE(CryptoPP)
 

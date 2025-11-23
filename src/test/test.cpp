@@ -6,30 +6,30 @@
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "dll.h"
-#include "cryptlib.h"
-#include "aes.h"
-#include "filters.h"
-#include "md5.h"
-#include "ripemd.h"
-#include "rng.h"
-#include "gzip.h"
-#include "default.h"
-#include "randpool.h"
-#include "ida.h"
-#include "base64.h"
-#include "factory.h"
-#include "whrlpool.h"
-#include "tiger.h"
-#include "smartptr.h"
-#include "pkcspad.h"
-#include "stdcpp.h"
-#include "osrng.h"
-#include "ossig.h"
-#include "trap.h"
+#include <cryptopp/dll.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/md5.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/rng.h>
+#include <cryptopp/gzip.h>
+#include <cryptopp/default.h>
+#include <cryptopp/randpool.h>
+#include <cryptopp/ida.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/whrlpool.h>
+#include <cryptopp/tiger.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/pkcspad.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/ossig.h>
+#include <cryptopp/trap.h>
 
-#include "validate.h"
-#include "bench.h"
+#include <cryptopp/validate.h>
+#include <cryptopp/bench.h>
 
 #include <iostream>
 #include <sstream>

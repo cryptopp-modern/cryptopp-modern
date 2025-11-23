@@ -8,23 +8,23 @@
 #ifndef CRYPTOPP_GFPCRYPT_H
 #define CRYPTOPP_GFPCRYPT_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(push)
 # pragma warning(disable: 4189 4231 4275)
 #endif
 
-#include "cryptlib.h"
-#include "pubkey.h"
-#include "integer.h"
-#include "modexppc.h"
-#include "algparam.h"
-#include "smartptr.h"
-#include "sha.h"
-#include "asn.h"
-#include "hmac.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/modexppc.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

@@ -9,8 +9,8 @@ attacks. The protection is similar to what was implemented for Rijndael.
 See comments at top of rijndael.cpp for more details.
 */
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4456)
@@ -19,9 +19,9 @@ See comments at top of rijndael.cpp for more details.
 # endif
 #endif
 
-#include "camellia.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/camellia.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

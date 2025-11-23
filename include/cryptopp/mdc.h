@@ -6,9 +6,9 @@
 #ifndef CRYPTOPP_MDC_H
 #define CRYPTOPP_MDC_H
 
-#include "seckey.h"
-#include "secblock.h"
-#include "misc.h"
+#include <cryptopp/seckey.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
 
 // GCC cast warning
 #define HashWordPtr(x) ((HashWordType*)(void*)(x))

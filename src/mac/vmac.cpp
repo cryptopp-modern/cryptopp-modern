@@ -1,13 +1,13 @@
 // vmac.cpp - originally written and placed in the public domain by Wei Dai
 // based on Ted Krovetz's public domain vmac.c and draft-krovetz-vmac-01.txt
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "vmac.h"
-#include "cpu.h"
-#include "argnames.h"
-#include "secblock.h"
+#include <cryptopp/vmac.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/secblock.h>
 
 #if defined(CRYPTOPP_MSC_VERSION) && !CRYPTOPP_BOOL_SLOW_WORD64
 #include <intrin.h>

@@ -10,18 +10,18 @@
 //
 //    ARMv8 is upcoming.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "sm4.h"
-#include "misc.h"
+#include <cryptopp/sm4.h>
+#include <cryptopp/misc.h>
 
 // Uncomment for benchmarking C++ against SSE.
 // Do so in both simon.cpp and simon_simd.cpp.
 // #undef CRYPTOPP_AESNI_AVAILABLE
 
 #if (CRYPTOPP_AESNI_AVAILABLE)
-# include "adv_simd.h"
+# include <cryptopp/adv_simd.h>
 # include <emmintrin.h>
 # include <tmmintrin.h>
 # include <wmmintrin.h>

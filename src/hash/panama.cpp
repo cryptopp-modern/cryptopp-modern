@@ -2,14 +2,14 @@
 
 // use "cl /EP /P /DCRYPTOPP_GENERATE_X64_MASM panama.cpp" to generate MASM code
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_GENERATE_X64_MASM
 
-#include "panama.h"
-#include "secblock.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/panama.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

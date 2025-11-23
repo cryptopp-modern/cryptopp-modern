@@ -9,12 +9,12 @@
 // 82735, https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82735. It
 // makes using zeroupper a little tricky.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "lsh.h"
-#include "cpu.h"
-#include "misc.h"
+#include <cryptopp/lsh.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/misc.h>
 
 // Squash MS LNK4221 and libtool warnings
 extern const char LSH256_SSE_FNAME[] = __FILE__;

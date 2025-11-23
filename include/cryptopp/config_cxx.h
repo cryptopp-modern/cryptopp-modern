@@ -29,9 +29,9 @@
 #ifndef CRYPTOPP_CONFIG_CXX_H
 #define CRYPTOPP_CONFIG_CXX_H
 
-#include "config_os.h"
-#include "config_cpu.h"
-#include "config_ver.h"
+#include <cryptopp/config_os.h>
+#include <cryptopp/config_cpu.h>
+#include <cryptopp/config_ver.h>
 
 // https://github.com/weidai11/cryptopp/issues/960
 #include <string>

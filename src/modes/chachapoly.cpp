@@ -1,10 +1,10 @@
 // chachapoly.cpp - written and placed in the public domain by Jeffrey Walton
 //                  RFC 8439, Section 2.8, AEAD Construction, http://tools.ietf.org/html/rfc8439
 
-#include "pch.h"
-#include "chachapoly.h"
-#include "algparam.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/chachapoly.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/misc.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4244)

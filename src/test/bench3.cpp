@@ -1,45 +1,45 @@
 // bench3.cpp - originally written and placed in the public domain by Wei Dai
 //              CryptoPP::Test namespace added by JW in February 2017
 
-#include "cryptlib.h"
-#include "bench.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/validate.h>
 
-#include "cpu.h"
-#include "factory.h"
-#include "algparam.h"
-#include "argnames.h"
-#include "smartptr.h"
-#include "stdcpp.h"
+#include <cryptopp/cpu.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
 
-#include "pubkey.h"
-#include "gfpcrypt.h"
-#include "eccrypto.h"
-#include "pkcspad.h"
+#include <cryptopp/pubkey.h>
+#include <cryptopp/gfpcrypt.h>
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/pkcspad.h>
 
-#include "files.h"
-#include "filters.h"
-#include "hex.h"
-#include "rsa.h"
-#include "nr.h"
-#include "dsa.h"
-#include "luc.h"
-#include "rw.h"
-#include "ecp.h"
-#include "ec2n.h"
-#include "asn.h"
-#include "dh.h"
-#include "mqv.h"
-#include "hmqv.h"
-#include "fhmqv.h"
-#include "xed25519.h"
-#include "xtrcrypt.h"
-#include "esign.h"
-#include "pssr.h"
-#include "oids.h"
-#include "randpool.h"
-#include "stdcpp.h"
-#include "hrtimer.h"
+#include <cryptopp/files.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/rsa.h>
+#include <cryptopp/nr.h>
+#include <cryptopp/dsa.h>
+#include <cryptopp/luc.h>
+#include <cryptopp/rw.h>
+#include <cryptopp/ecp.h>
+#include <cryptopp/ec2n.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/dh.h>
+#include <cryptopp/mqv.h>
+#include <cryptopp/hmqv.h>
+#include <cryptopp/fhmqv.h>
+#include <cryptopp/xed25519.h>
+#include <cryptopp/xtrcrypt.h>
+#include <cryptopp/esign.h>
+#include <cryptopp/pssr.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/randpool.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/hrtimer.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4505 4355)

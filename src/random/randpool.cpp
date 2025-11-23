@@ -4,19 +4,19 @@
 // of reusing random numbers after state rollback (which may occur
 // when running in a virtual machine like VMware).
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "randpool.h"
-#include "aes.h"
-#include "sha.h"
-#include "hrtimer.h"
-#include "trap.h"
+#include <cryptopp/randpool.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hrtimer.h>
+#include <cryptopp/trap.h>
 
 // OldRandomPool
-#include "mdc.h"
-#include "modes.h"
+#include <cryptopp/mdc.h>
+#include <cryptopp/modes.h>
 
 #include <time.h>
 

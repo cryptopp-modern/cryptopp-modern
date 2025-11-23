@@ -16,10 +16,10 @@
 //   -I lib/low/KeccakP-1600-times2/SIMD128/SSE2ufull
 //   lib/low/KeccakP-1600-times2/SIMD128/KeccakP-1600-times2-SIMD128.c -E
 
-#include "pch.h"
-#include "config.h"
-#include "keccak.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/keccak.h>
+#include <cryptopp/misc.h>
 
 #if (CRYPTOPP_SSSE3_AVAILABLE)
 # include <emmintrin.h>

@@ -1,23 +1,23 @@
 // bench1.cpp - originally written and placed in the public domain by Wei Dai
 //              CryptoPP::Test namespace added by JW in February 2017
 
-#include "cryptlib.h"
-#include "bench.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/validate.h>
 
-#include "cpu.h"
-#include "factory.h"
-#include "algparam.h"
-#include "argnames.h"
-#include "smartptr.h"
-#include "stdcpp.h"
+#include <cryptopp/cpu.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
 
-#include "osrng.h"
-#include "drbg.h"
-#include "darn.h"
-#include "mersenne.h"
-#include "rdrand.h"
-#include "padlkrng.h"
+#include <cryptopp/osrng.h>
+#include <cryptopp/drbg.h>
+#include <cryptopp/darn.h>
+#include <cryptopp/mersenne.h>
+#include <cryptopp/rdrand.h>
+#include <cryptopp/padlkrng.h>
 
 #include <iostream>
 #include <iomanip>

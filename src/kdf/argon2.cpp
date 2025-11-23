@@ -3,14 +3,14 @@
 //              Dmitry Khovratovich, Jean-Philippe Aumasson, and Samuel Neves.
 //              Reference implementation at http://github.com/P-H-C/phc-winner-argon2.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "argon2.h"
-#include "algparam.h"
-#include "argnames.h"
-#include "blake2.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/argon2.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 #include <sstream>
 #include <limits>

@@ -2,24 +2,24 @@
 //                Routines in this source file are only tested in Debug builds.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "asn.h"
-#include "gf2n.h"
-#include "default.h"
-#include "integer.h"
-#include "polynomi.h"
-#include "channels.h"
+#include <cryptopp/asn.h>
+#include <cryptopp/gf2n.h>
+#include <cryptopp/default.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/polynomi.h>
+#include <cryptopp/channels.h>
 
-#include "ida.h"
-#include "gzip.h"
-#include "zlib.h"
+#include <cryptopp/ida.h>
+#include <cryptopp/gzip.h>
+#include <cryptopp/zlib.h>
 
 #include <iostream>
 #include <iomanip>

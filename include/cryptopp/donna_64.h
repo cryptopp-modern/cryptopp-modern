@@ -12,7 +12,7 @@
 #define CRYPTOPP_DONNA_64_H
 #ifndef CRYPTOPP_DOXYGEN_PROCESSING
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if defined(CRYPTOPP_MSC_VERSION)
 # include <intrin.h>

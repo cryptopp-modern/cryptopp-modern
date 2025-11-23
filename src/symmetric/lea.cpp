@@ -13,12 +13,12 @@
 //           The implementation does not exactly follow the aglorithmic description from
 //           the LEA paper.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "lea.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/lea.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

@@ -1,11 +1,11 @@
 // rdrand.cpp - written and placed in public domain by Jeffrey Walton and Uri Blumenthal.
 
-#include "pch.h"
-#include "config.h"
-#include "cryptlib.h"
-#include "secblock.h"
-#include "rdrand.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/rdrand.h>
+#include <cryptopp/cpu.h>
 
 // This file (and friends) provides both RDRAND and RDSEED. They were added
 //   at Crypto++ 5.6.3. At compile time, it uses CRYPTOPP_BOOL_{X86|X32|X64}

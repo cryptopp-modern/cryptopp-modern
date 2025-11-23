@@ -1,11 +1,11 @@
 // cmac.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cmac.h"
-#include "misc.h"
+#include <cryptopp/cmac.h>
+#include <cryptopp/misc.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

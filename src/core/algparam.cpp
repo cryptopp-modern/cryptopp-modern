@@ -1,11 +1,11 @@
 // algparam.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "algparam.h"
-#include "integer.h"
+#include <cryptopp/algparam.h>
+#include <cryptopp/integer.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

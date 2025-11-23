@@ -6,9 +6,9 @@
 #ifndef CRYPTOPP_ALGEBRA_H
 #define CRYPTOPP_ALGEBRA_H
 
-#include "config.h"
-#include "integer.h"
-#include "misc.h"
+#include <cryptopp/config.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -447,7 +447,7 @@ protected:
 NAMESPACE_END
 
 #ifdef CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
-#include "algebra.cpp"
+#include "../src/core/algebra.cpp"
 #endif
 
 #endif

@@ -1,7 +1,7 @@
 // dsa.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 // TODO: fix the C4589 warnings
 #if CRYPTOPP_MSC_VERSION
@@ -10,13 +10,13 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "gfpcrypt.h"
-#include "nbtheory.h"
-#include "modarith.h"
-#include "integer.h"
-#include "asn.h"
-#include "oids.h"
-#include "misc.h"
+#include <cryptopp/gfpcrypt.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

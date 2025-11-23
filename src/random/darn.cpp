@@ -1,11 +1,11 @@
 // darn.cpp - written and placed in public domain by Jeffrey Walton
 
-#include "pch.h"
-#include "config.h"
-#include "cryptlib.h"
-#include "secblock.h"
-#include "darn.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/darn.h>
+#include <cryptopp/cpu.h>
 
 // At the moment only GCC 7.0 (and above) seems to support __builtin_darn()
 // and __builtin_darn_32(). Clang 7.0 does not provide them, but it does

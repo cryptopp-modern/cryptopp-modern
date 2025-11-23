@@ -1,9 +1,9 @@
 // rc5.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "rc5.h"
-#include "misc.h"
-#include "secblock.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/rc5.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

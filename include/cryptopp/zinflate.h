@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_ZINFLATE_H
 #define CRYPTOPP_ZINFLATE_H
 
-#include "cryptlib.h"
-#include "secblock.h"
-#include "filters.h"
-#include "stdcpp.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/stdcpp.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

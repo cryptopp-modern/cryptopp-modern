@@ -3,12 +3,12 @@
 //                 written by Daniel J. Bernstein, Bernard van Gastel, Wesley
 //                 Janssen, Tanja Lange, Peter Schwabe and Sjaak Smetsers.
 
-#include "pch.h"
-#include "config.h"
-#include "naclite.h"
-#include "misc.h"
-#include "osrng.h"
-#include "stdcpp.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/naclite.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/stdcpp.h>
 
 // Don't destroy const time properties when squashing warnings.
 #if CRYPTOPP_MSC_VERSION

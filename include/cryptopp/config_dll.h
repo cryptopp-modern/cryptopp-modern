@@ -30,7 +30,7 @@
 #ifndef CRYPTOPP_CONFIG_DLL_H
 #define CRYPTOPP_CONFIG_DLL_H
 
-#include "config_os.h"
+#include <cryptopp/config_os.h>
 
 #if defined(CRYPTOPP_DOXYGEN_PROCESSING)
 

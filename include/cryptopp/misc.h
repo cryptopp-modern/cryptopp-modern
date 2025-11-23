@@ -6,13 +6,13 @@
 #ifndef CRYPTOPP_MISC_H
 #define CRYPTOPP_MISC_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
-#include "cryptlib.h"
-#include "secblockfwd.h"
-#include "smartptr.h"
-#include "stdcpp.h"
-#include "trap.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblockfwd.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/trap.h>
 
 #if !defined(CRYPTOPP_DOXYGEN_PROCESSING)
 

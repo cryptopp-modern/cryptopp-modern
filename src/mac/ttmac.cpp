@@ -1,8 +1,8 @@
 // ttmac.cpp - written and placed in the public domain by Kevin Springle
 
-#include "pch.h"
-#include "ttmac.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/ttmac.h>
+#include <cryptopp/misc.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

@@ -1,13 +1,13 @@
 // pubkey.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "pubkey.h"
-#include "integer.h"
-#include "filters.h"
+#include <cryptopp/pubkey.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/filters.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

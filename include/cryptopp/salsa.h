@@ -6,8 +6,8 @@
 #ifndef CRYPTOPP_SALSA_H
 #define CRYPTOPP_SALSA_H
 
-#include "strciphr.h"
-#include "secblock.h"
+#include <cryptopp/strciphr.h>
+#include <cryptopp/secblock.h>
 
 // Clang 3.3 integrated assembler crash on Linux. Clang 3.4 due to compiler
 // error with .intel_syntax, http://llvm.org/bugs/show_bug.cgi?id=24232

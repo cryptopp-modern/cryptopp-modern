@@ -6,18 +6,18 @@
 #ifndef CRYPTOPP_OSRNG_H
 #define CRYPTOPP_OSRNG_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if !defined(NO_OS_DEPENDENCE) && defined(OS_RNG_AVAILABLE)
 
-#include "cryptlib.h"
-#include "randpool.h"
-#include "smartptr.h"
-#include "fips140.h"
-#include "hkdf.h"
-#include "rng.h"
-#include "aes.h"
-#include "sha.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/randpool.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/fips140.h>
+#include <cryptopp/hkdf.h>
+#include <cryptopp/rng.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/sha.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

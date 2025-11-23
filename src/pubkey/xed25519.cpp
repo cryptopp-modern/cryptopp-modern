@@ -4,16 +4,16 @@
 //                https://github.com/floodyberry/curve25519-donna and
 //                https://github.com/floodyberry/ed25519-donna.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "cryptlib.h"
-#include "asn.h"
-#include "integer.h"
-#include "filters.h"
-#include "stdcpp.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/stdcpp.h>
 
-#include "xed25519.h"
-#include "donna.h"
+#include <cryptopp/xed25519.h>
+#include <cryptopp/donna.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

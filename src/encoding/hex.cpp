@@ -1,10 +1,10 @@
 // hex.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "hex.h"
+#include <cryptopp/hex.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 ANONYMOUS_NAMESPACE_BEGIN

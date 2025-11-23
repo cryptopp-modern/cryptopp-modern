@@ -1,17 +1,17 @@
 // nbtheory.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "nbtheory.h"
-#include "integer.h"
-#include "modarith.h"
-#include "algparam.h"
-#include "smartptr.h"
-#include "misc.h"
-#include "stdcpp.h"
-#include "trap.h"
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/trap.h>
 
 #ifdef _OPENMP
 # include <omp.h>

@@ -14,9 +14,9 @@
  * Phil Karn KA9Q, karn@unix.ka9q.ampr.org, August 1994.
  */
 
-#include "pch.h"
-#include "misc.h"
-#include "des.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/des.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

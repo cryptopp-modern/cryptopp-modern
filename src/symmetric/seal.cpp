@@ -1,13 +1,13 @@
 // seal.cpp - originally written and placed in the public domain by Wei Dai
 // updated to SEAL 3.0 by Leonard Janke
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "seal.h"
-#include "cpu.h"
-#include "sha.h"
-#include "misc.h"
-#include "secblock.h"
+#include <cryptopp/seal.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

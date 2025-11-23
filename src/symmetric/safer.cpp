@@ -1,9 +1,9 @@
 // safer.cpp - modified by by Wei Dai from Richard De Moliner's safer.c
 
-#include "pch.h"
-#include "safer.h"
-#include "misc.h"
-#include "argnames.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/safer.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/argnames.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4244)

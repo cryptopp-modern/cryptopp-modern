@@ -1,8 +1,8 @@
 // kalynatab.cpp - written and placed in the public domain by Jeffrey Walton
 
-#include "pch.h"
-#include "config.h"
-#include "kalyna.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/kalyna.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(KalynaTab)

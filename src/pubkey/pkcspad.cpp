@@ -1,15 +1,15 @@
 // pkcspad.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_PKCSPAD_CPP	// SunCC workaround: compiler could cause this file to be included twice
 #define CRYPTOPP_PKCSPAD_CPP
 
-#include "pkcspad.h"
-#include "emsa2.h"
-#include "hashfwd.h"
-#include "misc.h"
-#include "trap.h"
+#include <cryptopp/pkcspad.h>
+#include <cryptopp/emsa2.h>
+#include <cryptopp/hashfwd.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/trap.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

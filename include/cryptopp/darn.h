@@ -19,7 +19,7 @@
 #ifndef CRYPTOPP_DARN_H
 #define CRYPTOPP_DARN_H
 
-#include "cryptlib.h"
+#include <cryptopp/cryptlib.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

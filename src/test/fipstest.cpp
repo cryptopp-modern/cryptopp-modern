@@ -1,17 +1,17 @@
 // fipstest.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
 #define CRYPTOPP_DEFAULT_NO_DLL
-#include "dll.h"
-#include "cryptlib.h"
-#include "filters.h"
-#include "smartptr.h"
-#include "pkcspad.h"
-#include "misc.h"
+#include <cryptopp/dll.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/pkcspad.h>
+#include <cryptopp/misc.h>
 
 // Simply disable CRYPTOPP_WIN32_AVAILABLE for Windows Phone and Windows Store apps
 #ifdef CRYPTOPP_WIN32_AVAILABLE

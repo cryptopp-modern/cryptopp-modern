@@ -14,15 +14,15 @@
 //    glue code for box.c and box.exp is in "cmptest.h". box.c runs the test and
 //    generates output, while cmptest.h gathers the output and compares them.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "secblock.h"
-#include "integer.h"
-#include "naclite.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/naclite.h>
+#include <cryptopp/validate.h>
 
 #include <iostream>
 #include <iomanip>

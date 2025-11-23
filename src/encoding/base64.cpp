@@ -1,8 +1,8 @@
 // base64.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
-#include "base64.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/base64.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 ANONYMOUS_NAMESPACE_BEGIN

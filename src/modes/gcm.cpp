@@ -6,8 +6,8 @@
 
 // use "cl /EP /P /DCRYPTOPP_GENERATE_X64_MASM gcm.cpp" to generate MASM code
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 #ifndef CRYPTOPP_GENERATE_X64_MASM
@@ -17,8 +17,8 @@
 # pragma optimize("", off)
 #endif
 
-#include "gcm.h"
-#include "cpu.h"
+#include <cryptopp/gcm.h>
+#include <cryptopp/cpu.h>
 
 #if defined(CRYPTOPP_DISABLE_GCM_ASM)
 # undef CRYPTOPP_X86_ASM_AVAILABLE

@@ -2,45 +2,45 @@
 //                CryptoPP::Test namespace added by JW in February 2017.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "aes.h"
-#include "crc.h"
-#include "adler32.h"
+#include <cryptopp/aes.h>
+#include <cryptopp/crc.h>
+#include <cryptopp/adler32.h>
 
-#include "md2.h"
-#include "md4.h"
-#include "md5.h"
+#include <cryptopp/md2.h>
+#include <cryptopp/md4.h>
+#include <cryptopp/md5.h>
 
-#include "sha.h"
-#include "sha3.h"
-#include "shake.h"
-#include "keccak.h"
-#include "tiger.h"
-#include "blake2.h"
-#include "blake3.h"
-#include "ripemd.h"
-#include "siphash.h"
-#include "poly1305.h"
-#include "whrlpool.h"
-#include "lsh.h"
+#include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/shake.h>
+#include <cryptopp/keccak.h>
+#include <cryptopp/tiger.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/blake3.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/siphash.h>
+#include <cryptopp/poly1305.h>
+#include <cryptopp/whrlpool.h>
+#include <cryptopp/lsh.h>
 
-#include "pssr.h"
-#include "hkdf.h"
-#include "scrypt.h"
-#include "argon2.h"
-#include "pwdbased.h"
+#include <cryptopp/pssr.h>
+#include <cryptopp/hkdf.h>
+#include <cryptopp/scrypt.h>
+#include <cryptopp/argon2.h>
+#include <cryptopp/pwdbased.h>
 
-#include "cmac.h"
-#include "dmac.h"
-#include "hmac.h"
-#include "ttmac.h"
+#include <cryptopp/cmac.h>
+#include <cryptopp/dmac.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/ttmac.h>
 
 #include <iostream>
 #include <iomanip>

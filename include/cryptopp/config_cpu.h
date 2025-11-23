@@ -24,7 +24,7 @@
 #ifndef CRYPTOPP_CONFIG_CPU_H
 #define CRYPTOPP_CONFIG_CPU_H
 
-#include "config_ver.h"
+#include <cryptopp/config_ver.h>
 
 #if defined(CRYPTOPP_DOXYGEN_PROCESSING)
 	/// \brief 32-bit x32 platform

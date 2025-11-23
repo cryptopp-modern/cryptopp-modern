@@ -1,9 +1,9 @@
 // 3way.cpp - modified by Wei Dai from Joan Daemen's 3way.c
 // The original code and all modifications are in the public domain.
 
-#include "pch.h"
-#include "3way.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/3way.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

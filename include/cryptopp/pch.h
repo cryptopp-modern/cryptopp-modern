@@ -8,17 +8,17 @@
 #define CRYPTOPP_PCH_H
 
 # ifdef CRYPTOPP_GENERATE_X64_MASM
-	#include "cpu.h"
+	#include <cryptopp/cpu.h>
 
 # else
-	#include "config.h"
+	#include <cryptopp/config.h>
 
 	#ifdef USE_PRECOMPILED_HEADERS
-		#include "simple.h"
-		#include "secblock.h"
-		#include "misc.h"
-		#include "smartptr.h"
-		#include "stdcpp.h"
+		#include <cryptopp/simple.h>
+		#include <cryptopp/secblock.h>
+		#include <cryptopp/misc.h>
+		#include <cryptopp/smartptr.h>
+		#include <cryptopp/stdcpp.h>
 	#endif
 # endif
 

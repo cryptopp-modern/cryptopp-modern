@@ -6,15 +6,15 @@
 #ifndef CRYPTOPP_ELGAMAL_H
 #define CRYPTOPP_ELGAMAL_H
 
-#include "cryptlib.h"
-#include "modexppc.h"
-#include "integer.h"
-#include "gfpcrypt.h"
-#include "pubkey.h"
-#include "misc.h"
-#include "oids.h"
-#include "dsa.h"
-#include "asn.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/modexppc.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/gfpcrypt.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/dsa.h>
+#include <cryptopp/asn.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

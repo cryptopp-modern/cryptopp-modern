@@ -7,12 +7,12 @@
 //    to include SM3 and SM4 related instructions so the function
 //    is stubbed for an eventual SM3_HashMultipleBlocks_ARMV8.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "sm3.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/sm3.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

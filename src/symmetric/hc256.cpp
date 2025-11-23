@@ -4,13 +4,13 @@
 //             The reference materials and source files are available at
 //             The eSTREAM Project, http://www.ecrypt.eu.org/stream/hc256.html.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "hc256.h"
-#include "secblock.h"
-#include "strciphr.h"
-#include "misc.h"
+#include <cryptopp/hc256.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/strciphr.h>
+#include <cryptopp/misc.h>
 
 #define BYTES_PER_ITERATION 16
 

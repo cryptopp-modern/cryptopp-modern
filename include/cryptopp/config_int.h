@@ -25,9 +25,9 @@
 #ifndef CRYPTOPP_CONFIG_INT_H
 #define CRYPTOPP_CONFIG_INT_H
 
-#include "config_ns.h"
-#include "config_ver.h"
-#include "config_misc.h"
+#include <cryptopp/config_ns.h>
+#include <cryptopp/config_ver.h>
+#include <cryptopp/config_misc.h>
 
 // C5264 new for VS2022/v17.4, MSC v17.3.4
 // https://github.com/weidai11/cryptopp/issues/1185

@@ -10,8 +10,8 @@
 #ifndef CRYPTOPP_ALLOCATE_H
 #define CRYPTOPP_ALLOCATE_H
 
-#include "config.h"
-#include "cryptlib.h"
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

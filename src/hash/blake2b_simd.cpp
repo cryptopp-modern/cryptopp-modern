@@ -7,10 +7,10 @@
 //    needed because additional CXXFLAGS are required to enable the
 //    appropriate instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
-#include "misc.h"
-#include "blake2.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/blake2.h>
 
 // Uncomment for benchmarking C++ against SSE2 or NEON.
 // Do so in both blake2.cpp and blake2_simd.cpp.
@@ -55,7 +55,7 @@
 #endif
 
 #if (CRYPTOPP_POWER8_AVAILABLE)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 #if defined(CRYPTOPP_GCC_DIAGNOSTIC_AVAILABLE)

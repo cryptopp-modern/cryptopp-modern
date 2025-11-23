@@ -8,9 +8,9 @@
 #ifndef CRYPTOPP_MERSENNE_TWISTER_H
 #define CRYPTOPP_MERSENNE_TWISTER_H
 
-#include "cryptlib.h"
-#include "secblock.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

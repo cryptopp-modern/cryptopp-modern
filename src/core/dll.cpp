@@ -3,11 +3,11 @@
 #define CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
 #define CRYPTOPP_DEFAULT_NO_DLL
 
-#include "dll.h"
-#include "config.h"
-#include "iterhash.h"
-#include "pkcspad.h"
-#include "emsa2.h"
+#include <cryptopp/dll.h>
+#include <cryptopp/config.h>
+#include <cryptopp/iterhash.h>
+#include <cryptopp/pkcspad.h>
+#include <cryptopp/emsa2.h>
 
 #if defined(CRYPTOPP_MSC_VERSION)
 // Cast from FARPROC to funcptr with args, http://stackoverflow.com/q/4192058/608639

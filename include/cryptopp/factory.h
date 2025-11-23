@@ -6,9 +6,9 @@
 #ifndef CRYPTOPP_OBJFACT_H
 #define CRYPTOPP_OBJFACT_H
 
-#include "cryptlib.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

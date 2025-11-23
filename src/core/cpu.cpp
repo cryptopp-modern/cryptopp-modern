@@ -1,8 +1,8 @@
 // cpu.cpp - originally written and placed in the public domain by Wei Dai
 //           modified by Jeffrey Walton and the community over the years.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef EXCEPTION_EXECUTE_HANDLER
 # define EXCEPTION_EXECUTE_HANDLER 1
@@ -10,9 +10,9 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cpu.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/cpu.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 // For _xgetbv on Microsoft 32-bit and 64-bit Intel platforms
 // https://github.com/weidai11/cryptopp/issues/972

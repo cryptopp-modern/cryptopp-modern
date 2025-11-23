@@ -2,17 +2,17 @@
 //                Routines in this source file are only tested in Debug builds.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "algebra.h"
-#include "integer.h"
-#include "nbtheory.h"
+#include <cryptopp/algebra.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
 
 #include <iostream>
 #include <iomanip>

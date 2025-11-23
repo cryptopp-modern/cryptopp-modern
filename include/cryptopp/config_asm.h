@@ -23,9 +23,9 @@
 #ifndef CRYPTOPP_CONFIG_ASM_H
 #define CRYPTOPP_CONFIG_ASM_H
 
-#include "config_os.h"
-#include "config_cpu.h"
-#include "config_ver.h"
+#include <cryptopp/config_os.h>
+#include <cryptopp/config_cpu.h>
+#include <cryptopp/config_ver.h>
 
 // Define this to disable ASM, intrinsics and built-ins. The library code will
 // not explicitly include SSE2 (and above), NEON, Aarch32, Aarch64, or Altivec

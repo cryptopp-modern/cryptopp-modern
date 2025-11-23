@@ -2,12 +2,12 @@
 //              Based on "The Simeck Family of Lightweight Block Ciphers" by Gangqiang Yang,
 //              Bo Zhu, Valentin Suder, Mark D. Aagaard, and Guang Gong
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "simeck.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/simeck.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

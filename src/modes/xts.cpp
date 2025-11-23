@@ -7,16 +7,16 @@
 // The updated XorBuffer gains 0.3 to 1.5 cpb on the architectures for
 // 16-byte block sizes.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "xts.h"
-#include "misc.h"
-#include "modes.h"
-#include "cpu.h"
+#include <cryptopp/xts.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/cpu.h>
 
 #if defined(CRYPTOPP_DEBUG)
-# include "aes.h"
-# include "threefish.h"
+# include <cryptopp/aes.h>
+# include <cryptopp/threefish.h>
 #endif
 
 // 0.3 to 0.4 cpb profit
@@ -31,7 +31,7 @@
 #endif
 
 #if defined(__ALTIVEC__)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 ANONYMOUS_NAMESPACE_BEGIN

@@ -17,8 +17,8 @@
 #ifndef CRYPTOPP_LSH_H
 #define CRYPTOPP_LSH_H
 
-#include "cryptlib.h"
-#include "secblock.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
 
 // Enable SSE2 and AVX2 for 64-bit machines.
 // 32-bit machines slow down with SSE2.

@@ -1,12 +1,12 @@
 // channels.cpp - originally written and placed in the public domain by Wei Dai
 //                CryptoPP::Test namespace added by JW in February 2017
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cryptlib.h"
-#include "channels.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/channels.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4355)

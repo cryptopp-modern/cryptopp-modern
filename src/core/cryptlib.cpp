@@ -1,7 +1,7 @@
 // cryptlib.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4127 4189 4459)
@@ -15,17 +15,17 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "cryptlib.h"
-#include "filters.h"
-#include "algparam.h"
-#include "fips140.h"
-#include "argnames.h"
-#include "fltrimpl.h"
-#include "osrng.h"
-#include "secblock.h"
-#include "smartptr.h"
-#include "stdcpp.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/fips140.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/fltrimpl.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

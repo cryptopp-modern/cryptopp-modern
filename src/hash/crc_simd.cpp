@@ -6,9 +6,9 @@
 //    is needed because additional CXXFLAGS are required to enable
 //    the appropriate instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/misc.h>
 
 #if (CRYPTOPP_SSE42_AVAILABLE)
 # include <nmmintrin.h>
@@ -20,7 +20,7 @@
 #endif
 
 #if (CRYPTOPP_ARM_CRC32_AVAILABLE)
-# include "arm_simd.h"
+# include <cryptopp/arm_simd.h>
 #endif
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY

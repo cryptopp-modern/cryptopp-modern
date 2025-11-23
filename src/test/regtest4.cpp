@@ -4,23 +4,23 @@
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "factory.h"
-#include "bench.h"
-#include "cpu.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/cpu.h>
 
-#include "dh.h"
-#include "nr.h"
-#include "rw.h"
-#include "rsa.h"
-#include "dsa.h"
-#include "pssr.h"
-#include "esign.h"
+#include <cryptopp/dh.h>
+#include <cryptopp/nr.h>
+#include <cryptopp/rw.h>
+#include <cryptopp/rsa.h>
+#include <cryptopp/dsa.h>
+#include <cryptopp/pssr.h>
+#include <cryptopp/esign.h>
 
 // Hashes
-#include "md2.h"
-#include "md5.h"
-#include "sha.h"
+#include <cryptopp/md2.h>
+#include <cryptopp/md5.h>
+#include <cryptopp/sha.h>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)

@@ -28,17 +28,17 @@
 #ifndef CRYPTOPP_STRCIPHR_H
 #define CRYPTOPP_STRCIPHR_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(push)
 # pragma warning(disable: 4127 4189 4231 4275)
 #endif
 
-#include "cryptlib.h"
-#include "seckey.h"
-#include "secblock.h"
-#include "argnames.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/seckey.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/argnames.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -716,7 +716,7 @@ NAMESPACE_END
 
 // Used by dll.cpp to ensure objects are in dll.o, and not strciphr.o.
 #ifdef CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
-# include "strciphr.cpp"
+# include "../../src/core/strciphr.cpp"
 #endif
 
 NAMESPACE_BEGIN(CryptoPP)

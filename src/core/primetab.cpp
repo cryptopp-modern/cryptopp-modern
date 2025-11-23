@@ -36,11 +36,11 @@
 //
 // And then `./test.exe | fold -s -w 75
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "config_int.h"
+#include <cryptopp/config_int.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

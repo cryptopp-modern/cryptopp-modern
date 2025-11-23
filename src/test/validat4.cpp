@@ -2,55 +2,55 @@
 //                CryptoPP::Test namespace added by JW in February 2017.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "hex.h"
-#include "base32.h"
-#include "base64.h"
+#include <cryptopp/hex.h>
+#include <cryptopp/base32.h>
+#include <cryptopp/base64.h>
 
-#include "rc2.h"
-#include "aes.h"
-#include "des.h"
-#include "rc5.h"
-#include "rc6.h"
-#include "3way.h"
-#include "aria.h"
-#include "cast.h"
-#include "mars.h"
-#include "idea.h"
-#include "gost.h"
-#include "seal.h"
-#include "seed.h"
-#include "safer.h"
-#include "shark.h"
-#include "square.h"
-#include "serpent.h"
-#include "shacal2.h"
-#include "twofish.h"
-#include "blowfish.h"
-#include "camellia.h"
-#include "skipjack.h"
+#include <cryptopp/rc2.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/des.h>
+#include <cryptopp/rc5.h>
+#include <cryptopp/rc6.h>
+#include <cryptopp/3way.h>
+#include <cryptopp/aria.h>
+#include <cryptopp/cast.h>
+#include <cryptopp/mars.h>
+#include <cryptopp/idea.h>
+#include <cryptopp/gost.h>
+#include <cryptopp/seal.h>
+#include <cryptopp/seed.h>
+#include <cryptopp/safer.h>
+#include <cryptopp/shark.h>
+#include <cryptopp/square.h>
+#include <cryptopp/serpent.h>
+#include <cryptopp/shacal2.h>
+#include <cryptopp/twofish.h>
+#include <cryptopp/blowfish.h>
+#include <cryptopp/camellia.h>
+#include <cryptopp/skipjack.h>
 
-#include "arc4.h"
-#include "salsa.h"
-#include "chacha.h"
-#include "rabbit.h"
-#include "sosemanuk.h"
+#include <cryptopp/arc4.h>
+#include <cryptopp/salsa.h>
+#include <cryptopp/chacha.h>
+#include <cryptopp/rabbit.h>
+#include <cryptopp/sosemanuk.h>
 
-#include "modes.h"
-#include "cmac.h"
-#include "dmac.h"
-#include "hmac.h"
-#include "vmac.h"
-#include "ttmac.h"
+#include <cryptopp/modes.h>
+#include <cryptopp/cmac.h>
+#include <cryptopp/dmac.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/vmac.h>
+#include <cryptopp/ttmac.h>
 
-#include "drbg.h"
+#include <cryptopp/drbg.h>
 
 #include <iostream>
 #include <iomanip>

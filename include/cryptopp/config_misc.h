@@ -21,10 +21,10 @@
 #ifndef CRYPTOPP_CONFIG_MISC_H
 #define CRYPTOPP_CONFIG_MISC_H
 
-#include "config_asm.h"
-#include "config_cxx.h"
-#include "config_os.h"
-#include "config_ver.h"
+#include <cryptopp/config_asm.h>
+#include <cryptopp/config_cxx.h>
+#include <cryptopp/config_os.h>
+#include <cryptopp/config_ver.h>
 
 // Define this if running on a big-endian CPU
 // big endian will be assumed if CRYPTOPP_LITTLE_ENDIAN is not non-0

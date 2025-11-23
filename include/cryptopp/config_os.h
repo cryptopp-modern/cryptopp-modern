@@ -22,7 +22,7 @@
 #ifndef CRYPTOPP_CONFIG_OS_H
 #define CRYPTOPP_CONFIG_OS_H
 
-#include "config_ver.h"
+#include <cryptopp/config_ver.h>
 
 // It is OK to remove the hard stop below, but you are on your own.
 // After building the library be sure to run self tests described

@@ -5,11 +5,11 @@
 // compression library. In particular it is not affected by the double free bug
 // (http://www.kb.cert.org/vuls/id/368819).
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "zinflate.h"
-#include "secblock.h"
-#include "smartptr.h"
+#include <cryptopp/zinflate.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/smartptr.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

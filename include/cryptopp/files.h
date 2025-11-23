@@ -7,10 +7,10 @@
 #ifndef CRYPTOPP_FILES_H
 #define CRYPTOPP_FILES_H
 
-#include "cryptlib.h"
-#include "filters.h"
-#include "argnames.h"
-#include "smartptr.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/smartptr.h>
 
 #include <iostream>
 #include <fstream>

@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_ZLIB_H
 #define CRYPTOPP_ZLIB_H
 
-#include "cryptlib.h"
-#include "adler32.h"
-#include "zdeflate.h"
-#include "zinflate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/adler32.h>
+#include <cryptopp/zdeflate.h>
+#include <cryptopp/zinflate.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

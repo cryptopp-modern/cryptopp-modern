@@ -4,40 +4,40 @@
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "factory.h"
-#include "bench.h"
-#include "cpu.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/cpu.h>
 
-#include "crc.h"
-#include "adler32.h"
-#include "md2.h"
-#include "md5.h"
-#include "keccak.h"
-#include "sha3.h"
-#include "shake.h"
-#include "blake2.h"
-#include "blake3.h"
-#include "sha.h"
-#include "sha3.h"
-#include "sm3.h"
-#include "hkdf.h"
-#include "argon2.h"
-#include "tiger.h"
-#include "ripemd.h"
-#include "panama.h"
-#include "whrlpool.h"
-#include "lsh.h"
+#include <cryptopp/crc.h>
+#include <cryptopp/adler32.h>
+#include <cryptopp/md2.h>
+#include <cryptopp/md5.h>
+#include <cryptopp/keccak.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/shake.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/blake3.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/sm3.h>
+#include <cryptopp/hkdf.h>
+#include <cryptopp/argon2.h>
+#include <cryptopp/tiger.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/panama.h>
+#include <cryptopp/whrlpool.h>
+#include <cryptopp/lsh.h>
 
-#include "osrng.h"
-#include "drbg.h"
-#include "darn.h"
-#include "mersenne.h"
-#include "rdrand.h"
-#include "padlkrng.h"
+#include <cryptopp/osrng.h>
+#include <cryptopp/drbg.h>
+#include <cryptopp/darn.h>
+#include <cryptopp/mersenne.h>
+#include <cryptopp/rdrand.h>
+#include <cryptopp/padlkrng.h>
 
-#include "modes.h"
-#include "aes.h"
+#include <cryptopp/modes.h>
+#include <cryptopp/aes.h>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)

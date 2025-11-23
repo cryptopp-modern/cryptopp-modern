@@ -1,7 +1,7 @@
 // misc.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4189)
@@ -12,12 +12,12 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "misc.h"
-#include "trap.h"
-#include "words.h"
-#include "stdcpp.h"
-#include "integer.h"
-#include "secblock.h"
+#include <cryptopp/misc.h>
+#include <cryptopp/trap.h>
+#include <cryptopp/words.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/secblock.h>
 
 // Hack for OpenBSD and GCC 4.2.1. I believe they are stuck at 4.2.1 due to GPLv3.
 #if defined(__OpenBSD__)

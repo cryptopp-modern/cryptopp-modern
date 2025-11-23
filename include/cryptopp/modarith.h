@@ -8,11 +8,11 @@
 
 // implementations are in integer.cpp
 
-#include "cryptlib.h"
-#include "integer.h"
-#include "algebra.h"
-#include "secblock.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/algebra.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(push)

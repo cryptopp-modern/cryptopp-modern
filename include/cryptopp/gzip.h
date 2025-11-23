@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_GZIP_H
 #define CRYPTOPP_GZIP_H
 
-#include "cryptlib.h"
-#include "zdeflate.h"
-#include "zinflate.h"
-#include "crc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/zdeflate.h>
+#include <cryptopp/zinflate.h>
+#include <cryptopp/crc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

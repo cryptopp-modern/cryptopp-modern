@@ -1,11 +1,11 @@
 // via-rng.cpp - written and placed in public domain by Jeffrey Walton and Uri Blumenthal.
 
-#include "pch.h"
-#include "config.h"
-#include "cryptlib.h"
-#include "secblock.h"
-#include "padlkrng.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/padlkrng.h>
+#include <cryptopp/cpu.h>
 
 // The Padlock Security Engine RNG has a few items to be aware of. You can
 // find copies  of the Programmer's manual, Cryptography Research Inc audit

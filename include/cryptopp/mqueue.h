@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_MQUEUE_H
 #define CRYPTOPP_MQUEUE_H
 
-#include "cryptlib.h"
-#include "queue.h"
-#include "filters.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/misc.h>
 
 #include <deque>
 

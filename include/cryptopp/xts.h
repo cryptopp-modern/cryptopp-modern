@@ -22,10 +22,10 @@
 #ifndef CRYPTOPP_XTS_MODE_H
 #define CRYPTOPP_XTS_MODE_H
 
-#include "cryptlib.h"
-#include "secblock.h"
-#include "modes.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/misc.h>
 
 /// \brief Enable XTS for wide block ciphers
 /// \details XTS is only defined for AES. The library can support wide

@@ -1,10 +1,10 @@
 // dh.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "dh.h"
+#include <cryptopp/dh.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

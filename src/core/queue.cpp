@@ -1,13 +1,13 @@
 // queue.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "queue.h"
-#include "filters.h"
-#include "misc.h"
-#include "trap.h"
+#include <cryptopp/queue.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/trap.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

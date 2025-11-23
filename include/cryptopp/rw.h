@@ -12,9 +12,9 @@
 #ifndef CRYPTOPP_RW_H
 #define CRYPTOPP_RW_H
 
-#include "cryptlib.h"
-#include "pubkey.h"
-#include "integer.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/integer.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

@@ -1,14 +1,14 @@
 // dsa.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "dsa.h"
-#include "asn.h"
-#include "integer.h"
-#include "filters.h"
-#include "nbtheory.h"
+#include <cryptopp/dsa.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/nbtheory.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

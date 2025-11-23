@@ -6,12 +6,12 @@
 //    CXXFLAGS are required to enable the appropriate instructions set in
 //    some build configurations.
 
-#include "pch.h"
-#include "config.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/cpu.h>
 
 // Needed by MIPS for definition of NULL
-#include "stdcpp.h"
+#include <cryptopp/stdcpp.h>
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY
 # include <signal.h>

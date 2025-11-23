@@ -2,40 +2,40 @@
 //                CryptoPP::Test namespace added by JW in February 2017.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "asn.h"
-#include "oids.h"
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
 
-#include "md2.h"
-#include "md4.h"
-#include "md5.h"
+#include <cryptopp/md2.h>
+#include <cryptopp/md4.h>
+#include <cryptopp/md5.h>
 
-#include "sha.h"
-#include "sha3.h"
-#include "pssr.h"
-#include "ripemd.h"
-#include "whrlpool.h"
+#include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/pssr.h>
+#include <cryptopp/ripemd.h>
+#include <cryptopp/whrlpool.h>
 
-#include "rw.h"
-#include "dsa.h"
-#include "luc.h"
-#include "rsa.h"
-#include "esign.h"
-#include "rabin.h"
-#include "pubkey.h"
-#include "eccrypto.h"
+#include <cryptopp/rw.h>
+#include <cryptopp/dsa.h>
+#include <cryptopp/luc.h>
+#include <cryptopp/rsa.h>
+#include <cryptopp/esign.h>
+#include <cryptopp/rabin.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/eccrypto.h>
 
 // Curve25519
-#include "xed25519.h"
-#include "donna.h"
-#include "naclite.h"
+#include <cryptopp/xed25519.h>
+#include <cryptopp/donna.h>
+#include <cryptopp/naclite.h>
 
 #include <iostream>
 #include <iomanip>

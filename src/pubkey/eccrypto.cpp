@@ -1,8 +1,8 @@
 // eccrypto.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(push)
@@ -16,17 +16,17 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "eccrypto.h"
-#include "integer.h"
-#include "nbtheory.h"
-#include "filters.h"
-#include "argnames.h"
-#include "smartptr.h"
-#include "oids.h"
-#include "asn.h"
-#include "hex.h"
-#include "ec2n.h"
-#include "misc.h"
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/ec2n.h>
+#include <cryptopp/misc.h>
 
 #include <iostream>
 #include <sstream>

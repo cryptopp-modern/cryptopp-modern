@@ -1,13 +1,13 @@
 // eprecomp.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "eprecomp.h"
-#include "integer.h"
-#include "algebra.h"
-#include "asn.h"
+#include <cryptopp/eprecomp.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/algebra.h>
+#include <cryptopp/asn.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

@@ -10,12 +10,12 @@
 // makes using zeroupper a little tricky.
 
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "lsh.h"
-#include "cpu.h"
-#include "misc.h"
+#include <cryptopp/lsh.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/misc.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

@@ -1,13 +1,13 @@
 // xtr.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "xtr.h"
-#include "nbtheory.h"
-#include "integer.h"
-#include "algebra.h"
-#include "modarith.h"
-#include "algebra.cpp"
+#include <cryptopp/xtr.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/algebra.h>
+#include <cryptopp/modarith.h>
+#include "../core/algebra.cpp"
 
 NAMESPACE_BEGIN(CryptoPP)
 

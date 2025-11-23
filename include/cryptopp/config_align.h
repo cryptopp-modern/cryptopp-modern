@@ -22,10 +22,10 @@
 #ifndef CRYPTOPP_CONFIG_ALIGN_H
 #define CRYPTOPP_CONFIG_ALIGN_H
 
-#include "config_asm.h"  // CRYPTOPP_DISABLE_ASM
-#include "config_cpu.h"  // X86, X32, X64, ARM32, ARM64, etc
-#include "config_cxx.h"  // CRYPTOPP_CXX11_ALIGNAS
-#include "config_ver.h"  // Compiler versions
+#include <cryptopp/config_asm.h>  // CRYPTOPP_DISABLE_ASM
+#include <cryptopp/config_cpu.h>  // X86, X32, X64, ARM32, ARM64, etc
+#include <cryptopp/config_cxx.h>  // CRYPTOPP_CXX11_ALIGNAS
+#include <cryptopp/config_ver.h>  // Compiler versions
 
 // Nearly all Intel's and AMD's have SSE. Enable it independent of SSE ASM and intrinsics.
 // ARM NEON and ARMv8 ASIMD only need natural alignment of an element in the vector.

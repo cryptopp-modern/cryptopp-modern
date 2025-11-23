@@ -6,7 +6,7 @@
 #ifndef CRYPTOPP_ARM_SIMD_H
 #define CRYPTOPP_ARM_SIMD_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 #if (CRYPTOPP_ARM_NEON_HEADER)
 # include <stdint.h>

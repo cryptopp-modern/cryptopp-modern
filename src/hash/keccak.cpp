@@ -17,8 +17,8 @@ and related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
 
-#include "pch.h"
-#include "keccak.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/keccak.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

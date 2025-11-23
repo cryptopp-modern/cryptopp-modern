@@ -52,26 +52,26 @@
 //  were advertising BMI/BMI2 support but caused SIGILL's at runtime. Also see
 //  https://github.com/weidai11/cryptopp/issues/850.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "integer.h"
-#include "secblock.h"
-#include "modarith.h"
-#include "nbtheory.h"
-#include "smartptr.h"
-#include "algparam.h"
-#include "filters.h"
-#include "stdcpp.h"
-#include "asn.h"
-#include "oids.h"
-#include "words.h"
-#include "pubkey.h"		// for P1363_KDF2
-#include "sha.h"
-#include "cpu.h"
-#include "misc.h"
+#include <cryptopp/integer.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/words.h>
+#include <cryptopp/pubkey.h>		// for P1363_KDF2
+#include <cryptopp/sha.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/misc.h>
 
 #include <iostream>
 

@@ -1,10 +1,10 @@
 // authenc.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "authenc.h"
+#include <cryptopp/authenc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

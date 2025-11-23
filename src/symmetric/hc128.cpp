@@ -4,13 +4,13 @@
 //             The reference materials and source files are available at
 //             The eSTREAM Project, http://www.ecrypt.eu.org/stream/e2-hc128.html.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "hc128.h"
-#include "secblock.h"
-#include "strciphr.h"
-#include "misc.h"
+#include <cryptopp/hc128.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/strciphr.h>
+#include <cryptopp/misc.h>
 
 /*h1 function*/
 #define h1(x, y) {           \

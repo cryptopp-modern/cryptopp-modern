@@ -1,13 +1,13 @@
 // luc.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "luc.h"
-#include "asn.h"
-#include "sha.h"
-#include "integer.h"
-#include "nbtheory.h"
-#include "algparam.h"
-#include "pkcspad.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/luc.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/pkcspad.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

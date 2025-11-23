@@ -8,9 +8,9 @@
 //    appropriate instructions sets in some build configurations.
 //    For Linux and Unix additional flags are not required.
 
-#include "pch.h"
-#include "config.h"
-#include "stdcpp.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/stdcpp.h>
 
 #if (CRYPTOPP_ARM_NEON_HEADER)
 # include <arm_neon.h>

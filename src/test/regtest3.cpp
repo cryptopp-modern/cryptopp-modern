@@ -4,43 +4,43 @@
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "factory.h"
-#include "bench.h"
-#include "cpu.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/bench.h>
+#include <cryptopp/cpu.h>
 
-#include "modes.h"
-#include "aria.h"
-#include "seed.h"
-#include "hight.h"
-#include "camellia.h"
-#include "shacal2.h"
-#include "tea.h"
-#include "aes.h"
-#include "tiger.h"
-#include "ccm.h"
-#include "gcm.h"
-#include "eax.h"
-#include "xts.h"
-#include "twofish.h"
-#include "serpent.h"
-#include "cast.h"
-#include "rc6.h"
-#include "mars.h"
-#include "kalyna.h"
-#include "threefish.h"
-#include "cham.h"
-#include "lea.h"
-#include "simeck.h"
-#include "simon.h"
-#include "speck.h"
-#include "sm4.h"
-#include "des.h"
-#include "idea.h"
-#include "rc5.h"
-#include "skipjack.h"
-#include "blowfish.h"
-#include "chachapoly.h"
+#include <cryptopp/modes.h>
+#include <cryptopp/aria.h>
+#include <cryptopp/seed.h>
+#include <cryptopp/hight.h>
+#include <cryptopp/camellia.h>
+#include <cryptopp/shacal2.h>
+#include <cryptopp/tea.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/tiger.h>
+#include <cryptopp/ccm.h>
+#include <cryptopp/gcm.h>
+#include <cryptopp/eax.h>
+#include <cryptopp/xts.h>
+#include <cryptopp/twofish.h>
+#include <cryptopp/serpent.h>
+#include <cryptopp/cast.h>
+#include <cryptopp/rc6.h>
+#include <cryptopp/mars.h>
+#include <cryptopp/kalyna.h>
+#include <cryptopp/threefish.h>
+#include <cryptopp/cham.h>
+#include <cryptopp/lea.h>
+#include <cryptopp/simeck.h>
+#include <cryptopp/simon.h>
+#include <cryptopp/speck.h>
+#include <cryptopp/sm4.h>
+#include <cryptopp/des.h>
+#include <cryptopp/idea.h>
+#include <cryptopp/rc5.h>
+#include <cryptopp/skipjack.h>
+#include <cryptopp/blowfish.h>
+#include <cryptopp/chachapoly.h>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)

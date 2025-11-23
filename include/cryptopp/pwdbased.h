@@ -8,12 +8,12 @@
 #ifndef CRYPTOPP_PWDBASED_H
 #define CRYPTOPP_PWDBASED_H
 
-#include "cryptlib.h"
-#include "hrtimer.h"
-#include "integer.h"
-#include "argnames.h"
-#include "algparam.h"
-#include "hmac.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/hrtimer.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/hmac.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

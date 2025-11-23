@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_RABIN_H
 #define CRYPTOPP_RABIN_H
 
-#include "cryptlib.h"
-#include "oaep.h"
-#include "pssr.h"
-#include "integer.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/oaep.h>
+#include <cryptopp/pssr.h>
+#include <cryptopp/integer.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

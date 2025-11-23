@@ -1,9 +1,9 @@
 // rc2.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "rc2.h"
-#include "misc.h"
-#include "argnames.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/rc2.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/argnames.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

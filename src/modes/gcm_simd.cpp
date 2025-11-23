@@ -8,9 +8,9 @@
 //    is needed because additional CXXFLAGS are required to enable
 //    the appropriate instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/misc.h>
 
 #if defined(CRYPTOPP_DISABLE_GCM_ASM)
 # undef CRYPTOPP_X86_ASM_AVAILABLE
@@ -35,11 +35,11 @@
 #endif
 
 #if defined(CRYPTOPP_ARM_PMULL_AVAILABLE)
-# include "arm_simd.h"
+# include <cryptopp/arm_simd.h>
 #endif
 
 #if defined(CRYPTOPP_ALTIVEC_AVAILABLE)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY

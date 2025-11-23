@@ -1,9 +1,9 @@
 // cast.cpp - originally written and placed in the public domain by Wei Dai and Leonard Janke
 // based on Steve Reid's public domain cast.c
 
-#include "pch.h"
-#include "cast.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/cast.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

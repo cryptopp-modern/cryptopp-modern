@@ -4,9 +4,9 @@
 #define CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
 #endif
 
-#include "iterhash.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/iterhash.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

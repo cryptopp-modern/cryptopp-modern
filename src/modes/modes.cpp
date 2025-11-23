@@ -1,15 +1,15 @@
 // modes.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "modes.h"
-#include "strciphr.h"
-#include "misc.h"
+#include <cryptopp/modes.h>
+#include <cryptopp/strciphr.h>
+#include <cryptopp/misc.h>
 
 #if defined(CRYPTOPP_DEBUG)
-#include "des.h"
+#include <cryptopp/des.h>
 #endif
 
 NAMESPACE_BEGIN(CryptoPP)

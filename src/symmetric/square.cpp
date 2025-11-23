@@ -1,12 +1,12 @@
 // square.cpp - originally written and placed in the public domain by Wei Dai
 // Based on Paulo S.L.M. Barreto's public domain implementation
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "square.h"
-#include "misc.h"
-#include "gf256.h"
+#include <cryptopp/square.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/gf256.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4244)

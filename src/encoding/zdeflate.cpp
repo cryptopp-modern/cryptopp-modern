@@ -5,10 +5,10 @@
 // rewrote it in order to fix a bug that I could not figure out. This code
 // is less clever, but hopefully more understandable and maintainable.
 
-#include "pch.h"
-#include "zdeflate.h"
-#include "stdcpp.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/zdeflate.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

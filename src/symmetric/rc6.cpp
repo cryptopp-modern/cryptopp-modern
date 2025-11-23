@@ -1,10 +1,10 @@
 // rc6.cpp - written and placed in the public domain by Sean Woods
 // based on Wei Dai's RC5 code.
 
-#include "pch.h"
-#include "rc6.h"
-#include "misc.h"
-#include "secblock.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/rc6.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

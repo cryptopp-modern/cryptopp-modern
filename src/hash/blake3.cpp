@@ -2,10 +2,10 @@
 //              Based on the BLAKE3 team's reference implementation
 //              at http://github.com/BLAKE3-team/BLAKE3.
 
-#include "pch.h"
-#include "blake3.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/blake3.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

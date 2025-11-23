@@ -1,8 +1,8 @@
 // base32.cpp - written and placed in the public domain by Frank Palazzolo, based on hex.cpp by Wei Dai
 //              extended hex alphabet added by JW in November, 2017.
 
-#include "pch.h"
-#include "base32.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/base32.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 ANONYMOUS_NAMESPACE_BEGIN

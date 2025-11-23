@@ -78,15 +78,15 @@ being unloaded from L1 cache, until that round is finished.
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 #ifndef CRYPTOPP_GENERATE_X64_MASM
 
-#include "rijndael.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/rijndael.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 // VS2017 and global optimization bug. Also see
 // https://github.com/weidai11/cryptopp/issues/649

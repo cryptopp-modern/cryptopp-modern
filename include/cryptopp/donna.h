@@ -26,9 +26,9 @@
 #ifndef CRYPTOPP_DONNA_H
 #define CRYPTOPP_DONNA_H
 
-#include "config.h"
-#include "cryptlib.h"
-#include "stdcpp.h"
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/stdcpp.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(Donna)

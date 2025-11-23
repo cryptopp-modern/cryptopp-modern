@@ -39,9 +39,9 @@
 #ifndef CRYPTOPP_ADVANCED_SIMD_TEMPLATES
 #define CRYPTOPP_ADVANCED_SIMD_TEMPLATES
 
-#include "config.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/config.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 #if (CRYPTOPP_ARM_NEON_HEADER)
 # include <arm_neon.h>
@@ -65,7 +65,7 @@
 #endif
 
 #if defined(__ALTIVEC__)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 // ************************ All block ciphers *********************** //

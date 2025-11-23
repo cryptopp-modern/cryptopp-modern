@@ -37,9 +37,9 @@
 #ifndef CRYPTOPP_XED25519_H
 #define CRYPTOPP_XED25519_H
 
-#include "cryptlib.h"
-#include "pubkey.h"
-#include "oids.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/oids.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

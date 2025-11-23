@@ -6,8 +6,8 @@
 //    additional CXXFLAGS are required to enable the appropriate
 //    instructions sets in some build configurations.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY
 # include <signal.h>
@@ -15,7 +15,7 @@
 #endif
 
 #if defined(_ARCH_PWR8) || defined(__CRYPTO__)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 // Squash MS LNK4221 and libtool warnings

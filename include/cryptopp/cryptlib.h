@@ -102,9 +102,9 @@ and getting us started on the manual.
 #ifndef CRYPTOPP_CRYPTLIB_H
 #define CRYPTOPP_CRYPTLIB_H
 
-#include "config.h"
-#include "stdcpp.h"
-#include "trap.h"
+#include <cryptopp/config.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/trap.h>
 
 // C5264 new for VS2022/v17.4, MSC v17.3.4
 // https://github.com/weidai11/cryptopp/issues/1185

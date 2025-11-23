@@ -1,16 +1,16 @@
 // ecp.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "ecp.h"
-#include "asn.h"
-#include "integer.h"
-#include "nbtheory.h"
-#include "modarith.h"
-#include "filters.h"
-#include "algebra.cpp"
+#include <cryptopp/ecp.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/filters.h>
+#include "../core/algebra.cpp"
 
 ANONYMOUS_NAMESPACE_BEGIN
 

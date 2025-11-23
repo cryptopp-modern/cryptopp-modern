@@ -2,9 +2,9 @@
 
 // includes IBM's key setup "tweak" proposed in August 1999 (http://www.research.ibm.com/security/key-setup.txt)
 
-#include "pch.h"
-#include "mars.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/mars.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

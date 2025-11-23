@@ -14,9 +14,9 @@
 #ifndef CRYPTOPP_SM4_H
 #define CRYPTOPP_SM4_H
 
-#include "config.h"
-#include "seckey.h"
-#include "secblock.h"
+#include <cryptopp/config.h>
+#include <cryptopp/seckey.h>
+#include <cryptopp/secblock.h>
 
 #if (CRYPTOPP_BOOL_X64 || CRYPTOPP_BOOL_X32 || CRYPTOPP_BOOL_X86)
 # ifndef CRYPTOPP_DISABLE_SM4_SIMD

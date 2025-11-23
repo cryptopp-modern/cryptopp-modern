@@ -2,15 +2,15 @@
 
 // use "cl /EP /P /DCRYPTOPP_GENERATE_X64_MASM salsa.cpp" to generate MASM code
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_GENERATE_X64_MASM
 
-#include "salsa.h"
-#include "argnames.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/salsa.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4702 4740)

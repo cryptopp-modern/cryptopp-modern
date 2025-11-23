@@ -1,8 +1,8 @@
 // blumshub.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "blumshub.h"
-#include "integer.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/blumshub.h>
+#include <cryptopp/integer.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

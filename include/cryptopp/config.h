@@ -19,15 +19,15 @@
 #ifndef CRYPTOPP_CONFIG_H
 #define CRYPTOPP_CONFIG_H
 
-#include "config_align.h"
-#include "config_asm.h"
-#include "config_cpu.h"
-#include "config_cxx.h"
-#include "config_dll.h"
-#include "config_int.h"
-#include "config_misc.h"
-#include "config_ns.h"
-#include "config_os.h"
-#include "config_ver.h"
+#include <cryptopp/config_align.h>
+#include <cryptopp/config_asm.h>
+#include <cryptopp/config_cpu.h>
+#include <cryptopp/config_cxx.h>
+#include <cryptopp/config_dll.h>
+#include <cryptopp/config_int.h>
+#include <cryptopp/config_misc.h>
+#include <cryptopp/config_ns.h>
+#include <cryptopp/config_os.h>
+#include <cryptopp/config_ver.h>
 
 #endif // CRYPTOPP_CONFIG_H

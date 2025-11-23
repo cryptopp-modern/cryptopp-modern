@@ -4,12 +4,12 @@
 #ifndef CRYPTOPP_VALIDATE_H
 #define CRYPTOPP_VALIDATE_H
 
-#include "cryptlib.h"
-#include "misc.h"
-#include "files.h"
-#include "argnames.h"
-#include "algparam.h"
-#include "hex.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/files.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/hex.h>
 
 #include <iostream>
 #include <sstream>

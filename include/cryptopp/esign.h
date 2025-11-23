@@ -7,11 +7,11 @@
 #ifndef CRYPTOPP_ESIGN_H
 #define CRYPTOPP_ESIGN_H
 
-#include "cryptlib.h"
-#include "pubkey.h"
-#include "integer.h"
-#include "asn.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

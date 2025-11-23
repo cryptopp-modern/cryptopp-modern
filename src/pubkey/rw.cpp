@@ -1,13 +1,13 @@
 // rw.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "rw.h"
-#include "asn.h"
-#include "integer.h"
-#include "nbtheory.h"
-#include "modarith.h"
-#include "asn.h"
+#include <cryptopp/rw.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/asn.h>
 
 #ifndef CRYPTOPP_IMPORTS
 

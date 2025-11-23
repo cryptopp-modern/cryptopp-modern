@@ -1,12 +1,12 @@
 // serpent.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "serpent.h"
-#include "secblock.h"
-#include "misc.h"
+#include <cryptopp/serpent.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
 
-#include "serpentp.h"
+#include <cryptopp/serpentp.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

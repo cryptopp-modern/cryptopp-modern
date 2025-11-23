@@ -7,8 +7,8 @@
 #ifndef CRYPTOPP_SEED_H
 #define CRYPTOPP_SEED_H
 
-#include "seckey.h"
-#include "secblock.h"
+#include <cryptopp/seckey.h>
+#include <cryptopp/secblock.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

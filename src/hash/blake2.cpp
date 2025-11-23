@@ -13,13 +13,13 @@
 // or above for PowerPC builds or disable Altivec for BLAKE2b and BLAKE2s
 // if using the old compilers.
 
-#include "pch.h"
-#include "config.h"
-#include "cryptlib.h"
-#include "argnames.h"
-#include "algparam.h"
-#include "blake2.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/cpu.h>
 
 // Uncomment for benchmarking C++ against SSE2 or NEON.
 // Do so in both blake2.cpp and blake2_simd.cpp.

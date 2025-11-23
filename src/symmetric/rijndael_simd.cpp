@@ -20,12 +20,12 @@
 //    questions and filling the gaps in the IBM documentation.
 //
 
-#include "pch.h"
-#include "config.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/misc.h>
 
 #if (CRYPTOPP_AESNI_AVAILABLE)
-# include "adv_simd.h"
+# include <cryptopp/adv_simd.h>
 # include <emmintrin.h>
 # include <smmintrin.h>
 # include <wmmintrin.h>
@@ -33,7 +33,7 @@
 
 // Android makes <arm_acle.h> available with ARMv7-a
 #if (CRYPTOPP_BOOL_ARMV8)
-# include "adv_simd.h"
+# include <cryptopp/adv_simd.h>
 # if (CRYPTOPP_ARM_NEON_HEADER)
 #  include <arm_neon.h>
 # endif
@@ -44,12 +44,12 @@
 #endif
 
 #if defined(_M_ARM64)
-# include "adv_simd.h"
+# include <cryptopp/adv_simd.h>
 #endif
 
 #if defined(CRYPTOPP_POWER8_AES_AVAILABLE)
-# include "adv_simd.h"
-# include "ppc_simd.h"
+# include <cryptopp/adv_simd.h>
+# include <cryptopp/ppc_simd.h>
 #endif
 
 #ifdef CRYPTOPP_GNU_STYLE_INLINE_ASSEMBLY

@@ -9,11 +9,11 @@
 //           don't have a url or english zip filename to cite. The source filename from
 //           the zip is KISA_HIGHT_ECB.c.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "hight.h"
-#include "misc.h"
+#include <cryptopp/hight.h>
+#include <cryptopp/misc.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

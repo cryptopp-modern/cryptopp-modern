@@ -4,12 +4,12 @@
 //    to include SM3 and SM4 related instructions so the function
 //    is stubbed for an eventual SM4_Round_ARMV8.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "sm4.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/sm4.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4307)

@@ -1,9 +1,9 @@
 // wake.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "wake.h"
-#include "smartptr.h"
+#include <cryptopp/wake.h>
+#include <cryptopp/smartptr.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

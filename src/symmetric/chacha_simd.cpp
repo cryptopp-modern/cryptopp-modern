@@ -24,11 +24,11 @@
 //    * Intel Skylake, 3.0 GHz: SSE2 at 2160 MB/s; SSSE3 at 2310 MB/s.
 //    * AMD Bulldozer, 3.3 GHz: SSE2 at 1680 MB/s; XOP at 2510 MB/s.
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
-#include "chacha.h"
-#include "misc.h"
+#include <cryptopp/chacha.h>
+#include <cryptopp/misc.h>
 
 // Internal compiler error in GCC 3.3 and below
 #if defined(__GNUC__) && (__GNUC__ < 4)
@@ -61,7 +61,7 @@
 #endif
 
 #if defined(CRYPTOPP_ALTIVEC_AVAILABLE)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 // Squash MS LNK4221 and libtool warnings

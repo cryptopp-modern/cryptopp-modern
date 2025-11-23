@@ -13,12 +13,12 @@
 // If needed, see Moon's commit "Go back to ignoring 256th bit [sic]",
 // https://github.com/floodyberry/curve25519-donna/commit/57a683d18721a658
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "config.h"
-#include "donna.h"
-#include "secblock.h"
-#include "misc.h"
+#include <cryptopp/config.h>
+#include <cryptopp/donna.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/misc.h>
 
 // The data is aligned, but Clang issues warning based on type
 // and not the actual alignment of the variable and data.
@@ -36,7 +36,7 @@ extern const char DONNA_SSE_FNAME[] = __FILE__;
 
 #if (CRYPTOPP_CURVE25519_SSE2)
 
-#include "donna_sse.h"
+#include <cryptopp/donna_sse.h>
 
 ANONYMOUS_NAMESPACE_BEGIN
 

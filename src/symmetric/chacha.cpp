@@ -3,12 +3,12 @@
 //              and Bernstein's reference ChaCha family implementation at
 //              http://cr.yp.to/chacha.html.
 
-#include "pch.h"
-#include "config.h"
-#include "chacha.h"
-#include "argnames.h"
-#include "misc.h"
-#include "cpu.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
+#include <cryptopp/chacha.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/cpu.h>
 
 // Internal compiler error in GCC 3.3 and below
 #if defined(__GNUC__) && (__GNUC__ < 4)

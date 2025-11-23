@@ -6,12 +6,12 @@
 #ifndef CRYPTOPP_ASN_H
 #define CRYPTOPP_ASN_H
 
-#include "cryptlib.h"
-#include "filters.h"
-#include "smartptr.h"
-#include "stdcpp.h"
-#include "queue.h"
-#include "misc.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/misc.h>
 
 #include <iosfwd>
 

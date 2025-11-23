@@ -4,21 +4,21 @@
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "factory.h"
-#include "integer.h"
-#include "filters.h"
-#include "randpool.h"
-#include "files.h"
-#include "trunhash.h"
-#include "queue.h"
-#include "smartptr.h"
-#include "validate.h"
-#include "stdcpp.h"
-#include "misc.h"
-#include "hex.h"
-#include "trap.h"
-#include "argon2.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/factory.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/randpool.h>
+#include <cryptopp/files.h>
+#include <cryptopp/trunhash.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/validate.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/trap.h>
+#include <cryptopp/argon2.h>
 
 #include <iostream>
 #include <sstream>

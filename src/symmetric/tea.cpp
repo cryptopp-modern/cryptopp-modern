@@ -1,8 +1,8 @@
 // tea.cpp - modified by Wei Dai from code in the original paper
 
-#include "pch.h"
-#include "tea.h"
-#include "misc.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/tea.h>
+#include <cryptopp/misc.h>
 
 // http://github.com/weidai11/cryptopp/issues/503
 #if defined(__xlC__) || defined(__SUNPRO_CC)

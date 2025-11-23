@@ -1,10 +1,10 @@
 // shark.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "shark.h"
-#include "misc.h"
-#include "modes.h"
-#include "gf256.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/shark.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/gf256.h>
 
 #if CRYPTOPP_GCC_DIAGNOSTIC_AVAILABLE
 # pragma GCC diagnostic ignored "-Wmissing-braces"

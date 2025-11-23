@@ -14,9 +14,9 @@
  *
  */
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include "md2.h"
+#include <cryptopp/md2.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 namespace Weak1 {

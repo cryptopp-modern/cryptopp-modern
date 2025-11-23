@@ -1,10 +1,10 @@
 // hmac.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "hmac.h"
+#include <cryptopp/hmac.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

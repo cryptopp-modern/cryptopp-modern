@@ -2,25 +2,25 @@
 //                CryptoPP::Test namespace added by JW in February 2017.
 //                Source files split in July 2018 to expedite compiles.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 
-#include "cryptlib.h"
-#include "cpu.h"
-#include "validate.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/cpu.h>
+#include <cryptopp/validate.h>
 
-#include "rng.h"
-#include "drbg.h"
-#include "darn.h"
-#include "osrng.h"
-#include "rdrand.h"
-#include "mersenne.h"
-#include "padlkrng.h"
-#include "randpool.h"
+#include <cryptopp/rng.h>
+#include <cryptopp/drbg.h>
+#include <cryptopp/darn.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/rdrand.h>
+#include <cryptopp/mersenne.h>
+#include <cryptopp/padlkrng.h>
+#include <cryptopp/randpool.h>
 
-#include "gzip.h"
-#include "channels.h"
+#include <cryptopp/gzip.h>
+#include <cryptopp/channels.h>
 
 #include <iostream>
 #include <iomanip>

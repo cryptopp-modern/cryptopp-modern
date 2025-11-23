@@ -18,12 +18,12 @@
 //    optimization so the IACR paper is useful. However, the code is GPL3
 //    and toxic for some users of the library, so it is not used here...
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "gf2n.h"
+#include <cryptopp/gf2n.h>
 
 #if (CRYPTOPP_CLMUL_AVAILABLE)
 # include <emmintrin.h>
@@ -31,11 +31,11 @@
 #endif
 
 #if (CRYPTOPP_ARM_PMULL_AVAILABLE)
-# include "arm_simd.h"
+# include <cryptopp/arm_simd.h>
 #endif
 
 #if defined(CRYPTOPP_ALTIVEC_AVAILABLE)
-# include "ppc_simd.h"
+# include <cryptopp/ppc_simd.h>
 #endif
 
 // Squash MS LNK4221 and libtool warnings

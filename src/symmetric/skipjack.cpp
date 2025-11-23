@@ -1,11 +1,11 @@
 // skipjack.cpp - modified by Wei Dai from Paulo Barreto's skipjack32.c,
 // which is public domain according to his web site.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "skipjack.h"
+#include <cryptopp/skipjack.h>
 
 /*
  *	Optimized implementation of SKIPJACK algorithm

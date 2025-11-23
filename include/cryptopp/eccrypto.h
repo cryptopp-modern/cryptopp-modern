@@ -7,20 +7,20 @@
 #ifndef CRYPTOPP_ECCRYPTO_H
 #define CRYPTOPP_ECCRYPTO_H
 
-#include "config.h"
-#include "cryptlib.h"
-#include "pubkey.h"
-#include "integer.h"
-#include "asn.h"
-#include "hmac.h"
-#include "sha.h"
-#include "gfpcrypt.h"
-#include "dh.h"
-#include "mqv.h"
-#include "hmqv.h"
-#include "fhmqv.h"
-#include "ecp.h"
-#include "ec2n.h"
+#include <cryptopp/config.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/pubkey.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/gfpcrypt.h>
+#include <cryptopp/dh.h>
+#include <cryptopp/mqv.h>
+#include <cryptopp/hmqv.h>
+#include <cryptopp/fhmqv.h>
+#include <cryptopp/ecp.h>
+#include <cryptopp/ec2n.h>
 
 #include <iosfwd>
 
@@ -653,7 +653,7 @@ struct ECIES_P1363
 NAMESPACE_END
 
 #ifdef CRYPTOPP_MANUALLY_INSTANTIATE_TEMPLATES
-#include "eccrypto.cpp"
+#include "../src/pubkey/eccrypto.cpp"
 #endif
 
 NAMESPACE_BEGIN(CryptoPP)

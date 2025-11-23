@@ -1,20 +1,20 @@
 // esign.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 // TODO: fix the C4589 warnings
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4589)
 #endif
 
-#include "esign.h"
-#include "modarith.h"
-#include "integer.h"
-#include "nbtheory.h"
-#include "algparam.h"
-#include "sha.h"
-#include "asn.h"
+#include <cryptopp/esign.h>
+#include <cryptopp/modarith.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/nbtheory.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/asn.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

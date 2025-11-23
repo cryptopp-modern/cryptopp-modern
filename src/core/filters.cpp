@@ -1,7 +1,7 @@
 // filters.cpp - originally written and placed in the public domain by Wei Dai
 
-#include "pch.h"
-#include "config.h"
+#include <cryptopp/pch.h>
+#include <cryptopp/config.h>
 
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4189 4355)
@@ -9,13 +9,13 @@
 
 #ifndef CRYPTOPP_IMPORTS
 
-#include "filters.h"
-#include "mqueue.h"
-#include "fltrimpl.h"
-#include "argnames.h"
-#include "smartptr.h"
-#include "stdcpp.h"
-#include "misc.h"
+#include <cryptopp/filters.h>
+#include <cryptopp/mqueue.h>
+#include <cryptopp/fltrimpl.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/smartptr.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/misc.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

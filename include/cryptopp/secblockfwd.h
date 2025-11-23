@@ -10,7 +10,7 @@
 #ifndef CRYPTOPP_SECBLOCKFWD_H
 #define CRYPTOPP_SECBLOCKFWD_H
 
-#include "config.h"
+#include <cryptopp/config.h>
 
 NAMESPACE_BEGIN(CryptoPP)
 

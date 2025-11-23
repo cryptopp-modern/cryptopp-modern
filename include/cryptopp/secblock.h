@@ -6,10 +6,10 @@
 #ifndef CRYPTOPP_SECBLOCK_H
 #define CRYPTOPP_SECBLOCK_H
 
-#include "config.h"
-#include "allocate.h"
-#include "misc.h"
-#include "stdcpp.h"
+#include <cryptopp/config.h>
+#include <cryptopp/allocate.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/stdcpp.h>
 
 #if defined(CRYPTOPP_MSC_VERSION)
 # pragma warning(push)

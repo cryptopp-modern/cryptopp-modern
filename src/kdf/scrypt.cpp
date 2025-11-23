@@ -2,16 +2,16 @@
 //              Based on reference source code by Colin Percival for
 //              Scrypt and Daniel Bernstein for Salsa20 core.
 
-#include "pch.h"
+#include <cryptopp/pch.h>
 
-#include "scrypt.h"
-#include "algparam.h"
-#include "argnames.h"
-#include "pwdbased.h"
-#include "stdcpp.h"
-#include "salsa.h"
-#include "misc.h"
-#include "sha.h"
+#include <cryptopp/scrypt.h>
+#include <cryptopp/algparam.h>
+#include <cryptopp/argnames.h>
+#include <cryptopp/pwdbased.h>
+#include <cryptopp/stdcpp.h>
+#include <cryptopp/salsa.h>
+#include <cryptopp/misc.h>
+#include <cryptopp/sha.h>
 
 #include <sstream>
 #include <limits>
