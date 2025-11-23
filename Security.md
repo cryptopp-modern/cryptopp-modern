@@ -2,14 +2,28 @@
 
 ## Supported Versions
 
-We support modern versions of the Crypto++ library. Modern versions include the tip of Master and the latest release.
+We support modern versions of cryptopp-modern. Modern versions include the main branch and the latest release.
 
-We also support versions of the library supplied by distributions such as Debian, Fedora, Red Hat and Ubuntu. We don't leave distros unsupported simply because we have released a new version of the library. And we don't expect a package maintainer to fix our bugs for us.
+Currently supported versions:
+- 2025.12.0 (Release Candidate)
+- 2025.11.0
+
+We also incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
 ## Reporting a Vulnerability
 
-You can report a security related bug in the [GitHub bug tracker](https://github.com/weidai11/cryptopp) or at the [mailing list](https://groups.google.com/g/cryptopp-users).
+You can report a security related bug in the [cryptopp-modern GitHub Issues](https://github.com/Coralesoft/cryptopp-modern/issues) or [GitHub Discussions](https://github.com/Coralesoft/cryptopp-modern/discussions).
 
-If we receive a report of a security related bug then we will ensure a Github issue is opened and we will make an announcement on the mailing list. If you corresponded by private email then we will open the Github issue and make the announcement.
+For sensitive security issues, you may also contact the maintainer directly through GitHub.
 
-All information will be made public. We do not withhold information from users because stake holders need accurate information to access risk and place controls to remediate the risk.
+If we receive a report of a security related bug then we will:
+1. Open a GitHub issue (unless the issue requires private disclosure initially)
+2. Investigate and develop a fix
+3. Release a patched version as soon as possible
+4. Credit the reporter (unless they prefer to remain anonymous)
+
+All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
+
+## Security Updates from Upstream
+
+cryptopp-modern monitors upstream Crypto++ for security fixes and incorporates them as appropriate. If you discover a security issue that affects both cryptopp-modern and upstream Crypto++, please report it to both projects.

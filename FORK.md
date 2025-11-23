@@ -25,6 +25,13 @@
 
 ### cryptopp-modern Releases
 
+**2025.12.0** (December 2025) - Organization Release
+- Complete project reorganization (Phase 2)
+- Organized 204 source files into categorized src/ subdirectories
+- Updated all build systems (GNUmakefile, MSVC, nmake)
+- Maintained backward compatibility
+- Multi-platform CI/CD with 45+ build configurations
+
 **2025.11.0** (November 2025) - First Release
 - Forked from Crypto++ 8.9.0 (commit 60f81a77)
 - Added BLAKE3 cryptographic hash
@@ -48,6 +55,12 @@
 ---
 
 ## Current Status
+
+### Phase 2: Organization (2025.12.0) ✅
+- ✅ Complete source reorganization
+- ✅ All build systems updated
+- ✅ Backward compatibility maintained
+- ✅ Multi-platform CI/CD testing
 
 ### Phase 1: Foundation (2025.11.0) ✅
 - ✅ Fork established
@@ -76,13 +89,15 @@ This is a friendly fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2025.11.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2025.12.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | November 2025 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2025.11.0) |
+| **Last Release** | October 1, 2023 | December 2025 (RC) |
+| **Versioning** | Semantic (8.9.0) | Calendar (2025.12.0) |
 | **BLAKE3** | ❌ | ✅ |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **Marvin Fix** | ❌ | ✅ CVE-2022-4304 |
+| **Organization** | Flat structure | Categorized src/ dirs |
+| **CI/CD** | Limited | 45+ configurations |
 | **Namespace** | `CryptoPP` | `CryptoPP` (compatible) |
 | **License** | Boost 1.0 | Boost 1.0 |
 
@@ -107,6 +122,6 @@ This is a friendly fork to:
 
 ---
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-11-23
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2025.11.0
+**Current Version:** 2025.12.0-rc1
