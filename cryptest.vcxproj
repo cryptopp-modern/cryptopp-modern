@@ -203,7 +203,7 @@
   </Target>
   <!-- Source Files -->
   <ItemGroup>
-    <ClCompile Include="adhoc.cpp" />
+    <ClCompile Include="src\test\adhoc.cpp" />
     <ClCompile Include="src\test\test.cpp" />
     <ClCompile Include="src\test\bench1.cpp" />
     <ClCompile Include="src\test\bench2.cpp" />
