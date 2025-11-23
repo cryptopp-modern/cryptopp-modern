@@ -4,6 +4,42 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2025.12.0 - December 2025 (Release Candidate)
+      - major release, recompile of programs required
+      - complete project reorganization
+        * organized 204 source files into categorized src/ subdirectories
+        * src/core/ - core infrastructure (37 files)
+        * src/hash/ - hash functions (32 files)
+        * src/kdf/ - key derivation (2 files)
+        * src/symmetric/ - block/stream ciphers (58 files)
+        * src/pubkey/ - public key cryptography (26 files)
+        * src/mac/ - message authentication codes (6 files)
+        * src/modes/ - cipher modes (9 files)
+        * src/encoding/ - encoding/compression (8 files)
+        * src/random/ - random number generation (9 files)
+        * src/util/ - utilities (3 files)
+        * src/test/ - test files (23 files)
+      - updated all build systems for new structure
+        * GNUmakefile, MSVC project files, nmake
+      - maintained backward compatibility
+        * flat include/cryptopp/ structure preserved
+        * drop-in replacement for Crypto++ 8.9.0
+      - multi-platform CI/CD testing
+        * 45+ build configurations on GitHub Actions
+        * Windows MSVC 2022, Linux GCC/Clang, macOS Apple Clang
+        * sanitizer testing (ASan, UBSan)
+
+2025.11.0 - November 2025
+      - minor release, recompile of programs required
+      - expanded community input and support
+        * cryptopp-modern fork for active development
+      - migrated to calendar versioning (YEAR.MONTH.INCREMENT)
+      - add BLAKE3 cryptographic hash function
+      - add Argon2 password hashing (RFC 9106)
+        * supports Argon2d, Argon2i, and Argon2id variants
+      - fix timing attack in PKCS#1 v1.5 padding validation (CVE-2022-4304)
+      - improve ESIGN compatibility with static analyzers
+
 1.0 - First public release
     - Withdrawn at the request of RSA DSI over patent claims
     - included Blowfish, BBS, DES, DH, Diamond, DSA, ElGamal, IDEA,
