@@ -1769,7 +1769,7 @@ src/core/sse_simd.o : src/core/sse_simd.cpp
 # Don't build Rijndael with UBsan. Too much noise due to unaligned data accesses.
 ifneq ($(findstring -fsanitize=undefined,$(CXXFLAGS)),)
 src/symmetric/rijndael.o : src/symmetric/rijndael.cpp
-	$(CXX) $(strip $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
+	$(CXX) $(strip $(CPPFLAGS) $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
 endif
 
 # Only use CRYPTOPP_DATA_DIR if its not set in CXXFLAGS
