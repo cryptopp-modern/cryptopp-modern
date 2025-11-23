@@ -1447,7 +1447,7 @@ install: cryptest.exe install-lib
 .PHONY: install-lib
 install-lib:
 	@-$(MKDIR) $(DESTDIR)$(INCLUDEDIR)/cryptopp
-	$(CP) *.h $(DESTDIR)$(INCLUDEDIR)/cryptopp
+	$(CP) include/cryptopp/*.h $(DESTDIR)$(INCLUDEDIR)/cryptopp
 	$(CHMOD) u=rw,go=r $(DESTDIR)$(INCLUDEDIR)/cryptopp/*.h
 ifneq ($(wildcard libcryptopp.a),)
 	@-$(MKDIR) $(DESTDIR)$(LIBDIR)
