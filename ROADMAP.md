@@ -151,8 +151,8 @@ See [FORK.md](FORK.md) for project details and direction.
 
 ## Questions or Suggestions?
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/Coralesoft/cryptopp-modern/issues)
-- **GitHub Discussions:** [Ask questions or discuss ideas](https://github.com/Coralesoft/cryptopp-modern/discussions)
+- **GitHub Issues:** [Report bugs or request features](https://github.com/cryptopp-modern/cryptopp-modern/issues)
+- **GitHub Discussions:** [Ask questions or discuss ideas](https://github.com/cryptopp-modern/cryptopp-modern/discussions)
 
 ---
 

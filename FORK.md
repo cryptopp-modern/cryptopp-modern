@@ -117,8 +117,8 @@ This is a friendly fork to:
 
 ## Contact
 
-- **Issues:** https://github.com/Coralesoft/cryptopp-modern/issues
-- **Discussions:** https://github.com/Coralesoft/cryptopp-modern/discussions
+- **Issues:** https://github.com/cryptopp-modern/cryptopp-modern/issues
+- **Discussions:** https://github.com/cryptopp-modern/cryptopp-modern/discussions
 - **Upstream Crypto++:** https://github.com/weidai11/cryptopp
 
 ---

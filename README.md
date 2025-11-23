@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2025.12.0--rc1-blue.svg)](https://github.com/Coralesoft/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2025.12.0--rc1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](License.txt)
 
 ---
@@ -143,8 +143,8 @@ See [License.txt](License.txt) for details.
 
 ## Contact
 
-- **Issues:** [GitHub Issues](https://github.com/Coralesoft/cryptopp-modern/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Coralesoft/cryptopp-modern/discussions)
+- **Issues:** [GitHub Issues](https://github.com/cryptopp-modern/cryptopp-modern/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/cryptopp-modern/cryptopp-modern/discussions)
 
 ---
 

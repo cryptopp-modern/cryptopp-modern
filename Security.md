@@ -12,7 +12,7 @@ We also incorporate critical security fixes from upstream Crypto++ and monitor f
 
 ## Reporting a Vulnerability
 
-You can report a security related bug in the [cryptopp-modern GitHub Issues](https://github.com/Coralesoft/cryptopp-modern/issues) or [GitHub Discussions](https://github.com/Coralesoft/cryptopp-modern/discussions).
+You can report a security related bug in the [cryptopp-modern GitHub Issues](https://github.com/cryptopp-modern/cryptopp-modern/issues) or [GitHub Discussions](https://github.com/cryptopp-modern/cryptopp-modern/discussions).
 
 For sensitive security issues, you may also contact the maintainer directly through GitHub.
 
