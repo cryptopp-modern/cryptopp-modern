@@ -92,8 +92,8 @@ ifneq ($(IS_LINUX)$(IS_HURD)$(IS_SUN),000)
 endif
 
 # Formerly adhoc.cpp was created from adhoc.cpp.proto when needed.
-ifeq ($(wildcard adhoc.cpp),)
-$(shell cp adhoc.cpp.proto adhoc.cpp)
+ifeq ($(wildcard src/test/adhoc.cpp),)
+$(shell cp src/test/adhoc.cpp.proto src/test/adhoc.cpp)
 endif
 
 # Hack to skip CPU feature tests for some recipes
@@ -1136,7 +1136,7 @@ endif # Dead code stripping
 
 # For Shared Objects, Diff, Dist/Zip rules
 # Extract version: CRYPTOPP_VERSION encodes as YEAR*10000 + MONTH*100 + INCREMENT
-LIB_VER := $(shell $(GREP) "define CRYPTOPP_VERSION" config_ver.h | cut -d" " -f 3)
+LIB_VER := $(shell $(GREP) "define CRYPTOPP_VERSION" include/cryptopp/config_ver.h | cut -d" " -f 3)
 LIB_MAJOR := $(shell echo "$(LIB_VER)" | awk '{print int($$1/10000)}')
 LIB_MINOR := $(shell echo "$(LIB_VER)" | awk '{print int(($$1/100)%100)}')
 LIB_PATCH := $(shell echo "$(LIB_VER)" | awk '{print int($$1%100)}')
@@ -1184,10 +1184,13 @@ endif
 #####              Source and object files            #####
 ###########################################################
 
+# Tell make where to find source files
+VPATH = src/core:src/hash:src/kdf:src/symmetric:src/pubkey:src/mac:src/modes:src/encoding:src/random:src/util:src/test
+
 # List cryptlib.cpp first, then cpu.cpp, then integer.cpp to tame C++ static initialization problems.
-SRCS := cryptlib.cpp cpu.cpp integer.cpp $(filter-out cryptlib.cpp cpu.cpp integer.cpp pch.cpp simple.cpp,$(sort $(wildcard *.cpp)))
+SRCS := src/core/cryptlib.cpp src/core/cpu.cpp src/core/integer.cpp $(filter-out src/core/cryptlib.cpp src/core/cpu.cpp src/core/integer.cpp src/core/pch.cpp src/core/simple.cpp src/test/%,$(sort $(wildcard src/*/*.cpp)))
 # For Makefile.am; resource.h is Windows
-INCL := $(filter-out resource.h,$(sort $(wildcard *.h)))
+INCL := $(filter-out include/cryptopp/resource.h,$(sort $(wildcard include/cryptopp/*.h)))
 
 ifneq ($(IS_MINGW),0)
 INCL += resource.h
@@ -1211,7 +1214,7 @@ ifeq ($(IS_ARM32)$(IS_LINUX),11)
       CRYPTOGAMS_ARM_FLAG = $(CRYPTOGAMS_ARMV7_FLAG)
       CRYPTOGAMS_ARM_THUMB_FLAG = $(CRYPTOGAMS_ARMV7_FLAG)
     endif
-    SRCS += aes_armv4.S sha1_armv4.S sha256_armv4.S sha512_armv4.S
+    SRCS += src/symmetric/aes_armv4.S src/hash/sha1_armv4.S src/hash/sha256_armv4.S src/hash/sha512_armv4.S
   endif
 endif
 
@@ -1244,15 +1247,18 @@ ifneq ($(findstring -DCRYPTOPP_DISABLE_ASM,$(CRYPTOPP_CPPFLAGS)$(CPPFLAGS)$(CXXF
 endif
 
 # List cryptlib.cpp first, then cpu.cpp, then integer.cpp to tame C++ static initialization problems.
+# Object files are built in root directory, so strip src/ paths
 OBJS := $(SRCS:.cpp=.o)
 OBJS := $(OBJS:.S=.o)
+OBJS := $(notdir $(OBJS))
 
 # List test.cpp first to tame C++ static initialization problems.
-TESTSRCS := adhoc.cpp test.cpp bench1.cpp bench2.cpp bench3.cpp datatest.cpp dlltest.cpp fipsalgt.cpp validat0.cpp validat1.cpp validat2.cpp validat3.cpp validat4.cpp validat5.cpp validat6.cpp validat7.cpp validat8.cpp validat9.cpp validat10.cpp regtest1.cpp regtest2.cpp regtest3.cpp regtest4.cpp
-TESTINCL := bench.h factory.h validate.h
+TESTSRCS := src/test/adhoc.cpp src/test/test.cpp src/test/bench1.cpp src/test/bench2.cpp src/test/bench3.cpp src/test/datatest.cpp src/test/dlltest.cpp src/core/fipsalgt.cpp src/test/fipstest.cpp src/test/validat0.cpp src/test/validat1.cpp src/test/validat2.cpp src/test/validat3.cpp src/test/validat4.cpp src/test/validat5.cpp src/test/validat6.cpp src/test/validat7.cpp src/test/validat8.cpp src/test/validat9.cpp src/test/validat10.cpp src/test/regtest1.cpp src/test/regtest2.cpp src/test/regtest3.cpp src/test/regtest4.cpp
+TESTINCL := include/cryptopp/bench.h include/cryptopp/factory.h include/cryptopp/validate.h
 
-# Test objects
+# Test objects - strip paths
 TESTOBJS := $(TESTSRCS:.cpp=.o)
+TESTOBJS := $(notdir $(TESTOBJS))
 LIBOBJS := $(filter-out $(TESTOBJS),$(OBJS))
 
 # In Crypto++ 5.6.2 these were the source and object files for the FIPS DLL.
@@ -1261,6 +1267,7 @@ LIBOBJS := $(filter-out $(TESTOBJS),$(OBJS))
 DLLSRCS := $(SRCS)
 DLLOBJS := $(DLLSRCS:.cpp=.export.o)
 DLLOBJS := $(DLLOBJS:.S=.export.o)
+DLLOBJS := $(notdir $(DLLOBJS))
 
 # Import lib testing
 LIBIMPORTOBJS := $(LIBOBJS:.o=.import.o)
@@ -1269,8 +1276,10 @@ DLLTESTOBJS := dlltest.dllonly.o
 
 # Clean recipe, Issue 998. Don't filter-out some artifacts from the list of objects
 # The *.S is a hack. It makes the ASM appear like C++ so the object files make the CLEAN_OBJS list
-CLEAN_SRCS := $(wildcard *.cpp) $(patsubst %.S,%.cpp,$(wildcard *.S))
-CLEAN_OBJS := $(CLEAN_SRCS:.cpp=.o) $(CLEAN_SRCS:.cpp=.import.o) $(CLEAN_SRCS:.cpp=.export.o)
+# Object files are built in root directory, so strip the src/ path
+CLEAN_SRCS := $(wildcard src/*/*.cpp) $(patsubst %.S,%.cpp,$(wildcard src/*/*.S))
+CLEAN_OBJS_TEMP := $(CLEAN_SRCS:.cpp=.o) $(CLEAN_SRCS:.cpp=.import.o) $(CLEAN_SRCS:.cpp=.export.o)
+CLEAN_OBJS := $(notdir $(CLEAN_OBJS_TEMP))
 
 ###########################################################
 #####           Add our flags to user flags           #####
@@ -1280,7 +1289,7 @@ CLEAN_OBJS := $(CLEAN_SRCS:.cpp=.o) $(CLEAN_SRCS:.cpp=.import.o) $(CLEAN_SRCS:.c
 # use of customary library flags, like -fPIC. Make will
 # ignore this assignment when CXXFLAGS is passed as an
 # argument to the make program: make CXXFLAGS="..."
-CPPFLAGS := $(strip $(CRYPTOPP_CPPFLAGS) $(CPPFLAGS))
+CPPFLAGS := $(strip $(CRYPTOPP_CPPFLAGS) $(CPPFLAGS) -Iinclude)
 CXXFLAGS := $(strip $(CRYPTOPP_CXXFLAGS) $(CXXFLAGS))
 ASFLAGS  := $(strip $(CRYPTOPP_ASFLAGS)  $(ASFLAGS))
 LDFLAGS  := $(strip $(CRYPTOPP_LDFLAGS)  $(LDFLAGS))
@@ -1383,7 +1392,7 @@ docs html:
 
 .PHONY: clean
 clean:
-	-$(RM) adhoc.cpp.o adhoc.cpp.proto.o $(CLEAN_OBJS) rdrand-*.o
+	-$(RM) $(CLEAN_OBJS) rdrand-*.o
 	@-$(RM) libcryptopp.a libcryptopp.dylib cryptopp.dll libcryptopp.dll.a libcryptopp.import.a
 	@-$(RM) libcryptopp.so libcryptopp.so$(SOLIB_COMPAT_SUFFIX) libcryptopp.so$(SOLIB_VERSION_SUFFIX)
 	@-$(RM) cryptest.exe dlltest.exe cryptest.import.exe cryptest.dat ct et
@@ -1438,7 +1447,7 @@ install: cryptest.exe install-lib
 .PHONY: install-lib
 install-lib:
 	@-$(MKDIR) $(DESTDIR)$(INCLUDEDIR)/cryptopp
-	$(CP) *.h $(DESTDIR)$(INCLUDEDIR)/cryptopp
+	$(CP) include/cryptopp/*.h $(DESTDIR)$(INCLUDEDIR)/cryptopp
 	$(CHMOD) u=rw,go=r $(DESTDIR)$(INCLUDEDIR)/cryptopp/*.h
 ifneq ($(wildcard libcryptopp.a),)
 	@-$(MKDIR) $(DESTDIR)$(LIBDIR)
@@ -1633,151 +1642,151 @@ endif # Dependencies
 NOSTD_CXXFLAGS=$(filter-out -stdlib=%,$(filter-out -std=%,$(CXXFLAGS)))
 
 # Cryptogams ARM asm implementation. AES needs -mthumb for Clang
-aes_armv4.o : aes_armv4.S
+src/symmetric/aes_armv4.o : src/symmetric/aes_armv4.S
 	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_THUMB_FLAG) -c) $<
 
 # SSE, NEON or POWER7 available
-blake2s_simd.o : blake2s_simd.cpp
+src/hash/blake2s_simd.o : src/hash/blake2s_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE2S_FLAG) -c) $<
 
 # SSE, NEON or POWER8 available
-blake2b_simd.o : blake2b_simd.cpp
+src/hash/blake2b_simd.o : src/hash/blake2b_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE2B_FLAG) -c) $<
 
 # SSE2 or NEON available
-chacha_simd.o : chacha_simd.cpp
+src/symmetric/chacha_simd.o : src/symmetric/chacha_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHACHA_FLAG) -c) $<
 
 # AVX2 available
-chacha_avx.o : chacha_avx.cpp
+src/symmetric/chacha_avx.o : src/symmetric/chacha_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHACHA_AVX2_FLAG) -c) $<
 
 # SSSE3 available
-cham_simd.o : cham_simd.cpp
+src/symmetric/cham_simd.o : src/symmetric/cham_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHAM_FLAG) -c) $<
 
 # SSE4.2 or ARMv8a available
-crc_simd.o : crc_simd.cpp
+src/hash/crc_simd.o : src/hash/crc_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CRC_FLAG) -c) $<
 
 # Power9 available
-darn.o : darn.cpp
+src/random/darn.o : src/random/darn.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(DARN_FLAG) -c) $<
 
 # SSE2 on i686
-donna_sse.o : donna_sse.cpp
+src/pubkey/donna_sse.o : src/pubkey/donna_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SSE2_FLAG) -c) $<
 
 # Carryless multiply
-gcm_simd.o : gcm_simd.cpp
+src/modes/gcm_simd.o : src/modes/gcm_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(GCM_FLAG) -c) $<
 
 # Carryless multiply
-gf2n_simd.o : gf2n_simd.cpp
+src/core/gf2n_simd.o : src/core/gf2n_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(GF2N_FLAG) -c) $<
 
 # SSSE3 available
-keccak_simd.o : keccak_simd.cpp
+src/hash/keccak_simd.o : src/hash/keccak_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(KECCAK_FLAG) -c) $<
 
 # SSSE3 available
-lea_simd.o : lea_simd.cpp
+src/symmetric/lea_simd.o : src/symmetric/lea_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LEA_FLAG) -c) $<
 
 # SSSE3 available
-lsh256_sse.o : lsh256_sse.cpp
+src/hash/lsh256_sse.o : src/hash/lsh256_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH256_FLAG) -c) $<
 
 # AVX2 available
-lsh256_avx.o : lsh256_avx.cpp
+src/hash/lsh256_avx.o : src/hash/lsh256_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH256_AVX2_FLAG) -c) $<
 
 # SSSE3 available
-lsh512_sse.o : lsh512_sse.cpp
+src/hash/lsh512_sse.o : src/hash/lsh512_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH512_FLAG) -c) $<
 
 # AVX2 available
-lsh512_avx.o : lsh512_avx.cpp
+src/hash/lsh512_avx.o : src/hash/lsh512_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH512_AVX2_FLAG) -c) $<
 
 # NEON available
-neon_simd.o : neon_simd.cpp
+src/core/neon_simd.o : src/core/neon_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(NEON_FLAG) -c) $<
 
 # AltiVec available
-ppc_simd.o : ppc_simd.cpp
+src/core/ppc_simd.o : src/core/ppc_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(ALTIVEC_FLAG) -c) $<
 
 # AESNI or ARMv7a/ARMv8a available
-rijndael_simd.o : rijndael_simd.cpp
+src/symmetric/rijndael_simd.o : src/symmetric/rijndael_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(AES_FLAG) -c) $<
 
 # SSE4.2/SHA-NI or ARMv8a available
-sha_simd.o : sha_simd.cpp
+src/hash/sha_simd.o : src/hash/sha_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA_FLAG) -c) $<
 
 # Cryptogams SHA1/SHA256/SHA512 asm implementation.
-sha%_armv4.o : sha%_armv4.S
+src/hash/sha%_armv4.o : src/hash/sha%_armv4.S
 	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_FLAG) -c) $<
 
-sha3_simd.o : sha3_simd.cpp
+src/hash/sha3_simd.o : src/hash/sha3_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA3_FLAG) -c) $<
 
 # SSE4.2/SHA-NI or ARMv8a available
-shacal2_simd.o : shacal2_simd.cpp
+src/symmetric/shacal2_simd.o : src/symmetric/shacal2_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA_FLAG) -c) $<
 
 # SSSE3, NEON or POWER8 available
-simon128_simd.o : simon128_simd.cpp
+src/symmetric/simon128_simd.o : src/symmetric/simon128_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SIMON128_FLAG) -c) $<
 
 # SSSE3, NEON or POWER8 available
-speck128_simd.o : speck128_simd.cpp
+src/symmetric/speck128_simd.o : src/symmetric/speck128_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SPECK128_FLAG) -c) $<
 
 # ARMv8.4 available
-sm3_simd.o : sm3_simd.cpp
+src/hash/sm3_simd.o : src/hash/sm3_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SM3_FLAG) -c) $<
 
 # AESNI available
-sm4_simd.o : sm4_simd.cpp
+src/symmetric/sm4_simd.o : src/symmetric/sm4_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SM4_FLAG) -c) $<
 
 # IBM XLC -O3 optimization bug
 ifeq ($(XLC_COMPILER),1)
-sm3.o : sm3.cpp
+src/hash/sm3.o : src/hash/sm3.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
-donna_32.o : donna_32.cpp
+src/pubkey/donna_32.o : src/pubkey/donna_32.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
-donna_64.o : donna_64.cpp
+src/pubkey/donna_64.o : src/pubkey/donna_64.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
 endif
 
 # SSE2 on i686
-sse_simd.o : sse_simd.cpp
+src/core/sse_simd.o : src/core/sse_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SSE2_FLAG) -c) $<
 
 # Don't build Rijndael with UBsan. Too much noise due to unaligned data accesses.
 ifneq ($(findstring -fsanitize=undefined,$(CXXFLAGS)),)
-rijndael.o : rijndael.cpp
-	$(CXX) $(strip $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
+src/symmetric/rijndael.o : src/symmetric/rijndael.cpp
+	$(CXX) $(strip $(CPPFLAGS) $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
 endif
 
 # Only use CRYPTOPP_DATA_DIR if its not set in CXXFLAGS
 ifeq ($(findstring -DCRYPTOPP_DATA_DIR, $(CPPFLAGS)$(CXXFLAGS)),)
 ifneq ($(strip $(CRYPTOPP_DATA_DIR)),)
-validat%.o : validat%.cpp
+src/test/validat%.o : src/test/validat%.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
-bench%.o : bench%.cpp
+src/test/bench%.o : src/test/bench%.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
-datatest.o : datatest.cpp
+src/test/datatest.o : src/test/datatest.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
-test.o : test.cpp
+src/test/test.o : src/test/test.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
 endif
 endif
 
-validat1.o : validat1.cpp
+src/test/validat1.o : src/test/validat1.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(ALTIVEC_FLAG) -c) $<
 
 %.dllonly.o : %.cpp

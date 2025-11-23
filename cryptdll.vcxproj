@@ -65,6 +65,7 @@
       <DisableSpecificWarnings>4231; 4251; 4275; 4355; 4505</DisableSpecificWarnings>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>$(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -168,12 +169,12 @@
   </ItemDefinitionGroup>
   <!-- Original File with special treatment -->
   <ItemGroup>
-    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="x64dll.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="src\core\x64dll.asm">
       <Message>Building and assembling x64dll.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Zi /Fo"$(IntDir)x64dll.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)x64dll.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="cpuid64.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="src\core\cpuid64.asm">
       <Message>Building and assembling cpuid64.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Zi /Fo"$(IntDir)cpuid64.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)cpuid64.obj;%(Outputs)</Outputs>
@@ -181,153 +182,153 @@
   </ItemGroup>
   <!-- Source Files -->
   <ItemGroup>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="src\core\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="dll.cpp">
+    <ClCompile Include="src\core\dll.cpp">
       <PrecompiledHeader />
     </ClCompile>
-    <ClCompile Include="iterhash.cpp">
+    <ClCompile Include="src\core\iterhash.cpp">
       <PrecompiledHeader />
     </ClCompile>
-    <ClCompile Include="algebra.cpp" />
-    <ClCompile Include="algparam.cpp" />
-    <ClCompile Include="allocate.cpp" />
-    <ClCompile Include="asn.cpp" />
-    <ClCompile Include="authenc.cpp" />
-    <ClCompile Include="basecode.cpp" />
-    <ClCompile Include="cbcmac.cpp" />
-    <ClCompile Include="ccm.cpp" />
-    <ClCompile Include="channels.cpp" />
-    <ClCompile Include="cmac.cpp" />
-    <ClCompile Include="cpu.cpp" />
-    <ClCompile Include="cryptlib.cpp" />
-    <ClCompile Include="des.cpp" />
-    <ClCompile Include="dessp.cpp" />
-    <ClCompile Include="dh.cpp" />
-    <ClCompile Include="dsa.cpp" />
-    <ClCompile Include="ec2n.cpp" />
-    <ClCompile Include="eccrypto.cpp" />
-    <ClCompile Include="ecp.cpp" />
-    <ClCompile Include="emsa2.cpp" />
-    <ClCompile Include="eprecomp.cpp" />
-    <ClCompile Include="files.cpp" />
-    <ClCompile Include="filters.cpp" />
-    <ClCompile Include="fips140.cpp" />
-    <ClCompile Include="fipstest.cpp" />
-    <ClCompile Include="gcm.cpp" />
-    <ClCompile Include="gcm_simd.cpp" />
-    <ClCompile Include="gf2n.cpp" />
-    <ClCompile Include="gf2n_simd.cpp" />
-    <ClCompile Include="gfpcrypt.cpp" />
-    <ClCompile Include="hex.cpp" />
-    <ClCompile Include="hmac.cpp" />
-    <ClCompile Include="hrtimer.cpp" />
-    <ClCompile Include="integer.cpp" />
-    <ClCompile Include="misc.cpp" />
-    <ClCompile Include="modes.cpp" />
-    <ClCompile Include="mqueue.cpp" />
-    <ClCompile Include="nbtheory.cpp" />
-    <ClCompile Include="oaep.cpp" />
-    <ClCompile Include="osrng.cpp" />
-    <ClCompile Include="pkcspad.cpp" />
-    <ClCompile Include="primetab.cpp" />
-    <ClCompile Include="pssr.cpp" />
-    <ClCompile Include="pubkey.cpp" />
-    <ClCompile Include="queue.cpp" />
-    <ClCompile Include="randpool.cpp" />
-    <ClCompile Include="rdtables.cpp" />
-    <ClCompile Include="rijndael.cpp" />
-    <ClCompile Include="rijndael_simd.cpp" />
-    <ClCompile Include="rng.cpp" />
-    <ClCompile Include="rsa.cpp" />
-    <ClCompile Include="rw.cpp" />
-    <ClCompile Include="sha.cpp" />
-    <ClCompile Include="sha_simd.cpp" />
-    <ClCompile Include="simple.cpp" />
-    <ClCompile Include="skipjack.cpp" />
-    <ClCompile Include="sse_simd.cpp" />
-    <ClCompile Include="strciphr.cpp" />
+    <ClCompile Include="src\core\algebra.cpp" />
+    <ClCompile Include="src\core\algparam.cpp" />
+    <ClCompile Include="src\core\allocate.cpp" />
+    <ClCompile Include="src\core\asn.cpp" />
+    <ClCompile Include="src\modes\authenc.cpp" />
+    <ClCompile Include="src\encoding\basecode.cpp" />
+    <ClCompile Include="src\mac\cbcmac.cpp" />
+    <ClCompile Include="src\modes\ccm.cpp" />
+    <ClCompile Include="src\core\channels.cpp" />
+    <ClCompile Include="src\mac\cmac.cpp" />
+    <ClCompile Include="src\core\cpu.cpp" />
+    <ClCompile Include="src\core\cryptlib.cpp" />
+    <ClCompile Include="src\symmetric\des.cpp" />
+    <ClCompile Include="src\symmetric\dessp.cpp" />
+    <ClCompile Include="src\pubkey\dh.cpp" />
+    <ClCompile Include="src\pubkey\dsa.cpp" />
+    <ClCompile Include="src\pubkey\ec2n.cpp" />
+    <ClCompile Include="src\pubkey\eccrypto.cpp" />
+    <ClCompile Include="src\pubkey\ecp.cpp" />
+    <ClCompile Include="src\pubkey\emsa2.cpp" />
+    <ClCompile Include="src\pubkey\eprecomp.cpp" />
+    <ClCompile Include="src\core\files.cpp" />
+    <ClCompile Include="src\core\filters.cpp" />
+    <ClCompile Include="src\core\fips140.cpp" />
+    <ClCompile Include="src\test\fipstest.cpp" />
+    <ClCompile Include="src\modes\gcm.cpp" />
+    <ClCompile Include="src\modes\gcm_simd.cpp" />
+    <ClCompile Include="src\core\gf2n.cpp" />
+    <ClCompile Include="src\core\gf2n_simd.cpp" />
+    <ClCompile Include="src\pubkey\gfpcrypt.cpp" />
+    <ClCompile Include="src\encoding\hex.cpp" />
+    <ClCompile Include="src\mac\hmac.cpp" />
+    <ClCompile Include="src\util\hrtimer.cpp" />
+    <ClCompile Include="src\core\integer.cpp" />
+    <ClCompile Include="src\core\misc.cpp" />
+    <ClCompile Include="src\modes\modes.cpp" />
+    <ClCompile Include="src\core\mqueue.cpp" />
+    <ClCompile Include="src\core\nbtheory.cpp" />
+    <ClCompile Include="src\pubkey\oaep.cpp" />
+    <ClCompile Include="src\random\osrng.cpp" />
+    <ClCompile Include="src\pubkey\pkcspad.cpp" />
+    <ClCompile Include="src\core\primetab.cpp" />
+    <ClCompile Include="src\pubkey\pssr.cpp" />
+    <ClCompile Include="src\pubkey\pubkey.cpp" />
+    <ClCompile Include="src\core\queue.cpp" />
+    <ClCompile Include="src\random\randpool.cpp" />
+    <ClCompile Include="src\core\rdtables.cpp" />
+    <ClCompile Include="src\symmetric\rijndael.cpp" />
+    <ClCompile Include="src\symmetric\rijndael_simd.cpp" />
+    <ClCompile Include="src\random\rng.cpp" />
+    <ClCompile Include="src\pubkey\rsa.cpp" />
+    <ClCompile Include="src\pubkey\rw.cpp" />
+    <ClCompile Include="src\hash\sha.cpp" />
+    <ClCompile Include="src\hash\sha_simd.cpp" />
+    <ClCompile Include="src\util\simple.cpp" />
+    <ClCompile Include="src\symmetric\skipjack.cpp" />
+    <ClCompile Include="src\core\sse_simd.cpp" />
+    <ClCompile Include="src\core\strciphr.cpp" />
   </ItemGroup>
   <!-- Header Files -->
   <ItemGroup>
-    <ClInclude Include="aes.h" />
-    <ClInclude Include="algebra.h" />
-    <ClInclude Include="algparam.h" />
-    <ClInclude Include="allocate.h" />
-    <ClInclude Include="argnames.h" />
-    <ClInclude Include="asn.h" />
-    <ClInclude Include="authenc.h" />
-    <ClInclude Include="basecode.h" />
-    <ClInclude Include="cbcmac.h" />
-    <ClInclude Include="ccm.h" />
-    <ClInclude Include="channels.h" />
-    <ClInclude Include="cmac.h" />
-    <ClInclude Include="config.h" />
-    <ClInclude Include="config_align.h" />
-    <ClInclude Include="config_asm.h" />
-    <ClInclude Include="config_cpu.h" />
-    <ClInclude Include="config_cxx.h" />
-    <ClInclude Include="config_dll.h" />
-    <ClInclude Include="config_int.h" />
-    <ClInclude Include="config_misc.h" />
-    <ClInclude Include="config_ns.h" />
-    <ClInclude Include="config_os.h" />
-    <ClInclude Include="config_ver.h" />
-    <ClInclude Include="cpu.h" />
-    <ClInclude Include="cryptlib.h" />
-    <ClInclude Include="des.h" />
-    <ClInclude Include="dh.h" />
-    <ClInclude Include="dll.h" />
-    <ClInclude Include="dsa.h" />
-    <ClInclude Include="ec2n.h" />
-    <ClInclude Include="eccrypto.h" />
-    <ClInclude Include="ecp.h" />
-    <ClInclude Include="ecpoint.h" />
-    <ClInclude Include="emsa2.h" />
-    <ClInclude Include="eprecomp.h" />
-    <ClInclude Include="files.h" />
-    <ClInclude Include="filters.h" />
-    <ClInclude Include="fips140.h" />
-    <ClInclude Include="fltrimpl.h" />
-    <ClInclude Include="gcm.h" />
-    <ClInclude Include="gf2n.h" />
-    <ClInclude Include="gfpcrypt.h" />
-    <ClInclude Include="hex.h" />
-    <ClInclude Include="hmac.h" />
-    <ClInclude Include="integer.h" />
-    <ClInclude Include="iterhash.h" />
-    <ClInclude Include="mdc.h" />
-    <ClInclude Include="misc.h" />
-    <ClInclude Include="modarith.h" />
-    <ClInclude Include="modes.h" />
-    <ClInclude Include="modexppc.h" />
-    <ClInclude Include="mqueue.h" />
-    <ClInclude Include="mqv.h" />
-    <ClInclude Include="nbtheory.h" />
-    <ClInclude Include="oaep.h" />
-    <ClInclude Include="oids.h" />
-    <ClInclude Include="osrng.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="pkcspad.h" />
-    <ClInclude Include="pssr.h" />
-    <ClInclude Include="pubkey.h" />
-    <ClInclude Include="queue.h" />
-    <ClInclude Include="randpool.h" />
-    <ClInclude Include="rijndael.h" />
-    <ClInclude Include="rng.h" />
-    <ClInclude Include="rsa.h" />
-    <ClInclude Include="rw.h" />
-    <ClInclude Include="secblock.h" />
-    <ClInclude Include="seckey.h" />
-    <ClInclude Include="sha.h" />
-    <ClInclude Include="simple.h" />
-    <ClInclude Include="skipjack.h" />
-    <ClInclude Include="smartptr.h" />
-    <ClInclude Include="stdcpp.h" />
-    <ClInclude Include="strciphr.h" />
-    <ClInclude Include="trap.h" />
-    <ClInclude Include="words.h" />
+    <ClInclude Include="include\cryptopp\aes.h" />
+    <ClInclude Include="include\cryptopp\algebra.h" />
+    <ClInclude Include="include\cryptopp\algparam.h" />
+    <ClInclude Include="include\cryptopp\allocate.h" />
+    <ClInclude Include="include\cryptopp\argnames.h" />
+    <ClInclude Include="include\cryptopp\asn.h" />
+    <ClInclude Include="include\cryptopp\authenc.h" />
+    <ClInclude Include="include\cryptopp\basecode.h" />
+    <ClInclude Include="include\cryptopp\cbcmac.h" />
+    <ClInclude Include="include\cryptopp\ccm.h" />
+    <ClInclude Include="include\cryptopp\channels.h" />
+    <ClInclude Include="include\cryptopp\cmac.h" />
+    <ClInclude Include="include\cryptopp\config.h" />
+    <ClInclude Include="include\cryptopp\config_align.h" />
+    <ClInclude Include="include\cryptopp\config_asm.h" />
+    <ClInclude Include="include\cryptopp\config_cpu.h" />
+    <ClInclude Include="include\cryptopp\config_cxx.h" />
+    <ClInclude Include="include\cryptopp\config_dll.h" />
+    <ClInclude Include="include\cryptopp\config_int.h" />
+    <ClInclude Include="include\cryptopp\config_misc.h" />
+    <ClInclude Include="include\cryptopp\config_ns.h" />
+    <ClInclude Include="include\cryptopp\config_os.h" />
+    <ClInclude Include="include\cryptopp\config_ver.h" />
+    <ClInclude Include="include\cryptopp\cpu.h" />
+    <ClInclude Include="include\cryptopp\cryptlib.h" />
+    <ClInclude Include="include\cryptopp\des.h" />
+    <ClInclude Include="include\cryptopp\dh.h" />
+    <ClInclude Include="include\cryptopp\dll.h" />
+    <ClInclude Include="include\cryptopp\dsa.h" />
+    <ClInclude Include="include\cryptopp\ec2n.h" />
+    <ClInclude Include="include\cryptopp\eccrypto.h" />
+    <ClInclude Include="include\cryptopp\ecp.h" />
+    <ClInclude Include="include\cryptopp\ecpoint.h" />
+    <ClInclude Include="include\cryptopp\emsa2.h" />
+    <ClInclude Include="include\cryptopp\eprecomp.h" />
+    <ClInclude Include="include\cryptopp\files.h" />
+    <ClInclude Include="include\cryptopp\filters.h" />
+    <ClInclude Include="include\cryptopp\fips140.h" />
+    <ClInclude Include="include\cryptopp\fltrimpl.h" />
+    <ClInclude Include="include\cryptopp\gcm.h" />
+    <ClInclude Include="include\cryptopp\gf2n.h" />
+    <ClInclude Include="include\cryptopp\gfpcrypt.h" />
+    <ClInclude Include="include\cryptopp\hex.h" />
+    <ClInclude Include="include\cryptopp\hmac.h" />
+    <ClInclude Include="include\cryptopp\integer.h" />
+    <ClInclude Include="include\cryptopp\iterhash.h" />
+    <ClInclude Include="include\cryptopp\mdc.h" />
+    <ClInclude Include="include\cryptopp\misc.h" />
+    <ClInclude Include="include\cryptopp\modarith.h" />
+    <ClInclude Include="include\cryptopp\modes.h" />
+    <ClInclude Include="include\cryptopp\modexppc.h" />
+    <ClInclude Include="include\cryptopp\mqueue.h" />
+    <ClInclude Include="include\cryptopp\mqv.h" />
+    <ClInclude Include="include\cryptopp\nbtheory.h" />
+    <ClInclude Include="include\cryptopp\oaep.h" />
+    <ClInclude Include="include\cryptopp\oids.h" />
+    <ClInclude Include="include\cryptopp\osrng.h" />
+    <ClInclude Include="include\cryptopp\pch.h" />
+    <ClInclude Include="include\cryptopp\pkcspad.h" />
+    <ClInclude Include="include\cryptopp\pssr.h" />
+    <ClInclude Include="include\cryptopp\pubkey.h" />
+    <ClInclude Include="include\cryptopp\queue.h" />
+    <ClInclude Include="include\cryptopp\randpool.h" />
+    <ClInclude Include="include\cryptopp\rijndael.h" />
+    <ClInclude Include="include\cryptopp\rng.h" />
+    <ClInclude Include="include\cryptopp\rsa.h" />
+    <ClInclude Include="include\cryptopp\rw.h" />
+    <ClInclude Include="include\cryptopp\secblock.h" />
+    <ClInclude Include="include\cryptopp\seckey.h" />
+    <ClInclude Include="include\cryptopp\sha.h" />
+    <ClInclude Include="include\cryptopp\simple.h" />
+    <ClInclude Include="include\cryptopp\skipjack.h" />
+    <ClInclude Include="include\cryptopp\smartptr.h" />
+    <ClInclude Include="include\cryptopp\stdcpp.h" />
+    <ClInclude Include="include\cryptopp\strciphr.h" />
+    <ClInclude Include="include\cryptopp\trap.h" />
+    <ClInclude Include="include\cryptopp\words.h" />
   </ItemGroup>
   <!-- Back to Visual Studio boilerplate -->
   <ItemGroup>

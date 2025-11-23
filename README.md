@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2025.11.0-blue.svg)](https://github.com/Coralesoft/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2025.12.0--rc1-blue.svg)](https://github.com/Coralesoft/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](License.txt)
 
 ---
@@ -21,13 +21,13 @@
 ---
 
 
-## What's New in 2025.11.0
+## What's New in 2025.12.0 (Release Candidate)
 
-- 🎉 First release with calendar versioning
-- ✨ Added BLAKE3 cryptographic hash
-- ✨ Added Argon2 password hashing (d/i/id variants)
-- 🔒 Fixed Marvin attack (CVE-2022-4304)
-- 🔒 Improved ESIGN static analyzer compatibility
+- 📁 **Complete Project Reorganization** - All 204 source files organized into categorized `src/` directories
+- 🏗️ **Improved Structure** - Better code navigation with logical directory layout (core, hash, kdf, symmetric, pubkey, etc.)
+- 📦 **Backward Compatible** - Flat `include/cryptopp/` structure maintained for drop-in replacement
+- ✅ **Multi-Platform CI/CD** - 45+ build configurations tested on Windows, Linux, and macOS
+- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, and nmake for new structure
 
 ---
 

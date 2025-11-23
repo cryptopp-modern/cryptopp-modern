@@ -1,0 +1,243 @@
+name: Phase 2 Testing
+
+on:
+  push:
+    branches: [ phase2 ]
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'License.txt'
+      - 'Readme.txt'
+
+jobs:
+  # Linux builds with multiple GCC versions
+  linux-gcc:
+    name: Linux GCC ${{ matrix.gcc-version }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version: [9, 10, 11, 12, 13]
+        cxx-standard: [11, 14, 17]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GCC ${{ matrix.gcc-version }}
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt-get update
+        sudo apt-get install -y gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=g++-${{ matrix.gcc-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  # Linux builds with multiple Clang versions
+  linux-clang:
+    name: Linux Clang ${{ matrix.clang-version }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        clang-version: [14, 15, 16, 17]
+        cxx-standard: [11, 14, 17]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Clang ${{ matrix.clang-version }}
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh ${{ matrix.clang-version }}
+        sudo apt-get install -y clang-${{ matrix.clang-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=clang++-${{ matrix.clang-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  # Sanitizer builds
+  sanitizers:
+    name: ${{ matrix.sanitizer }} (GCC 12)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [ubsan, asan]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GCC 12
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-12 g++-12
+
+    - name: Build with ${{ matrix.sanitizer }}
+      run: |
+        export CXX=g++-12
+        make clean
+        make ${{ matrix.sanitizer }} -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v 2>&1 | tee validation.log
+
+    - name: Check for sanitizer errors (validation)
+      run: |
+        if grep -E "(error:|FAILED)" validation.log; then
+          echo "Sanitizer errors found in validation tests"
+          exit 1
+        fi
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all 2>&1 | tee testvectors.log
+
+    - name: Check for sanitizer errors (test vectors)
+      run: |
+        if grep -E "(error:|FAILED)" testvectors.log; then
+          echo "Sanitizer errors found in test vectors"
+          exit 1
+        fi
+
+  # Windows MSVC builds
+  windows-msvc:
+    name: Windows MSVC 2022
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, Win32]
+        configuration: [Release, Debug]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build library and tests
+      run: msbuild cryptest.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m
+
+    - name: Run validation tests
+      if: matrix.configuration == 'Release'
+      shell: cmd
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe v
+
+    - name: Run test vectors
+      if: matrix.configuration == 'Release'
+      shell: cmd
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe tv all
+
+  # Windows nmake builds
+  windows-nmake:
+    name: Windows nmake (x64)
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build with nmake
+      run: nmake /f cryptest.nmake
+
+    - name: Run validation tests
+      run: .\cryptest.exe v
+
+    - name: Run test vectors
+      run: .\cryptest.exe tv all
+
+  # macOS with Apple Clang
+  macos:
+    name: macOS (Apple Clang)
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx-standard: [11, 14, 17]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }} -stdlib=libc++"
+        make clean
+        make -j$(sysctl -n hw.ncpu)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  # Static and dynamic library build test
+  library-builds:
+    name: Library Build Types (Linux)
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build static library
+      run: |
+        make clean
+        make static -j$(nproc)
+        test -f libcryptopp.a
+
+    - name: Build dynamic library
+      run: |
+        make clean
+        make dynamic -j$(nproc)
+        test -f libcryptopp.so
+
+    - name: Build both libraries
+      run: |
+        make clean
+        make static dynamic cryptest.exe -j$(nproc)
+        test -f libcryptopp.a
+        test -f libcryptopp.so
+        ./cryptest.exe v
+
+  # Installation test
+  install-test:
+    name: Installation Test
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build and install to custom prefix
+      run: |
+        make -j$(nproc)
+        make install PREFIX=/tmp/cryptopp-install
+
+    - name: Verify installation
+      run: |
+        test -f /tmp/cryptopp-install/bin/cryptest.exe
+        test -d /tmp/cryptopp-install/include/cryptopp
+        test -f /tmp/cryptopp-install/lib/libcryptopp.a
+        ls -la /tmp/cryptopp-install/include/cryptopp/ | head -20
