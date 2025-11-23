@@ -15,6 +15,7 @@
 **cryptopp-modern Goals:**
 - Active maintenance with regular releases
 - Modern cryptographic algorithms (BLAKE3, Argon2, post-quantum planned)
+- Better code organization (Phase 2 complete - categorized src/ directories)
 - Calendar versioning (YEAR.MONTH.INCREMENT)
 - Improved documentation and organisation
 - Community-driven development
