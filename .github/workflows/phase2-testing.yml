@@ -148,6 +148,28 @@ jobs:
       shell: cmd
       run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe tv all
 
+  # Windows nmake builds
+  windows-nmake:
+    name: Windows nmake (x64)
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Build with nmake
+      run: nmake /f cryptest.nmake
+
+    - name: Run validation tests
+      run: .\cryptest.exe v
+
+    - name: Run test vectors
+      run: .\cryptest.exe tv all
+
   # macOS with Apple Clang
   macos:
     name: macOS (Apple Clang)

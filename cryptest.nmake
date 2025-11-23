@@ -56,35 +56,67 @@
 ###########################################################################################
 
 LIB_SRCS = \
-    cryptlib.cpp cpu.cpp integer.cpp 3way.cpp adler32.cpp algebra.cpp \
-    algparam.cpp allocate.cpp arc4.cpp aria.cpp ariatab.cpp asn.cpp \
-    authenc.cpp base32.cpp base64.cpp basecode.cpp bfinit.cpp blake2.cpp \
-    blake2b_simd.cpp blake2s_simd.cpp blowfish.cpp blumshub.cpp camellia.cpp \
-    cast.cpp casts.cpp cbcmac.cpp ccm.cpp chacha.cpp chacha_avx.cpp \
-    chacha_simd.cpp chachapoly.cpp cham.cpp cham_simd.cpp channels.cpp \
-    cmac.cpp crc.cpp crc_simd.cpp darn.cpp default.cpp des.cpp dessp.cpp \
-    dh.cpp dh2.cpp dll.cpp donna_32.cpp donna_64.cpp donna_sse.cpp dsa.cpp \
-    eax.cpp ec2n.cpp eccrypto.cpp ecp.cpp elgamal.cpp emsa2.cpp eprecomp.cpp \
-    esign.cpp files.cpp filters.cpp fips140.cpp fipstest.cpp gcm.cpp \
-    gcm_simd.cpp gf256.cpp gf2_32.cpp gf2n.cpp gf2n_simd.cpp gfpcrypt.cpp \
-    gost.cpp gzip.cpp hc128.cpp hc256.cpp hex.cpp hight.cpp hmac.cpp \
-    hrtimer.cpp ida.cpp idea.cpp iterhash.cpp kalyna.cpp kalynatab.cpp \
-    keccak.cpp keccak_core.cpp keccak_simd.cpp lea.cpp lea_simd.cpp \
-    lsh256.cpp lsh256_avx.cpp lsh256_sse.cpp lsh512.cpp lsh512_avx.cpp \
-    lsh512_sse.cpp luc.cpp mars.cpp marss.cpp md2.cpp md4.cpp md5.cpp \
-    misc.cpp modes.cpp mqueue.cpp mqv.cpp nbtheory.cpp oaep.cpp osrng.cpp \
-    padlkrng.cpp panama.cpp pkcspad.cpp poly1305.cpp polynomi.cpp \
-    ppc_simd.cpp primetab.cpp pssr.cpp pubkey.cpp queue.cpp rabbit.cpp \
-    rabin.cpp randpool.cpp rc2.cpp rc5.cpp rc6.cpp rdrand.cpp rdtables.cpp \
-    rijndael.cpp rijndael_simd.cpp ripemd.cpp rng.cpp rsa.cpp rw.cpp \
-    safer.cpp salsa.cpp scrypt.cpp seal.cpp seed.cpp serpent.cpp sha.cpp \
-    sha3.cpp sha_simd.cpp shacal2.cpp shacal2_simd.cpp shake.cpp shark.cpp \
-    sharkbox.cpp simeck.cpp simon.cpp simon128_simd.cpp skipjack.cpp sm3.cpp \
-    sm4.cpp sm4_simd.cpp sosemanuk.cpp speck.cpp speck128_simd.cpp \
-    square.cpp squaretb.cpp sse_simd.cpp strciphr.cpp tea.cpp tftables.cpp \
-    threefish.cpp tiger.cpp tigertab.cpp ttmac.cpp tweetnacl.cpp twofish.cpp \
-    vmac.cpp wake.cpp whrlpool.cpp xed25519.cpp xtr.cpp xtrcrypt.cpp xts.cpp \
-    zdeflate.cpp zinflate.cpp zlib.cpp
+    src\core\cryptlib.cpp src\core\cpu.cpp src\core\integer.cpp \
+    src\symmetric\3way.cpp src\hash\adler32.cpp src\core\algebra.cpp \
+    src\core\algparam.cpp src\core\allocate.cpp src\symmetric\arc4.cpp \
+    src\symmetric\aria.cpp src\symmetric\ariatab.cpp src\core\asn.cpp \
+    src\modes\authenc.cpp src\encoding\base32.cpp src\encoding\base64.cpp \
+    src\encoding\basecode.cpp src\symmetric\bfinit.cpp src\hash\blake2.cpp \
+    src\hash\blake2b_simd.cpp src\hash\blake2s_simd.cpp src\hash\blake3.cpp \
+    src\symmetric\blowfish.cpp src\random\blumshub.cpp \
+    src\symmetric\camellia.cpp src\symmetric\cast.cpp src\symmetric\casts.cpp \
+    src\mac\cbcmac.cpp src\modes\ccm.cpp src\symmetric\chacha.cpp \
+    src\symmetric\chacha_avx.cpp src\symmetric\chacha_simd.cpp \
+    src\modes\chachapoly.cpp src\symmetric\cham.cpp src\symmetric\cham_simd.cpp \
+    src\core\channels.cpp src\mac\cmac.cpp src\hash\crc.cpp \
+    src\hash\crc_simd.cpp src\random\darn.cpp src\modes\default.cpp \
+    src\symmetric\des.cpp src\symmetric\dessp.cpp src\pubkey\dh.cpp \
+    src\pubkey\dh2.cpp src\core\dll.cpp src\pubkey\donna_32.cpp \
+    src\pubkey\donna_64.cpp src\pubkey\donna_sse.cpp src\pubkey\dsa.cpp \
+    src\modes\eax.cpp src\pubkey\ec2n.cpp src\pubkey\eccrypto.cpp \
+    src\pubkey\ecp.cpp src\pubkey\elgamal.cpp src\pubkey\emsa2.cpp \
+    src\pubkey\eprecomp.cpp src\pubkey\esign.cpp src\core\files.cpp \
+    src\core\filters.cpp src\core\fips140.cpp src\test\fipstest.cpp \
+    src\modes\gcm.cpp src\modes\gcm_simd.cpp src\core\gf256.cpp \
+    src\core\gf2_32.cpp src\core\gf2n.cpp src\core\gf2n_simd.cpp \
+    src\pubkey\gfpcrypt.cpp src\symmetric\gost.cpp src\encoding\gzip.cpp \
+    src\symmetric\hc128.cpp src\symmetric\hc256.cpp src\encoding\hex.cpp \
+    src\symmetric\hight.cpp src\mac\hmac.cpp src\util\hrtimer.cpp \
+    src\util\ida.cpp src\symmetric\idea.cpp src\core\iterhash.cpp \
+    src\symmetric\kalyna.cpp src\symmetric\kalynatab.cpp src\hash\keccak.cpp \
+    src\hash\keccak_core.cpp src\hash\keccak_simd.cpp src\symmetric\lea.cpp \
+    src\symmetric\lea_simd.cpp src\hash\lsh256.cpp src\hash\lsh256_avx.cpp \
+    src\hash\lsh256_sse.cpp src\hash\lsh512.cpp src\hash\lsh512_avx.cpp \
+    src\hash\lsh512_sse.cpp src\pubkey\luc.cpp src\symmetric\mars.cpp \
+    src\symmetric\marss.cpp src\hash\md2.cpp src\hash\md4.cpp \
+    src\hash\md5.cpp src\core\misc.cpp src\modes\modes.cpp \
+    src\core\mqueue.cpp src\pubkey\mqv.cpp src\core\nbtheory.cpp \
+    src\pubkey\oaep.cpp src\random\osrng.cpp src\random\padlkrng.cpp \
+    src\hash\panama.cpp src\pubkey\pkcspad.cpp src\mac\poly1305.cpp \
+    src\core\polynomi.cpp src\core\ppc_simd.cpp src\core\primetab.cpp \
+    src\pubkey\pssr.cpp src\pubkey\pubkey.cpp src\core\queue.cpp \
+    src\symmetric\rabbit.cpp src\pubkey\rabin.cpp src\random\randpool.cpp \
+    src\symmetric\rc2.cpp src\symmetric\rc5.cpp src\symmetric\rc6.cpp \
+    src\random\rdrand.cpp src\core\rdtables.cpp src\symmetric\rijndael.cpp \
+    src\symmetric\rijndael_simd.cpp src\hash\ripemd.cpp src\random\rng.cpp \
+    src\pubkey\rsa.cpp src\pubkey\rw.cpp src\symmetric\safer.cpp \
+    src\symmetric\salsa.cpp src\kdf\argon2.cpp src\kdf\scrypt.cpp \
+    src\symmetric\seal.cpp src\symmetric\seed.cpp src\symmetric\serpent.cpp \
+    src\hash\sha.cpp src\hash\sha3.cpp src\hash\sha_simd.cpp \
+    src\symmetric\shacal2.cpp src\symmetric\shacal2_simd.cpp \
+    src\hash\shake.cpp src\symmetric\shark.cpp src\symmetric\sharkbox.cpp \
+    src\symmetric\simeck.cpp src\symmetric\simon.cpp \
+    src\symmetric\simon128_simd.cpp src\symmetric\skipjack.cpp \
+    src\hash\sm3.cpp src\symmetric\sm4.cpp src\symmetric\sm4_simd.cpp \
+    src\symmetric\sosemanuk.cpp src\symmetric\speck.cpp \
+    src\symmetric\speck128_simd.cpp src\symmetric\square.cpp \
+    src\symmetric\squaretb.cpp src\core\sse_simd.cpp src\core\strciphr.cpp \
+    src\symmetric\tea.cpp src\core\tftables.cpp src\symmetric\threefish.cpp \
+    src\hash\tiger.cpp src\hash\tigertab.cpp src\mac\ttmac.cpp \
+    src\core\tweetnacl.cpp src\symmetric\twofish.cpp src\mac\vmac.cpp \
+    src\symmetric\wake.cpp src\hash\whrlpool.cpp src\pubkey\xed25519.cpp \
+    src\pubkey\xtr.cpp src\pubkey\xtrcrypt.cpp src\modes\xts.cpp \
+    src\encoding\zdeflate.cpp src\encoding\zinflate.cpp src\encoding\zlib.cpp
 
 LIB_OBJS = \
     cryptlib.obj cpu.obj integer.obj 3way.obj adler32.obj algebra.obj \
@@ -122,11 +154,14 @@ ASM_OBJS = \
     x64masm.obj x64dll.obj
 
 TEST_SRCS = \
-    test.cpp bench1.cpp bench2.cpp bench3.cpp datatest.cpp \
-    dlltest.cpp fipsalgt.cpp validat0.cpp validat1.cpp validat2.cpp \
-    validat3.cpp validat4.cpp validat5.cpp validat6.cpp validat7.cpp \
-    validat8.cpp validat9.cpp validat10.cpp regtest1.cpp regtest2.cpp \
-    regtest3.cpp regtest4.cpp
+    src\test\test.cpp src\test\bench1.cpp src\test\bench2.cpp \
+    src\test\bench3.cpp src\test\datatest.cpp src\test\dlltest.cpp \
+    src\core\fipsalgt.cpp src\test\validat0.cpp src\test\validat1.cpp \
+    src\test\validat2.cpp src\test\validat3.cpp src\test\validat4.cpp \
+    src\test\validat5.cpp src\test\validat6.cpp src\test\validat7.cpp \
+    src\test\validat8.cpp src\test\validat9.cpp src\test\validat10.cpp \
+    src\test\regtest1.cpp src\test\regtest2.cpp src\test\regtest3.cpp \
+    src\test\regtest4.cpp
 
 TEST_OBJS = \
     test.obj bench1.obj bench2.obj bench3.obj datatest.obj \
@@ -149,7 +184,7 @@ RMDIR = rd
 # PLATFORM = arm64
 
 # C4231 is needed for VS2008 and below. Lots of noise...
-CXXFLAGS = /nologo /W4 /wd4231 /wd4511 /wd4156 /D_MBCS /Zi /TP /GR /EHsc
+CXXFLAGS = /nologo /W4 /wd4231 /wd4511 /wd4156 /D_MBCS /Zi /TP /GR /EHsc /Iinclude
 LDFLAGS = /nologo /SUBSYSTEM:CONSOLE /DEBUG
 ARFLAGS = /nologo
 LDLIBS =
@@ -197,7 +232,7 @@ PLATFORM = x64
 # CXXFLAGS = $(CXXFLAGS) /DWINAPI_FAMILY=WINAPI_FAMILY_APP
 AS = ml.exe
 ASFLAGS = /nologo /D_M_X86 /W3 /Cx /Zi /safeseh
-LIB_SRCS = $(LIB_SRCS) rdrand.cpp rdrand.asm rdseed.asm
+LIB_SRCS = $(LIB_SRCS) src\random\rdrand.cpp src\random\rdrand.asm src\random\rdseed.asm
 LIB_OBJS = $(LIB_OBJS) rdrand-x86.obj rdseed-x86.obj
 LDFLAGS = $(LDFLAGS) /MACHINE:X86
 LDLIBS = $(LDLIBS) kernel32.lib
@@ -212,7 +247,7 @@ RDSEED_OBJ = rdseed-x86.obj
 # CXXFLAGS = $(CXXFLAGS) /DWINAPI_FAMILY=WINAPI_FAMILY_APP
 AS = ml64.exe
 ASFLAGS = /nologo /D_M_X64 /W3 /Cx /Zi
-LIB_SRCS = $(LIB_SRCS) cpuid64.asm rdrand.cpp rdrand.asm rdseed.asm
+LIB_SRCS = $(LIB_SRCS) src\core\cpuid64.asm src\random\rdrand.cpp src\random\rdrand.asm src\random\rdseed.asm
 LIB_OBJS = $(LIB_OBJS) cpuid64.obj rdrand-x64.obj rdseed-x64.obj x64masm.obj x64dll.obj
 LDFLAGS = $(LDFLAGS) /MACHINE:X64
 LDLIBS = $(LDLIBS) kernel32.lib
@@ -223,7 +258,7 @@ RDSEED_OBJ = rdseed-x64.obj
 !IF "$(PLATFORM)" == "ARM" || "$(PLATFORM)" == "arm" || "$(PLATFORM)" == "ARM64" || "$(PLATFORM)" == "arm64"
 # CXXFLAGS = $(CXXFLAGS) /D_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1 /DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP
 CXXFLAGS = $(CXXFLAGS) /DWINAPI_FAMILY=WINAPI_FAMILY_PHONE_APP
-LIB_SRCS = $(LIB_SRCS) neon_simd.cpp
+LIB_SRCS = $(LIB_SRCS) src\core\neon_simd.cpp
 LIB_OBJS = $(LIB_OBJS) neon_simd.obj
 # CXXFLAGS = $(CXXFLAGS) /DWINAPI_FAMILY=WINAPI_FAMILY_APP
 # LDLIBS = $(LDLIBS)
@@ -284,30 +319,32 @@ distclean :: clean
 !ENDIF
 
 # Precompiled header
-pch.pch: pch.h pch.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Yc"pch.h" /Fp"pch.pch" /c pch.cpp
+pch.pch: include\cryptopp\pch.h src\core\pch.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Iinclude /Yc"cryptopp/pch.h" /Fp"pch.pch" /c src\core\pch.cpp
 
 # No precompiled headers
-iterhash.obj: iterhash.h iterhash.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Y- /c iterhash.cpp
-dll.obj: dll.h dll.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Y- /c dll.cpp
-rdrand.obj: rdrand.h rdrand.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c rdrand.cpp
+iterhash.obj: include\cryptopp\iterhash.h src\core\iterhash.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Iinclude /Y- /c src\core\iterhash.cpp
+dll.obj: include\cryptopp\dll.h src\core\dll.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Iinclude /Y- /c src\core\dll.cpp
+rdrand.obj: include\cryptopp\rdrand.h src\random\rdrand.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /Iinclude /c src\random\rdrand.cpp
 
 # Built for x86/x64
-rdrand-x86.obj: rdrand.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdrand-x86.obj /c rdrand.asm
-rdrand-x64.obj: rdrand.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdrand-x64.obj /c rdrand.asm
-rdseed-x86.obj: rdseed.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdseed-x86.obj /c rdseed.asm
-rdseed-x64.obj: rdseed.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdseed-x64.obj /c rdseed.asm
-x64masm.obj: x64masm.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo x64masm.obj /c x64masm.asm
-x64dll.obj: x64dll.asm
-	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo x64dll.obj /c x64dll.asm
+rdrand-x86.obj: src\random\rdrand.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdrand-x86.obj /c src\random\rdrand.asm
+rdrand-x64.obj: src\random\rdrand.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdrand-x64.obj /c src\random\rdrand.asm
+rdseed-x86.obj: src\random\rdseed.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdseed-x86.obj /c src\random\rdseed.asm
+rdseed-x64.obj: src\random\rdseed.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo rdseed-x64.obj /c src\random\rdseed.asm
+x64masm.obj: src\core\x64masm.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo x64masm.obj /c src\core\x64masm.asm
+x64dll.obj: src\core\x64dll.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo x64dll.obj /c src\core\x64dll.asm
+cpuid64.obj: src\core\cpuid64.asm
+	$(AS) $(CPPFLAGS) $(ASFLAGS) /Fo cpuid64.obj /c src\core\cpuid64.asm
 
 # For testing cryptopp.dll and CRYPTOPP_IMPORTS
 #CXXFLAGS_IMPORTS = /wd4275 /wd4251 /DCRYPTOPP_IMPORTS
