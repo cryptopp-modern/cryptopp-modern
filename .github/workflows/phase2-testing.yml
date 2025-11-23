@@ -121,16 +121,13 @@ jobs:
 
   # Windows MSVC builds
   windows-msvc:
-    name: Windows MSVC ${{ matrix.msvc-version }}
-    runs-on: ${{ matrix.os }}
+    name: Windows MSVC 2022
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-2019
-            msvc-version: 2019
-          - os: windows-2022
-            msvc-version: 2022
+        platform: [x64, Win32]
+        configuration: [Release, Debug]
 
     steps:
     - uses: actions/checkout@v4
@@ -138,19 +135,22 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Build library (nmake)
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" 2>nul || call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        nmake /f nmake.mak
+    - name: Build library and tests
+      run: msbuild cryptest.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m
 
     - name: Run validation tests
+      if: matrix.configuration == 'Release'
       shell: cmd
-      run: cryptest.exe v
+      run: |
+        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
+        cryptest.exe v
 
     - name: Run test vectors
+      if: matrix.configuration == 'Release'
       shell: cmd
-      run: cryptest.exe tv all
+      run: |
+        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
+        cryptest.exe tv all
 
   # macOS with Apple Clang
   macos:
