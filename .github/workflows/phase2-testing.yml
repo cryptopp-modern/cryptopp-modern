@@ -141,16 +141,12 @@ jobs:
     - name: Run validation tests
       if: matrix.configuration == 'Release'
       shell: cmd
-      run: |
-        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
-        cryptest.exe v
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe v
 
     - name: Run test vectors
       if: matrix.configuration == 'Release'
       shell: cmd
-      run: |
-        cd ${{ matrix.platform }}\Output\${{ matrix.configuration }}
-        cryptest.exe tv all
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe tv all
 
   # macOS with Apple Clang
   macos:
