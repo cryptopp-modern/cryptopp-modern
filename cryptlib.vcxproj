@@ -355,9 +355,9 @@
     <ClCompile Include="zlib.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="adhoc.cpp.proto">
+    <CustomBuild Include="src\test\adhoc.cpp.proto">
       <Command>
-        if not exist adhoc.cpp copy "%(FullPath)" adhoc.cpp
+        if not exist src\test\adhoc.cpp copy "%(FullPath)" src\test\adhoc.cpp
         echo: &gt;&gt; adhoc.cpp.copied
       </Command>
       <Outputs>adhoc.cpp.copied;%(Outputs)</Outputs>
@@ -368,37 +368,37 @@
     <None Include="Readme.txt" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="cpuid64.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="src\core\cpuid64.asm">
       <Message>Building and assembling cpuid64.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Zi /Fo"$(IntDir)cpuid64.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)cpuid64.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='Win32'" Include="rdrand.asm">
+    <CustomBuild Condition="'$(Platform)'=='Win32'" Include="src\random\rdrand.asm">
       <Message>Building and assembling rdrand.asm</Message>
       <Command>ml.exe /c /nologo /D_M_X86 /W3 /Cx /Zi /safeseh /Fo"$(IntDir)rdrand-x86.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)\rdrand-x86.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='x64'" Include="rdrand.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64'" Include="src\random\rdrand.asm">
       <Message>Building and assembling rdrand.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Cx /Zi /Fo"$(IntDir)rdrand-x64.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)\rdrand-x64.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='Win32'" Include="rdseed.asm">
+    <CustomBuild Condition="'$(Platform)'=='Win32'" Include="src\random\rdseed.asm">
       <Message>Building and assembling rdseed.asm</Message>
       <Command>ml.exe /c /nologo /D_M_X86 /W3 /Cx /Zi /safeseh /Fo"$(IntDir)rdseed-x86.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)\rdseed-x86.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='x64'" Include="rdseed.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64'" Include="src\random\rdseed.asm">
       <Message>Building and assembling rdseed.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Cx /Zi /Fo"$(IntDir)rdseed-x64.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)\rdseed-x64.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="x64dll.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64' AND ('$(Configuration)'=='Debug' Or '$(Configuration)'=='Release')" Include="src\core\x64dll.asm">
       <Message>Building and assembling x64dll.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Zi /Fo"$(IntDir)x64dll.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)x64dll.obj;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Condition="'$(Platform)'=='x64'" Include="x64masm.asm">
+    <CustomBuild Condition="'$(Platform)'=='x64'" Include="src\core\x64masm.asm">
       <Message>Building and Assembling x64masm.asm</Message>
       <Command>ml64.exe /c /nologo /D_M_X64 /W3 /Zi /Fo"$(IntDir)x64masm.obj" "%(FullPath)"</Command>
       <Outputs>$(IntDir)x64masm.obj;%(Outputs)</Outputs>

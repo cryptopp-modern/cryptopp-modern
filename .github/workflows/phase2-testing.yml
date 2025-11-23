@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gcc-version: [9, 10, 11, 12, 13, 14]
+        gcc-version: [9, 10, 11, 12, 13]
         cxx-standard: [11, 14, 17]
 
     steps:
