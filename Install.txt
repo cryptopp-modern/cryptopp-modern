@@ -15,13 +15,13 @@ CONTENTS OF THIS FILE
 INTRODUCTION
 ------------
 
-cryptopp-modern is an actively maintained fork of Crypto++ Library featuring modern algorithms (BLAKE3, Argon2), security improvements, and better code organization. The library was originally written and placed in public domain by Wei Dai. cryptopp-modern is maintained by Colin Brown / CoraleSoft.
+cryptopp-modern is an actively maintained fork of Crypto++ Library featuring modern algorithms (BLAKE3, Argon2), security improvements, and better code organization. The library was originally written and placed in public domain by Wei Dai. cryptopp-modern is maintained by CoraleSoft.
 
-The cryptopp-modern homepage is at https://github.com/cryptopp-modern/cryptopp-modern. The upstream Crypto++ library can be found at http://github.com/weidai11/cryptopp. For licensing and copyright information, please see License.txt.
+The cryptopp-modern homepage is at https://cryptopp-modern.com and the source code is at https://github.com/cryptopp-modern/cryptopp-modern. The upstream Crypto++ library can be found at http://github.com/weidai11/cryptopp. For licensing and copyright information, please see License.txt.
 
 These are general instructions for AIX, BSDs, Linux, OS X, Solaris and Unix. The library uses GNU Make and a GNUmakefile to avoid anemic make. On AIX, BSD and Solaris you will likely have to use `gmake` to build the library. On Linux and OS X, the system's make should be OK. On Windows, Crypto++ provides Visual Studio solutions.
 
-You should look through the GNUmakefile and config.h to ensure settings look reasonable before building. There are two wiki pages that help explain them at http://www.cryptopp.com/wiki/GNUmakefile and http://www.cryptopp.com/wiki/Config.h.
+You should look through the GNUmakefile and config.h to ensure settings look reasonable before building. Documentation for the GNUmakefile and config.h settings is being developed at https://cryptopp-modern.com. For now, you can reference the upstream wiki at http://www.cryptopp.com/wiki/GNUmakefile and http://www.cryptopp.com/wiki/Config.h.
 
 Wiki pages are available for some platforms with specific build instructions. The pages include Android, ARM, iOS, MSBuild and Solaris. Solaris users should visit the wiki for important information on compiling the library with different versions of SunCC and options, and information on improving library performance and features.
 
