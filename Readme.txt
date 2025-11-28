@@ -331,7 +331,7 @@ for the record back to Crypto++ 1.0.
       - add BLAKE3 cryptographic hash function
       - add Argon2 password hashing (RFC 9106)
         * supports Argon2d, Argon2i, and Argon2id variants
-      - fix timing attack in PKCS#1 v1.5 padding validation (CVE-2022-4304)
+      - fix timing attack in PKCS#1 v1.5 padding validation (CVE-2023-50979)
       - improve ESIGN compatibility with static analyzers
 
 8.9.0 - October 1, 2023

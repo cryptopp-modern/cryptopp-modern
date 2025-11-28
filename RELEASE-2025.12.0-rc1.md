@@ -84,7 +84,7 @@ Comprehensive multi-platform testing with **45+ build configurations**:
 
 - ✨ **BLAKE3** - Modern, fast cryptographic hash function
 - ✨ **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
-- 🔒 **Security Patches** - Marvin attack fix (CVE-2022-4304)
+- 🔒 **Security Patches** - Marvin attack fix (CVE-2023-50979)
 - 🔒 **ESIGN Improvements** - Better static analyzer compatibility
 - 📅 **Calendar Versioning** - YEAR.MONTH.INCREMENT format
 

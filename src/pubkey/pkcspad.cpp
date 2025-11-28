@@ -100,7 +100,7 @@ DecodingResult PKCS_EncryptionPaddingScheme::Unpad(const byte *pkcsBlock, size_t
 	// Require block type 2.
 	invalid = (pkcsBlock[0] != 2) || invalid;
 
-	// Constant-time separator search to mitigate timing attacks (Marvin Attack, CVE-2022-4304)
+	// Constant-time separator search to mitigate timing attacks (Marvin Attack, CVE-2023-50979)
 	// Scan every byte to find first zero separator without variable-time loop termination
 	size_t separatorIndex = 0;
 	size_t foundSeparator = 0;

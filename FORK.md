@@ -38,7 +38,7 @@
 - Added BLAKE3 cryptographic hash
 - Added Argon2 password hashing (RFC 9106)
 - Migrated to calendar versioning
-- Fixed Marvin attack (CVE-2022-4304)
+- Fixed Marvin attack (CVE-2023-50979)
 - Improved ESIGN static analyzer compatibility
 
 ### Upstream Crypto++ Releases
@@ -96,7 +96,7 @@ This is a friendly fork to:
 | **Versioning** | Semantic (8.9.0) | Calendar (2025.12.0) |
 | **BLAKE3** | ❌ | ✅ |
 | **Argon2** | ❌ | ✅ RFC 9106 |
-| **Marvin Fix** | ❌ | ✅ CVE-2022-4304 |
+| **Marvin Fix** | ❌ | ✅ CVE-2023-50979 |
 | **Organization** | Flat structure | Categorized src/ dirs |
 | **CI/CD** | Limited | 45+ configurations |
 | **Namespace** | `CryptoPP` | `CryptoPP` (compatible) |
