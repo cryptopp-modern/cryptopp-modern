@@ -18,6 +18,7 @@
 #include <cryptopp/mersenne.h>
 #include <cryptopp/rdrand.h>
 #include <cryptopp/padlkrng.h>
+#include <cryptopp/argon2.h>
 
 #include <iostream>
 #include <iomanip>
@@ -420,6 +421,16 @@ void Benchmark(Test::TestClass suites, double t, double hertz)
 		BenchmarkEllipticCurveAlgorithms(t, hertz);
 	}
 
+	// Key derivation functions
+	if (suites & Test::KeyDerivation)
+	{
+		if (count_breaks)
+			std::cout << "\n<BR>";
+		count_breaks++;
+
+		BenchmarkArgon2(t, hertz);
+	}
+
 	g_testEnd = ::time(NULLPTR);
 
 	std::ostringstream oss;
@@ -509,8 +520,98 @@ void BenchmarkUnkeyedAlgorithms(double t, double hertz)
 		BenchMarkByNameKeyLess<HashTransformation>("SM3");
 		BenchMarkByNameKeyLess<HashTransformation>("BLAKE2s");
 		BenchMarkByNameKeyLess<HashTransformation>("BLAKE2b");
+		BenchMarkByNameKeyLess<HashTransformation>("BLAKE3");
 		BenchMarkByNameKeyLess<HashTransformation>("LSH-256");
 		BenchMarkByNameKeyLess<HashTransformation>("LSH-512");
+	}
+
+	std::cout << "\n</TABLE>" << std::endl;
+}
+
+void BenchmarkArgon2(double t, double hertz)
+{
+	g_allocatedTime = t;
+	g_hertz = hertz;
+
+	std::cout << "\n<TABLE>";
+	std::cout << "\n<COLGROUP><COL style=\"text-align: left;\"><COL style=\"text-align: right;\">";
+	std::cout << "\n<COLGROUP><COL style=\"text-align: right;\"><COL style=\"text-align: right;\">";
+
+	std::cout << "\n<THEAD style=\"background: #F0F0F0\">";
+	std::cout << "\n<TR><TH>Algorithm<TH>Memory<TH>Time Cost<TH>Hashes/Second";
+	std::cout << "\n<TBODY style=\"background: white;\">";
+
+	// Test parameters - using smaller memory for benchmarking
+	const byte password[] = "password";
+	const byte salt[] = "somesalt12345678";  // 16 bytes
+	SecByteBlock derived(32);
+
+	// Argon2d variants
+	{
+		Argon2 argon2(Argon2::ARGON2D);
+		unsigned int iterations = 0;
+		double timeTaken;
+		clock_t start = ::clock();
+		do {
+			argon2.DeriveKey(derived, derived.size(),
+				password, sizeof(password)-1,
+				salt, sizeof(salt)-1,
+				3, 4096, 1);  // t=3, m=4MB, p=1
+			++iterations;
+			timeTaken = double(::clock() - start) / CLOCK_TICKS_PER_SECOND;
+		} while (timeTaken < g_allocatedTime);
+		std::cout << "\n<TR><TD>Argon2d<TD>4 MB<TD>3<TD>" << std::setprecision(2) << std::fixed << (iterations / timeTaken);
+	}
+
+	// Argon2i variants
+	{
+		Argon2 argon2(Argon2::ARGON2I);
+		unsigned int iterations = 0;
+		double timeTaken;
+		clock_t start = ::clock();
+		do {
+			argon2.DeriveKey(derived, derived.size(),
+				password, sizeof(password)-1,
+				salt, sizeof(salt)-1,
+				3, 4096, 1);  // t=3, m=4MB, p=1
+			++iterations;
+			timeTaken = double(::clock() - start) / CLOCK_TICKS_PER_SECOND;
+		} while (timeTaken < g_allocatedTime);
+		std::cout << "\n<TR><TD>Argon2i<TD>4 MB<TD>3<TD>" << std::setprecision(2) << std::fixed << (iterations / timeTaken);
+	}
+
+	// Argon2id variants
+	{
+		Argon2 argon2(Argon2::ARGON2ID);
+		unsigned int iterations = 0;
+		double timeTaken;
+		clock_t start = ::clock();
+		do {
+			argon2.DeriveKey(derived, derived.size(),
+				password, sizeof(password)-1,
+				salt, sizeof(salt)-1,
+				3, 4096, 1);  // t=3, m=4MB, p=1
+			++iterations;
+			timeTaken = double(::clock() - start) / CLOCK_TICKS_PER_SECOND;
+		} while (timeTaken < g_allocatedTime);
+		std::cout << "\n<TR><TD>Argon2id<TD>4 MB<TD>3<TD>" << std::setprecision(2) << std::fixed << (iterations / timeTaken);
+	}
+
+	// Argon2id with higher memory (64MB) - RFC 9106 recommended minimum
+	{
+		Argon2 argon2(Argon2::ARGON2ID);
+		unsigned int iterations = 0;
+		double timeTaken;
+		clock_t start = ::clock();
+		do {
+			argon2.DeriveKey(derived, derived.size(),
+				password, sizeof(password)-1,
+				salt, sizeof(salt)-1,
+				3, 65536, 1);  // t=3, m=64MB, p=1 (RFC 9106 second choice)
+			++iterations;
+			timeTaken = double(::clock() - start) / CLOCK_TICKS_PER_SECOND;
+		} while (timeTaken < g_allocatedTime);
+		std::cout << "\n<TR><TD>Argon2id<TD>64 MB<TD>3<TD>" << std::setprecision(2) << std::fixed << (iterations / timeTaken);
 	}
 
 	std::cout << "\n</TABLE>" << std::endl;

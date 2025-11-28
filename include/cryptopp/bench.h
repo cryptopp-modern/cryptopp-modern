@@ -49,15 +49,17 @@ enum TestClass {
 	PublicKeySignatureEC=(1<<13),
 	/// \brief Other public key algorithms over EC
 	PublicKeyOtherEC=(1<<14),
+	/// \brief Key derivation functions (Argon2, etc.)
+	KeyDerivation=(1<<15),
 
 	Unkeyed=UnkeyedRNG|UnkeyedHash|UnkeyedOther,
 	SharedKey=SharedKeyMAC|SharedKeyStream|SharedKeyBlock|SharedKeyOther,
 	PublicKey=PublicKeyAgreement|PublicKeyEncryption|PublicKeySignature|PublicKeyOther,
 	PublicKeyEC=PublicKeyAgreementEC|PublicKeyEncryptionEC|PublicKeySignatureEC|PublicKeyOtherEC,
 
-	All=Unkeyed|SharedKey|PublicKey|PublicKeyEC,
+	All=Unkeyed|SharedKey|PublicKey|PublicKeyEC|KeyDerivation,
 
-	TestFirst=(0), TestLast=(1<<15)
+	TestFirst=(0), TestLast=(1<<16)
 };
 
 extern const double CLOCK_TICKS_PER_SECOND;
@@ -83,6 +85,8 @@ void BenchmarkSharedKeyedAlgorithms(double t, double hertz);
 void BenchmarkPublicKeyAlgorithms(double t, double hertz);
 // Public key systems over elliptic curves
 void BenchmarkEllipticCurveAlgorithms(double t, double hertz);
+// Password hashing / key derivation functions
+void BenchmarkArgon2(double t, double hertz);
 
 // These are defined in bench1.cpp
 extern void OutputResultKeying(double iterations, double timeTaken);
