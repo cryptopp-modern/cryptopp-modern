@@ -23,9 +23,42 @@ Quick start guide with practical examples to get you up and running with cryptop
 
 ## Installation
 
-### CMake (Recommended)
+### Build Systems Overview
 
-CMake is the recommended build system for cross-platform development.
+| Build System | Best For | Platforms |
+|--------------|----------|-----------|
+| **CMake** | IDE integration, presets, `find_package()` support | All |
+| **GNUmakefile** | Traditional Make-based workflows, packaging scripts | Linux, macOS, MinGW |
+| **Visual Studio** | Native Windows development with full IDE | Windows |
+| **nmake** | Windows command-line builds without IDE | Windows |
+
+### Prerequisites
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt install build-essential cmake ninja-build
+```
+
+**Linux (Fedora/RHEL):**
+```bash
+sudo dnf install gcc-c++ cmake ninja-build
+```
+
+**macOS:**
+```bash
+xcode-select --install
+brew install cmake ninja
+```
+
+**Windows:**
+- Visual Studio 2019+ with "Desktop development with C++" workload
+- Or MinGW-w64 for GCC-based builds
+
+---
+
+### CMake
+
+CMake provides IDE integration, presets for common configurations, and proper `find_package()` support for consuming projects.
 
 #### Linux / macOS
 
@@ -72,7 +105,9 @@ cmake --build build/msvc --config Release
 
 ---
 
-### Makefile (Alternative)
+### GNUmakefile
+
+The GNUmakefile provides a straightforward Make-based build, suitable for classic command-line workflows and packaging scripts.
 
 #### Linux
 
@@ -111,11 +146,41 @@ sudo make install PREFIX=/usr/local
 mingw32-make.exe -j10
 ```
 
-#### Windows (Visual Studio)
+---
+
+### Visual Studio
+
+Visual Studio provides native Windows development with full IDE support, debugging, and IntelliSense.
 
 1. Download and extract cryptopp-modern-2025.12.0.zip
 2. Open `cryptest.sln` in Visual Studio
 3. Build → Build Solution (Ctrl+Shift+B)
+
+---
+
+### nmake
+
+nmake provides Windows command-line builds without requiring the full Visual Studio IDE, using the MSVC compiler toolchain.
+
+```powershell
+# Open "Developer Command Prompt for VS" or "Developer PowerShell for VS"
+
+# Clone or download
+git clone https://github.com/cryptopp-modern/cryptopp-modern.git
+cd cryptopp-modern
+
+# Build
+nmake /f makefile.nmake
+
+# Run tests
+cryptest.exe v
+```
+
+---
+
+📖 **Detailed build documentation:**
+- [CMAKE.md](CMAKE.md) - Full CMake options, presets, and configuration
+- [GNUMAKEFILE.md](GNUMAKEFILE.md) - GNUmakefile targets and variables
 
 ---
 
