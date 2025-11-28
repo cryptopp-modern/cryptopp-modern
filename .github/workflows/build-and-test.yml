@@ -124,7 +124,7 @@ jobs:
         test -f build/install/lib/libcryptopp.a
         test -d build/install/include/cryptopp
         test -f build/install/include/cryptopp/aes.h
-        test -f build/install/lib/cmake/cryptopp-modern/cryptopp-modernConfig.cmake
+        test -f build/install/share/cmake/cryptopp-modern/cryptopp-modernConfig.cmake
         ls -la build/install/include/cryptopp/ | head -20
 
     - name: Test find_package integration

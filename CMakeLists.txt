@@ -1398,6 +1398,9 @@ if(CRYPTOPP_BUILD_TESTING)
     add_executable(cryptest ${cryptopp_SOURCES_TEST})
     target_link_libraries(cryptest PRIVATE cryptopp::cryptopp)
 
+    # Match GNUmakefile behavior: always use .exe suffix (even on Linux/macOS)
+    set_target_properties(cryptest PROPERTIES SUFFIX ".exe")
+
     # Copy TestData and TestVectors to build directory so tests can run from there
     add_custom_command(
         TARGET cryptest POST_BUILD
