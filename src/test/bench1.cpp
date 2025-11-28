@@ -322,7 +322,7 @@ void AddHtmlHeader()
 
 	oss << "\n<BODY>";
 
-	oss << "\n<H1><A href=\"http://www.cryptopp.com\">Crypto++ " << CRYPTOPP_VERSION / 10000;
+	oss << "\n<H1><A href=\"https://cryptopp-modern.com\">cryptopp-modern " << CRYPTOPP_VERSION / 10000;
 	oss << '.' << (CRYPTOPP_VERSION / 100) % 100 << '.' << CRYPTOPP_VERSION % 100 << "</A> Benchmarks</H1>";
 
 	oss << "\n<P>Here are speed benchmarks for some commonly used cryptographic algorithms.</P>";
