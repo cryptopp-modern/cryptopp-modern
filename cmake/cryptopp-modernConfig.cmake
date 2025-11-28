@@ -1,0 +1,70 @@
+# ===-----------------------------------------------------------------------===#
+# Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+# copy at https://opensource.org/licenses/BSD-3-Clause).
+# SPDX-License-Identifier: BSD-3-Clause
+# ===-----------------------------------------------------------------------===#
+
+cmake_minimum_required(VERSION 3.20)
+
+set(cryptopp_known_comps static shared)
+set(cryptopp_comp_static NO)
+set(cryptopp_comp_shared NO)
+foreach(cryptopp_comp IN LISTS ${CMAKE_FIND_PACKAGE_NAME}_FIND_COMPONENTS)
+    if(cryptopp_comp IN_LIST cryptopp_known_comps)
+        set(cryptopp_comp_${cryptopp_comp} YES)
+    else()
+        set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE
+            "cryptopp-modern does not recognize component `${cryptopp_comp}`."
+        )
+        set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+        return()
+    endif()
+endforeach()
+
+if(cryptopp_comp_static AND cryptopp_comp_shared)
+    set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE
+        "cryptopp-modern `static` and `shared` components are mutually exclusive."
+    )
+    set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+    return()
+endif()
+
+set(cryptopp_static_targets
+    "${CMAKE_CURRENT_LIST_DIR}/cryptopp-modern-static-targets.cmake"
+)
+set(cryptopp_shared_targets
+    "${CMAKE_CURRENT_LIST_DIR}/cryptopp-modern-shared-targets.cmake"
+)
+
+macro(cryptopp_load_targets type)
+    if(NOT EXISTS "${cryptopp_${type}_targets}")
+        set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE
+            "cryptopp-modern `${type}` libraries were requested but not found."
+        )
+        set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+        return()
+    endif()
+    include("${cryptopp_${type}_targets}")
+endmacro()
+
+if(cryptopp_comp_static)
+    cryptopp_load_targets(static)
+elseif(cryptopp_comp_shared)
+    cryptopp_load_targets(shared)
+elseif(DEFINED cryptopp_SHARED_LIBS AND cryptopp_SHARED_LIBS)
+    cryptopp_load_targets(shared)
+elseif(DEFINED cryptopp_SHARED_LIBS AND NOT cryptopp_SHARED_LIBS)
+    cryptopp_load_targets(static)
+elseif(BUILD_SHARED_LIBS)
+    if(EXISTS "${cryptopp_shared_targets}")
+        cryptopp_load_targets(shared)
+    else()
+        cryptopp_load_targets(static)
+    endif()
+else()
+    if(EXISTS "${cryptopp_static_targets}")
+        cryptopp_load_targets(static)
+    else()
+        cryptopp_load_targets(shared)
+    endif()
+endif()

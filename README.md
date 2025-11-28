@@ -28,8 +28,9 @@
 - 📁 **Complete Project Reorganization** - All 204 source files organized into categorized `src/` directories
 - 🏗️ **Improved Structure** - Better code navigation with logical directory layout (core, hash, kdf, symmetric, pubkey, etc.)
 - 📦 **Backward Compatible** - Flat `include/cryptopp/` structure maintained for drop-in replacement
-- ✅ **Multi-Platform CI/CD** - 45+ build configurations tested on Windows, Linux, and macOS
-- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, and nmake for new structure
+- 🔧 **Modern CMake Build System** - CMake 3.20+ with presets, `find_package()` support, and proper target exports
+- ✅ **Multi-Platform CI/CD** - 50+ build configurations tested on Windows, Linux, and macOS
+- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, nmake, and new CMake support
 
 ---
 

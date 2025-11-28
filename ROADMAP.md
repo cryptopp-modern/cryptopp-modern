@@ -56,18 +56,20 @@
 
 ---
 
-## Phase 3: CMake Build System 📋 PLANNED
+## Phase 3: CMake Build System ✅ COMPLETE
 
 **Goal:** Add CMake alongside existing build system
 
-### Planned
-- 🔨 Add modern CMakeLists.txt (CMake 3.15+)
-- 📦 Proper target exports and find_package support
-- 🔧 Install rules and package configuration
-- 📊 CMake presets for common configurations
-- ⚙️ Continue maintaining GNUmakefile
+### Completed
+- ✅ **Modern CMakeLists.txt** - CMake 3.20+ with full feature support
+- ✅ **Target Exports** - Proper `find_package(cryptopp-modern)` and `cryptopp::cryptopp` target
+- ✅ **Install Rules** - Headers, libraries, and CMake config files
+- ✅ **CMake Presets** - default, debug, release, msvc, ci-linux, ci-macos, ci-windows, no-asm
+- ✅ **SIMD Detection** - Automatic detection and per-file compiler flags (SSE, AVX, AES-NI, SHA-NI)
+- ✅ **Cross-Platform** - Tested on Windows (MSVC, MinGW), Linux (GCC, Clang), macOS (Apple Clang)
+- ✅ **pkg-config Support** - Generated .pc file for traditional build systems
 
-**Note:** Both CMake and GNUmakefile will be maintained as build options.
+**Note:** Both CMake and GNUmakefile are maintained as build options.
 
 ---
 
@@ -87,26 +89,32 @@
 ---
 
 
-## Phase 5: CI/CD & Quality 🔄 IN PROGRESS
+## Phase 5: CI/CD & Quality ✅ COMPLETE
 
 **Goal:** Automated testing and quality assurance
 
 ### Completed
-- ✅ **GitHub Actions Workflows**
-  - Multi-platform builds (Windows MSVC 2022, Linux, macOS)
-  - Multiple compilers (GCC 9-13, Clang 14-17, MSVC, Apple Clang)
-  - Multiple C++ standards (C++11, C++14, C++17)
-  - 45+ build configurations per push
+- ✅ **Unified CI Workflow** - Single `build-and-test.yml` covering all platforms and build systems
+- ✅ **CMake CI Testing**
+  - Linux (GCC + Ninja)
+  - macOS (Clang + Ninja)
+  - Windows (MSVC)
+  - No-ASM build (pure C++ fallbacks)
+  - Installation and `find_package()` integration test
+- ✅ **Makefile CI Testing**
+  - Linux GCC 11/12/13 with C++14/17/20
+  - Linux Clang 15/16/17 with C++14/17/20
+  - macOS Apple Clang with C++14/17/20
+  - Windows MSVC x64/Win32
 - ✅ **Security Testing**
   - Address Sanitizer (ASan)
   - UndefinedBehavior Sanitizer (UBSan)
 - ✅ **Build Verification**
-  - Static and dynamic library builds
-  - Installation testing
+  - 50+ build configurations per push
   - Validation tests and test vectors on all platforms
 
-### Planned
-- 📊 **Code Quality**
+### Planned (Future)
+- 📊 **Code Quality Enhancements**
   - Memory Sanitizer (MSan)
   - Static analysis (clang-tidy, cppcheck)
   - Code coverage reporting
@@ -132,12 +140,13 @@ See [FORK.md](FORK.md) for project details and direction.
 
 ## Version History
 
-### 2025.12.0 (December 2025) - Organization Release
+### 2025.12.0 (December 2025) - Organization & CMake Release
 - 📁 Complete project reorganization (Phase 2)
 - 🏗️ Organized 204 source files into categorized `src/` directories
 - 📦 Maintained backward compatibility with flat include structure
-- ✅ Multi-platform CI/CD with 45+ build configurations
-- 🔧 Updated build systems (GNUmakefile, MSVC project files, nmake)
+- 🔧 Modern CMake build system with presets and `find_package()` support (Phase 3)
+- ✅ Unified CI/CD workflow with 50+ build configurations (Phase 5)
+- 🔧 Updated build systems (GNUmakefile, MSVC, nmake, CMake)
 - 🧪 Comprehensive testing across all platforms
 
 ### 2025.11.0 (November 2025) - Foundation Release

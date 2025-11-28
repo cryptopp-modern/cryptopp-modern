@@ -23,12 +23,63 @@ Quick start guide with practical examples to get you up and running with cryptop
 
 ## Installation
 
-### Linux
+### CMake (Recommended)
+
+CMake is the recommended build system for cross-platform development.
+
+#### Linux / macOS
+
+```bash
+# Clone or download
+git clone https://github.com/cryptopp-modern/cryptopp-modern.git
+cd cryptopp-modern
+
+# Configure and build
+cmake --preset=default
+cmake --build build/default -j$(nproc)
+
+# Run tests
+./build/default/cryptest.exe v
+
+# Install (optional)
+sudo cmake --install build/default --prefix /usr/local
+```
+
+#### Windows (MSVC)
+
+```powershell
+# Clone or download
+git clone https://github.com/cryptopp-modern/cryptopp-modern.git
+cd cryptopp-modern
+
+# Configure and build
+cmake --preset=msvc
+cmake --build build/msvc --config Release
+
+# Run tests
+./build/msvc/Release/cryptest.exe v
+```
+
+#### Available CMake Presets
+
+| Preset | Description |
+|--------|-------------|
+| `default` | Release build with Ninja |
+| `debug` | Debug build |
+| `release` | Release build |
+| `msvc` | Visual Studio 2022 |
+| `no-asm` | Pure C++ (no assembly) |
+
+---
+
+### Makefile (Alternative)
+
+#### Linux
 
 ```bash
 # Download latest release
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2025.11.0/cryptopp-modern-2025.11.0.zip
-unzip cryptopp-modern-2025.11.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2025.12.0/cryptopp-modern-2025.12.0.zip
+unzip cryptopp-modern-2025.12.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -37,12 +88,12 @@ sudo make install PREFIX=/usr/local
 sudo ldconfig
 ```
 
-### macOS
+#### macOS
 
 ```bash
 # Download and extract
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2025.11.0/cryptopp-modern-2025.11.0.zip
-unzip cryptopp-modern-2025.11.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2025.12.0/cryptopp-modern-2025.12.0.zip
+unzip cryptopp-modern-2025.12.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -50,19 +101,19 @@ make -j$(sysctl -n hw.ncpu)
 sudo make install PREFIX=/usr/local
 ```
 
-### Windows (MinGW)
+#### Windows (MinGW)
 
 ```bash
-# Download and extract cryptopp-modern-2025.11.0.zip
+# Download and extract cryptopp-modern-2025.12.0.zip
 # Open MinGW terminal in extracted folder
 
 # Build
 mingw32-make.exe -j10
 ```
 
-### Windows (Visual Studio)
+#### Windows (Visual Studio)
 
-1. Download and extract cryptopp-modern-2025.11.0.zip
+1. Download and extract cryptopp-modern-2025.12.0.zip
 2. Open `cryptest.sln` in Visual Studio
 3. Build → Build Solution (Ctrl+Shift+B)
 
@@ -546,23 +597,44 @@ int main() {
 
 ## Building Your Application
 
-### Basic Compilation
+### CMake Project (Recommended)
+
+Create a `CMakeLists.txt` for your project:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(myapp)
+
+find_package(cryptopp-modern REQUIRED)
+
+add_executable(myapp main.cpp)
+target_link_libraries(myapp PRIVATE cryptopp::cryptopp)
+```
+
+Build your project:
 
 ```bash
-g++ -std=c++11 myapp.cpp -o myapp -lcryptopp
+cmake -B build -DCMAKE_PREFIX_PATH=/path/to/cryptopp-install
+cmake --build build
+```
+
+### Basic Compilation (Manual)
+
+```bash
+g++ -std=c++14 myapp.cpp -o myapp -lcryptopp
 ```
 
 ### With Static Linking
 
 ```bash
-g++ -std=c++11 myapp.cpp -o myapp -lcryptopp -static
+g++ -std=c++14 myapp.cpp -o myapp -lcryptopp -static
 ```
 
 ### Makefile Example
 
 ```makefile
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -O2
+CXXFLAGS = -std=c++14 -Wall -O2
 LDFLAGS = -lcryptopp
 
 myapp: main.cpp
@@ -576,8 +648,8 @@ clean:
 
 ```bash
 # Compile
-g++ -std=c++11 -c crypto_utils.cpp -o crypto_utils.o
-g++ -std=c++11 -c main.cpp -o main.o
+g++ -std=c++14 -c crypto_utils.cpp -o crypto_utils.o
+g++ -std=c++14 -c main.cpp -o main.o
 
 # Link
 g++ crypto_utils.o main.o -o myapp -lcryptopp
