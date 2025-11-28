@@ -36,11 +36,35 @@
 
 ## Documentation
 
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Quick start guide with code examples
+- **[CMAKE.md](CMAKE.md)** - CMake build system documentation
+- **[GNUMAKEFILE.md](GNUMAKEFILE.md)** - GNUmakefile build system documentation
 - **[ROADMAP.md](ROADMAP.md)** - Development roadmap and future plans
 - **[FORK.md](FORK.md)** - Relationship to upstream Crypto++
 - **[Readme.txt](Readme.txt)** - Complete algorithm list and instructions
 - **[Install.txt](Install.txt)** - Detailed installation guide
 - **[License.txt](License.txt)** - Boost Software License 1.0
+
+---
+
+## Quick Build
+
+### CMake (Recommended)
+
+```bash
+cmake --preset=default
+cmake --build build/default
+./build/default/cryptest.exe v
+```
+
+### GNUmakefile
+
+```bash
+make -j$(nproc)
+./cryptest.exe v
+```
+
+See [CMAKE.md](CMAKE.md) or [GNUMAKEFILE.md](GNUMAKEFILE.md) for detailed build instructions.
 
 ---
 
@@ -54,7 +78,8 @@
 **cryptopp-modern Goals:**
 - Active maintenance and regular releases
 - Modern algorithm support (BLAKE3, Argon2, future: post-quantum)
-- Better code organization (planned)
+- Better code organization
+- Modern CMake build system
 - Calendar versioning
 - Community-driven development
 
