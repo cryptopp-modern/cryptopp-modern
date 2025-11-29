@@ -1049,6 +1049,17 @@ inline uint32x4_t rot16_neon(uint32x4_t x) {
     return vreinterpretq_u32_u16(vrev32q_u16(vreinterpretq_u16_u32(x)));
 }
 
+// Helper to extract a lane from a uint32x4_t with runtime index
+// NEON vgetq_lane_u32 requires compile-time constant, so we use a switch
+inline uint32_t neon_extract_lane(uint32x4_t v, int lane) {
+    switch (lane) {
+        case 0: return vgetq_lane_u32(v, 0);
+        case 1: return vgetq_lane_u32(v, 1);
+        case 2: return vgetq_lane_u32(v, 2);
+        default: return vgetq_lane_u32(v, 3);
+    }
+}
+
 // Rotation by 12 bits
 inline uint32x4_t rot12_neon(uint32x4_t x) {
     return veorq_u32(vshrq_n_u32(x, 12), vshlq_n_u32(x, 20));
@@ -1131,7 +1142,7 @@ void BLAKE3_Compress_NEON(word32 cv[8], const byte block[64],
         uint32_t msg_words[16];
         for (int i = 0; i < 16; i++) {
             size_t idx = BLAKE3_MSG_SCHEDULE[round][i];
-            msg_words[i] = vgetq_lane_u32(m[idx / 4], idx % 4);
+            msg_words[i] = neon_extract_lane(m[idx / 4], idx % 4);
         }
 
         // Column mixing
