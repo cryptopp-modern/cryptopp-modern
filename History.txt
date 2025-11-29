@@ -4,7 +4,7 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
-2025.12.0 - December 2025 (Release Candidate)
+2025.12.0 - December 2025
       - major release, recompile of programs required
       - complete project reorganization
         * organized 204 source files into categorized src/ subdirectories
@@ -19,15 +19,34 @@ last several releases.
         * src/random/ - random number generation (9 files)
         * src/util/ - utilities (3 files)
         * src/test/ - test files (23 files)
+      - added modern CMake build system
+        * CMake 3.20+ with presets (default, debug, release, msvc, no-asm)
+        * find_package(cryptopp-modern) and cryptopp::cryptopp target support
+        * automatic SIMD detection with per-file compiler flags
+        * pkg-config support for traditional build systems
+      - added BLAKE3 SIMD parallel chunk processing
+        * SSE4.1 4-way parallel hashing
+        * AVX2 8-way parallel hashing (~2500 MiB/s)
+        * ARM NEON support
+        * graceful fallback to C++ on unsupported platforms
+      - added BLAKE3 and Argon2 to benchmark tests
+      - added static-exe target to GNUmakefile for MinGW static linking
+        * uses -static -static-libgcc -static-libstdc++
       - updated all build systems for new structure
-        * GNUmakefile, MSVC project files, nmake
+        * GNUmakefile, MSVC project files, nmake, CMake
+      - added comprehensive documentation
+        * CMAKE.md - CMake build system documentation
+        * GNUMAKEFILE.md - GNUmakefile build system documentation
+        * GETTING_STARTED.md - Quick start guide with code examples
       - maintained backward compatibility
         * flat include/cryptopp/ structure preserved
         * drop-in replacement for Crypto++ 8.9.0
       - multi-platform CI/CD testing
-        * 45+ build configurations on GitHub Actions
-        * Windows MSVC 2022, Linux GCC/Clang, macOS Apple Clang
+        * 50+ build configurations on GitHub Actions
+        * Windows MSVC 2022, Linux GCC 11/12/13/14, Clang 15/16/17, macOS Apple Clang
+        * C++14, C++17, C++20 standard testing
         * sanitizer testing (ASan, UBSan)
+        * CMake installation and find_package() integration tests
 
 2025.11.0 - November 2025
       - minor release, recompile of programs required

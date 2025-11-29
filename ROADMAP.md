@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2025.12.0 (Release Candidate)
+**Current Version:** 2025.12.0
 
 ---
 
@@ -145,8 +145,12 @@ See [FORK.md](FORK.md) for project details and direction.
 - 🏗️ Organized 204 source files into categorized `src/` directories
 - 📦 Maintained backward compatibility with flat include structure
 - 🔧 Modern CMake build system with presets and `find_package()` support (Phase 3)
+- ⚡ BLAKE3 SIMD parallel chunk processing
+  - SSE4.1 4-way and AVX2 8-way parallel hashing (~2500 MiB/s)
+  - ARM NEON support with graceful fallback
 - ✅ Unified CI/CD workflow with 50+ build configurations (Phase 5)
 - 🔧 Updated build systems (GNUmakefile, MSVC, nmake, CMake)
+- 📚 Comprehensive documentation (CMAKE.md, GNUMAKEFILE.md, GETTING_STARTED.md)
 - 🧪 Comprehensive testing across all platforms
 
 ### 2025.11.0 (November 2025) - Foundation Release

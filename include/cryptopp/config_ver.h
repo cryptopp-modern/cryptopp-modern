@@ -36,7 +36,7 @@
 ///  than the minor version number.
 /// \sa CRYPTOPP_VERSION, LibraryVersion(), HeaderVersion()
 /// \since Crypto++ 8.2 (semantic versioning), Crypto++ 2025.11 (calendar versioning)
-#define CRYPTOPP_MINOR 11
+#define CRYPTOPP_MINOR 12
 
 /// \brief Library release increment
 /// \details CRYPTOPP_REVISION reflects the incremental release number within
@@ -57,7 +57,7 @@
 /// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/1239">GitHub Issue 1239</A>
 /// \sa CRYPTOPP_MAJOR, CRYPTOPP_MINOR, CRYPTOPP_REVISION, LibraryVersion(), HeaderVersion()
 /// \since Crypto++ 5.6
-#define CRYPTOPP_VERSION 20251100
+#define CRYPTOPP_VERSION 20251200
 
 // Compiler version macros
 

@@ -26,12 +26,14 @@
 
 ### cryptopp-modern Releases
 
-**2025.12.0** (December 2025) - Organization Release
-- Complete project reorganization (Phase 2)
-- Organized 204 source files into categorized src/ subdirectories
-- Updated all build systems (GNUmakefile, MSVC, nmake)
-- Maintained backward compatibility
-- Multi-platform CI/CD with 45+ build configurations
+**2025.12.0** (December 2025) - Major Release
+- Complete project reorganization (204 source files in categorized src/ directories)
+- BLAKE3 SIMD acceleration (SSE4.1/AVX2/NEON parallel chunk processing, ~2500 MiB/s)
+- Modern CMake build system (3.20+, presets, find_package() support)
+- Updated all build systems (GNUmakefile, MSVC projects, nmake)
+- Comprehensive documentation (CMAKE.md, GNUMAKEFILE.md, GETTING_STARTED.md)
+- Multi-platform CI/CD with 50+ build configurations
+- Maintained full backward compatibility
 
 **2025.11.0** (November 2025) - First Release
 - Forked from Crypto++ 8.9.0 (commit 60f81a77)
@@ -58,10 +60,13 @@
 ## Current Status
 
 ### Phase 2: Organization (2025.12.0) ✅
-- ✅ Complete source reorganization
-- ✅ All build systems updated
+- ✅ Complete source reorganization (204 files in categorized directories)
+- ✅ Modern CMake build system with presets and find_package() support
+- ✅ BLAKE3 SIMD acceleration (SSE4.1, AVX2, ARM NEON)
+- ✅ All build systems updated (CMake, GNUmakefile, MSVC, nmake)
+- ✅ Comprehensive documentation (CMAKE.md, GNUMAKEFILE.md, GETTING_STARTED.md)
 - ✅ Backward compatibility maintained
-- ✅ Multi-platform CI/CD testing
+- ✅ Multi-platform CI/CD with 50+ build configurations
 
 ### Phase 1: Foundation (2025.11.0) ✅
 - ✅ Fork established
@@ -92,13 +97,14 @@ This is a friendly fork to:
 
 | Aspect | Crypto++ 8.9.0 | cryptopp-modern 2025.12.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | December 2025 (RC) |
+| **Last Release** | October 1, 2023 | December 2025 |
 | **Versioning** | Semantic (8.9.0) | Calendar (2025.12.0) |
-| **BLAKE3** | ❌ | ✅ |
+| **BLAKE3** | ❌ | ✅ with SIMD (~2500 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **Marvin Fix** | ❌ | ✅ CVE-2023-50979 |
+| **CMake** | Basic | Modern (presets, find_package) |
 | **Organization** | Flat structure | Categorized src/ dirs |
-| **CI/CD** | Limited | 45+ configurations |
+| **CI/CD** | Limited | 50+ configurations |
 | **Namespace** | `CryptoPP` | `CryptoPP` (compatible) |
 | **License** | Boost 1.0 | Boost 1.0 |
 
@@ -124,6 +130,6 @@ This is a friendly fork to:
 
 ---
 
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-29
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2025.12.0-rc1
+**Current Version:** 2025.12.0

@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2025.12.0--rc1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2025.12.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](License.txt)
 
 ---
@@ -23,14 +23,15 @@
 ---
 
 
-## What's New in 2025.12.0 (Release Candidate)
+## What's New in 2025.12.0
 
 - 📁 **Complete Project Reorganization** - All 204 source files organized into categorized `src/` directories
-- 🏗️ **Improved Structure** - Better code navigation with logical directory layout (core, hash, kdf, symmetric, pubkey, etc.)
-- 📦 **Backward Compatible** - Flat `include/cryptopp/` structure maintained for drop-in replacement
+- ⚡ **BLAKE3 SIMD Acceleration** - SSE4.1/AVX2/NEON parallel chunk processing (~2500 MiB/s)
 - 🔧 **Modern CMake Build System** - CMake 3.20+ with presets, `find_package()` support, and proper target exports
+- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, and nmake for new structure
+- 📦 **Backward Compatible** - Flat `include/cryptopp/` structure maintained for drop-in replacement
 - ✅ **Multi-Platform CI/CD** - 50+ build configurations tested on Windows, Linux, and macOS
-- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, nmake, and new CMake support
+- 📚 **Comprehensive Documentation** - CMAKE.md, GNUMAKEFILE.md, and GETTING_STARTED.md guides
 
 ---
 
