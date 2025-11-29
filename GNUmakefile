@@ -1322,6 +1322,12 @@ endif
 .PHONY: native no-asm asan ubsan
 native no-asm asan ubsan: cryptest.exe
 
+# Static executable with no DLL dependencies (MinGW)
+.PHONY: static-exe
+static-exe: libcryptopp.a
+static-exe: LDFLAGS += -static -static-libgcc -static-libstdc++
+static-exe: cryptest.exe
+
 # CXXFLAGS are tuned earlier. Applications must use linker flags
 #  -Wl,--gc-sections (Linux and Unix) or -Wl,-dead_strip (OS X)
 .PHONY: lean

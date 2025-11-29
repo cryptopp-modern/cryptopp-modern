@@ -42,8 +42,11 @@ sudo make install PREFIX=/usr/local
 ### Windows (MinGW)
 
 ```bash
-# Build
-mingw32-make.exe -j10
+# Build with static linking (no DLL dependencies)
+mingw32-make.exe -j10 static-exe
+
+# Or build with explicit flags
+mingw32-make.exe -j10 LDFLAGS="-static -static-libgcc -static-libstdc++"
 
 # Run tests
 ./cryptest.exe v
@@ -60,6 +63,7 @@ mingw32-make.exe -j10
 | `static` | Build static library (`libcryptopp.a`) |
 | `dynamic` | Build shared library (`libcryptopp.so` / `libcryptopp.dylib`) |
 | `cryptest.exe` | Build the test executable |
+| `static-exe` | Build `cryptest.exe` with static linking (no DLL dependencies, MinGW) |
 | `lean` | Build static, dynamic, and cryptest.exe |
 
 ### Installation Targets
@@ -298,6 +302,8 @@ The GNUmakefile automatically detects and enables CPU features:
 - AES-NI
 - PCLMUL (CLMUL)
 - SHA-NI
+
+**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way) and AVX2 (8-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2).
 
 ### ARM
 - NEON

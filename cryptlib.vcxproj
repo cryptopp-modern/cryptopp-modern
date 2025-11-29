@@ -186,6 +186,7 @@
     <ClCompile Include="src\hash\blake2s_simd.cpp" />
     <ClCompile Include="src\hash\blake2b_simd.cpp" />
     <ClCompile Include="src\hash\blake3.cpp" />
+    <ClCompile Include="src\hash\blake3_simd.cpp" />
     <ClCompile Include="src\symmetric\blowfish.cpp" />
     <ClCompile Include="src\random\blumshub.cpp" />
     <ClCompile Include="src\symmetric\camellia.cpp" />

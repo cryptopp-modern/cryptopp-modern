@@ -214,6 +214,8 @@ The build system automatically detects CPU capabilities and enables appropriate 
 - CLMUL (carryless multiplication for GCM)
 - SHA-NI (hardware SHA acceleration)
 
+**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way) and AVX2 (8-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2).
+
 ### ARM
 - NEON
 - AES instructions

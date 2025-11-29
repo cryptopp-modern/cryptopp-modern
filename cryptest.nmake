@@ -62,7 +62,7 @@ LIB_SRCS = \
     src\symmetric\aria.cpp src\symmetric\ariatab.cpp src\core\asn.cpp \
     src\modes\authenc.cpp src\encoding\base32.cpp src\encoding\base64.cpp \
     src\encoding\basecode.cpp src\symmetric\bfinit.cpp src\hash\blake2.cpp \
-    src\hash\blake2b_simd.cpp src\hash\blake2s_simd.cpp src\hash\blake3.cpp \
+    src\hash\blake2b_simd.cpp src\hash\blake2s_simd.cpp src\hash\blake3.cpp src\hash\blake3_simd.cpp \
     src\symmetric\blowfish.cpp src\random\blumshub.cpp \
     src\symmetric\camellia.cpp src\symmetric\cast.cpp src\symmetric\casts.cpp \
     src\mac\cbcmac.cpp src\modes\ccm.cpp src\symmetric\chacha.cpp \
@@ -122,7 +122,7 @@ LIB_OBJS = \
     cryptlib.obj cpu.obj integer.obj 3way.obj adler32.obj algebra.obj \
     algparam.obj allocate.obj arc4.obj aria.obj ariatab.obj asn.obj \
     authenc.obj base32.obj base64.obj basecode.obj bfinit.obj blake2.obj \
-    blake2b_simd.obj blake2s_simd.obj blake3.obj blowfish.obj blumshub.obj camellia.obj \
+    blake2b_simd.obj blake2s_simd.obj blake3.obj blake3_simd.obj blowfish.obj blumshub.obj camellia.obj \
     cast.obj casts.obj cbcmac.obj ccm.obj chacha.obj chacha_avx.obj \
     chacha_simd.obj chachapoly.obj cham.obj cham_simd.obj channels.obj \
     cmac.obj crc.obj crc_simd.obj darn.obj default.obj des.obj dessp.obj \
