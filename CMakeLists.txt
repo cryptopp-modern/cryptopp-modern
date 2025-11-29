@@ -625,6 +625,7 @@ if(
             list(APPEND CRYPTOPP_AES_FLAGS "${sse41_flag}")
             list(APPEND CRYPTOPP_BLAKE2B_FLAGS "${sse41_flag}")
             list(APPEND CRYPTOPP_BLAKE2S_FLAGS "${sse41_flag}")
+            list(APPEND CRYPTOPP_BLAKE3_FLAGS "${sse41_flag}")
             list(APPEND CRYPTOPP_SUN_LDFLAGS "${sse41_flag}")
         else()
             set(sse41_flag "")
@@ -676,6 +677,8 @@ if(
                                   "${TEST_PROG_DIR}/test_x86_avx2.cpp"
         )
         if(CRYPTOPP_HAVE_CLMUL)
+            # BLAKE3 AVX2 needs both SSE4.1 (for fallback) and AVX2
+            list(APPEND CRYPTOPP_BLAKE3_AVX2_FLAGS "${sse41_flag}" "${avx2_flag}")
             list(APPEND CRYPTOPP_CHACHA_AVX2_FLAGS "${avx2_flag}")
             list(APPEND CRYPTOPP_LSH256_AVX2_FLAGS "${avx2_flag}")
             list(APPEND CRYPTOPP_LSH512_AVX2_FLAGS "${avx2_flag}")
@@ -782,6 +785,7 @@ if(CRYPTOPP_ARM32 AND NOT CRYPTOPP_DISABLE_ARM_NEON)
         list(APPEND CRYPTOPP_GCM_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_BLAKE2B_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_BLAKE2S_FLAGS -march=armv7-a -mfpu=neon)
+        list(APPEND CRYPTOPP_BLAKE3_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_CHACHA_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_CHAM_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_LEA_FLAGS -march=armv7-a -mfpu=neon)
@@ -1059,6 +1063,11 @@ set_source_files_properties(
 set_source_files_properties(
     ${cryptopp_SOURCE_DIR}/src/hash/blake2b_simd.cpp
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE2B_FLAGS}"
+)
+
+set_source_files_properties(
+    ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+    PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX2_FLAGS}"
 )
 
 set_source_files_properties(

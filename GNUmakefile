@@ -354,6 +354,7 @@ ifeq ($(DETECT_FEATURES),1)
     ifeq ($(strip $(HAVE_OPT)),0)
       BLAKE2B_FLAG = $(SSE41_FLAG)
       BLAKE2S_FLAG = $(SSE41_FLAG)
+      BLAKE3_FLAG = $(SSE41_FLAG)
       SUN_LDFLAGS += $(SSE41_FLAG)
     else
       SSE41_FLAG =
@@ -405,6 +406,8 @@ ifeq ($(DETECT_FEATURES),1)
     TOPT = $(AVX2_FLAG)
     HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
     ifeq ($(strip $(HAVE_OPT)),0)
+      # BLAKE3 AVX2 needs both SSE4.1 (for fallback) and AVX2
+      BLAKE3_AVX2_FLAG = $(SSE41_FLAG) $(AVX2_FLAG)
       CHACHA_AVX2_FLAG = $(AVX2_FLAG)
       LSH256_AVX2_FLAG = $(AVX2_FLAG)
       LSH512_AVX2_FLAG = $(AVX2_FLAG)
@@ -542,6 +545,7 @@ ifeq ($(DETECT_FEATURES),1)
     GCM_FLAG = -march=armv7-a -mfpu=neon
     BLAKE2B_FLAG = -march=armv7-a -mfpu=neon
     BLAKE2S_FLAG = -march=armv7-a -mfpu=neon
+    BLAKE3_FLAG = -march=armv7-a -mfpu=neon
     CHACHA_FLAG = -march=armv7-a -mfpu=neon
     CHAM_FLAG = -march=armv7-a -mfpu=neon
     LEA_FLAG = -march=armv7-a -mfpu=neon
@@ -594,6 +598,7 @@ ifeq ($(DETECT_FEATURES),1)
     ARIA_FLAG = -march=armv8-a
     BLAKE2B_FLAG = -march=armv8-a
     BLAKE2S_FLAG = -march=armv8-a
+    BLAKE3_FLAG = -march=armv8-a
     CHACHA_FLAG = -march=armv8-a
     CHAM_FLAG = -march=armv8-a
     LEA_FLAG = -march=armv8-a
@@ -1652,6 +1657,10 @@ src/hash/blake2s_simd.o : src/hash/blake2s_simd.cpp
 # SSE, NEON or POWER8 available
 src/hash/blake2b_simd.o : src/hash/blake2b_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE2B_FLAG) -c) $<
+
+# SSE4.1+AVX2 or NEON available
+src/hash/blake3_simd.o : src/hash/blake3_simd.cpp
+	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_AVX2_FLAG) -c) $<
 
 # SSE2 or NEON available
 src/symmetric/chacha_simd.o : src/symmetric/chacha_simd.cpp

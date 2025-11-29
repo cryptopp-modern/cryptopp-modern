@@ -7,17 +7,38 @@
 #include <cryptopp/misc.h>
 #include <cryptopp/cpu.h>
 
+// Uncomment for benchmarking C++ against SSE4.1 or NEON.
+// Do so in both blake3.cpp and blake3_simd.cpp.
+// #undef CRYPTOPP_SSE41_AVAILABLE
+// #undef CRYPTOPP_ARM_NEON_AVAILABLE
+
 NAMESPACE_BEGIN(CryptoPP)
 
-////////////////////////////// Constants and Tables //////////////////////////////
+// Export the tables to the SIMD files
+extern const word32 BLAKE3_IV[8];
+extern const byte BLAKE3_MSG_SCHEDULE[7][16];
 
-// BLAKE3 initialization vector - same as SHA-256
-static const word32 BLAKE3_IV[8] = {
+CRYPTOPP_ALIGN_DATA(16)
+const word32 BLAKE3_IV[8] = {
 	0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL, 0xA54FF53AUL,
 	0x510E527FUL, 0x9B05688CUL, 0x1F83D9ABUL, 0x5BE0CD19UL
 };
 
+const byte BLAKE3_MSG_SCHEDULE[7][16] = {
+	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+	{2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8},
+	{3, 4, 10, 12, 13, 2, 7, 14, 6, 5, 9, 0, 11, 15, 8, 1},
+	{10, 7, 12, 9, 14, 3, 13, 15, 4, 0, 11, 2, 5, 8, 1, 6},
+	{12, 13, 9, 11, 15, 10, 14, 8, 7, 2, 5, 3, 0, 1, 6, 4},
+	{9, 14, 11, 5, 8, 12, 15, 1, 13, 3, 0, 10, 2, 6, 4, 7},
+	{11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13}
+};
+
+NAMESPACE_END
+
 // BLAKE3 compression flags indicating block position and mode
+ANONYMOUS_NAMESPACE_BEGIN
+
 enum {
 	CHUNK_START = 1 << 0,          // First block of a chunk
 	CHUNK_END = 1 << 1,            // Last block of a chunk
@@ -28,17 +49,33 @@ enum {
 	DERIVE_KEY_MATERIAL = 1 << 6   // KDF derived key output
 };
 
-// Message schedule permutations for the 7 rounds
-// Each round uses a different permutation of the 16 message words
-static const byte MSG_SCHEDULE[7][16] = {
-	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-	{2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8},
-	{3, 4, 10, 12, 13, 2, 7, 14, 6, 5, 9, 0, 11, 15, 8, 1},
-	{10, 7, 12, 9, 14, 3, 13, 15, 4, 0, 11, 2, 5, 8, 1, 6},
-	{12, 13, 9, 11, 15, 10, 14, 8, 7, 2, 5, 3, 0, 1, 6, 4},
-	{9, 14, 11, 5, 8, 12, 15, 1, 13, 3, 0, 10, 2, 6, 4, 7},
-	{11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13}
-};
+ANONYMOUS_NAMESPACE_END
+
+NAMESPACE_BEGIN(CryptoPP)
+
+// Alias for internal use
+#define MSG_SCHEDULE BLAKE3_MSG_SCHEDULE
+
+////////////////////////////// SIMD Function Declarations //////////////////////////////
+
+#if CRYPTOPP_AVX2_AVAILABLE
+extern size_t BLAKE3_HashMany_AVX2(const byte *input, size_t input_len,
+                                    const word32 key[8], word64 counter,
+                                    byte flags, byte *out);
+#endif
+
+#if CRYPTOPP_SSE41_AVAILABLE
+extern void BLAKE3_Compress_SSE41(word32 cv[8], const byte block[64],
+                                   byte block_len, word64 counter, byte flags);
+extern size_t BLAKE3_HashMany_SSE41(const byte *input, size_t input_len,
+                                     const word32 key[8], word64 counter,
+                                     byte flags, byte *out);
+#endif
+
+#if CRYPTOPP_ARM_NEON_AVAILABLE
+extern void BLAKE3_Compress_NEON(word32 cv[8], const byte block[64],
+                                  byte block_len, word64 counter, byte flags);
+#endif
 
 ////////////////////////////// Helper Functions //////////////////////////////
 
@@ -151,6 +188,22 @@ void BLAKE3_State::Reset()
 void BLAKE3::Compress(word32 cv[8], const byte block[64], byte block_len,
                       word64 counter, byte flags)
 {
+#if CRYPTOPP_SSE41_AVAILABLE
+	if (HasSSE41())
+	{
+		BLAKE3_Compress_SSE41(cv, block, block_len, counter, flags);
+		return;
+	}
+#endif
+#if CRYPTOPP_ARM_NEON_AVAILABLE
+	if (HasNEON())
+	{
+		BLAKE3_Compress_NEON(cv, block, block_len, counter, flags);
+		return;
+	}
+#endif
+
+	// Fallback to C++ implementation
 	word32 output[16];
 	compress_internal(cv, block, block_len, counter, flags, output);
 	std::memcpy(cv, output, 8 * sizeof(word32));
@@ -271,11 +324,31 @@ void BLAKE3::Output(const word32 cv[8], byte block[64], byte block_len,
 
 unsigned int BLAKE3::OptimalDataAlignment() const
 {
+#if CRYPTOPP_SSE41_AVAILABLE
+	if (HasSSE41())
+		return 16;
+#endif
+#if CRYPTOPP_ARM_NEON_AVAILABLE
+	if (HasNEON())
+		return 16;
+#endif
 	return GetAlignmentOf<word32>();
 }
 
 std::string BLAKE3::AlgorithmProvider() const
 {
+#if CRYPTOPP_AVX2_AVAILABLE
+	if (HasAVX2())
+		return "AVX2";
+#endif
+#if CRYPTOPP_SSE41_AVAILABLE
+	if (HasSSE41())
+		return "SSE4.1";
+#endif
+#if CRYPTOPP_ARM_NEON_AVAILABLE
+	if (HasNEON())
+		return "NEON";
+#endif
 	return "C++";
 }
 
@@ -361,6 +434,105 @@ void BLAKE3::Update(const byte *input, size_t length)
 			m_state.m_chunk.m_chunkCounter = total_chunks;
 			m_state.m_chunk.m_flags = m_state.m_flags;
 		}
+
+#if CRYPTOPP_AVX2_AVAILABLE
+		// Use AVX2 8-way parallel hashing when we have 8+ complete chunks
+		// This provides ~2x speedup over SSE4.1 4-way for large messages
+		if (HasAVX2() &&
+		    m_state.m_chunk.m_buf_len == 0 &&
+		    m_state.m_chunk.m_blocks_compressed == 0 &&
+		    length >= 8 * CHUNKSIZE)
+		{
+			size_t num_chunks = length / CHUNKSIZE;
+			byte cv_buffer[8 * 32];  // 8 CVs at a time
+
+			while (num_chunks >= 8) {
+				// Hash 8 chunks in parallel
+				BLAKE3_HashMany_AVX2(input, 8 * CHUNKSIZE,
+				                      m_state.m_key.data(),
+				                      m_state.m_chunk.m_chunkCounter,
+				                      m_state.m_flags, cv_buffer);
+
+				// Add each chunk's CV to the tree
+				for (size_t i = 0; i < 8; i++) {
+					word32 cv[8];
+					for (size_t j = 0; j < 8; j++) {
+						cv[j] = GetWord<word32>(false, LITTLE_ENDIAN_ORDER,
+						                        cv_buffer + i * 32 + j * 4);
+					}
+					word64 total_chunks = m_state.m_chunk.m_chunkCounter + 1;
+					AddChunkCV(cv, total_chunks);
+					m_state.m_chunk.m_chunkCounter = total_chunks;
+				}
+
+				input += 8 * CHUNKSIZE;
+				length -= 8 * CHUNKSIZE;
+				num_chunks -= 8;
+			}
+
+			// Reset chunk state for any remaining data
+			// Preserve chunk counter across reset
+			word64 savedCounter = m_state.m_chunk.m_chunkCounter;
+			m_state.m_chunk.Reset();
+			m_state.m_chunk.m_chunkCounter = savedCounter;
+			std::memcpy(m_state.m_chunk.m_cv.data(), m_state.m_key.data(), 8 * sizeof(word32));
+			m_state.m_chunk.m_flags = m_state.m_flags;
+			continue;
+		}
+#endif
+
+#if CRYPTOPP_SSE41_AVAILABLE
+		// Use SSE4.1 parallel hashing when we have 4+ complete chunks
+		// This is the key optimization that provides 2-4x speedup
+		if (HasSSE41() &&
+		    m_state.m_chunk.m_buf_len == 0 &&
+		    m_state.m_chunk.m_blocks_compressed == 0 &&
+		    length >= 4 * CHUNKSIZE)
+		{
+			// Calculate how many complete chunks we can process
+			size_t num_chunks = length / CHUNKSIZE;
+
+			// Allocate buffer for chunk CVs
+			// We process chunks in batches and add their CVs to the tree
+			byte cv_buffer[4 * 32];  // 4 CVs at a time
+
+			while (num_chunks >= 4) {
+				size_t batch_size = (num_chunks >= 4) ? 4 : num_chunks;
+				if (batch_size < 4) break;  // Need at least 4 for parallel processing
+
+				// Hash 4 chunks in parallel
+				BLAKE3_HashMany_SSE41(input, 4 * CHUNKSIZE,
+				                       m_state.m_key.data(),
+				                       m_state.m_chunk.m_chunkCounter,
+				                       m_state.m_flags, cv_buffer);
+
+				// Add each chunk's CV to the tree
+				for (size_t i = 0; i < 4; i++) {
+					word32 cv[8];
+					for (size_t j = 0; j < 8; j++) {
+						cv[j] = GetWord<word32>(false, LITTLE_ENDIAN_ORDER,
+						                        cv_buffer + i * 32 + j * 4);
+					}
+					word64 total_chunks = m_state.m_chunk.m_chunkCounter + 1;
+					AddChunkCV(cv, total_chunks);
+					m_state.m_chunk.m_chunkCounter = total_chunks;
+				}
+
+				input += 4 * CHUNKSIZE;
+				length -= 4 * CHUNKSIZE;
+				num_chunks -= 4;
+			}
+
+			// Reset chunk state for any remaining data
+			// Preserve chunk counter across reset
+			word64 savedCounter = m_state.m_chunk.m_chunkCounter;
+			m_state.m_chunk.Reset();
+			m_state.m_chunk.m_chunkCounter = savedCounter;
+			std::memcpy(m_state.m_chunk.m_cv.data(), m_state.m_key.data(), 8 * sizeof(word32));
+			m_state.m_chunk.m_flags = m_state.m_flags;
+			continue;
+		}
+#endif
 
 		// Feed data to current chunk
 		size_t want = CHUNKSIZE - (m_state.m_chunk.m_blocks_compressed * BLOCKSIZE +

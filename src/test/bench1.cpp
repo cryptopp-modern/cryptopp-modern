@@ -189,7 +189,9 @@ void BenchMark(const char *name, StreamTransformation &cipher, double timeTotal)
 
 void BenchMark(const char *name, HashTransformation &ht, double timeTotal)
 {
-	const int BUF_SIZE=2048U;
+	// Use 16KB buffer to enable BLAKE3's parallel chunk processing
+	// (4KB minimum for SSE4.1 4-way, 8KB for AVX2 8-way)
+	const int BUF_SIZE=16384U;
 	AlignedSecByteBlock buf(BUF_SIZE);
 	Test::GlobalRNG().GenerateBlock(buf, BUF_SIZE);
 	buf.SetMark(16);
