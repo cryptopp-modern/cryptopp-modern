@@ -1,0 +1,306 @@
+name: Branch Build and Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # =============================================================================
+  # CMake Builds
+  # =============================================================================
+
+  cmake-linux:
+    name: CMake Linux (GCC)
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure
+      run: cmake --preset=ci-linux
+
+    - name: Build
+      run: cmake --build build/ci-linux -j$(nproc)
+
+    - name: Run validation tests
+      run: ./build/ci-linux/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-linux/cryptest.exe tv all
+
+  cmake-macos:
+    name: CMake macOS (Clang)
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: brew install ninja
+
+    - name: Configure
+      run: cmake --preset=ci-macos
+
+    - name: Build
+      run: cmake --build build/ci-macos -j$(sysctl -n hw.ncpu)
+
+    - name: Run validation tests
+      run: ./build/ci-macos/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-macos/cryptest.exe tv all
+
+  cmake-windows:
+    name: CMake Windows (MSVC)
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure
+      run: cmake --preset=ci-windows
+
+    - name: Build
+      run: cmake --build build/ci-windows --config Release
+
+    - name: Run validation tests
+      run: ./build/ci-windows/Release/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-windows/Release/cryptest.exe tv all
+
+  cmake-no-asm:
+    name: CMake No-ASM (Pure C++)
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (No ASM)
+      run: cmake --preset=no-asm
+
+    - name: Build
+      run: cmake --build build/no-asm -j$(nproc)
+
+    - name: Run validation tests
+      run: ./build/no-asm/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/no-asm/cryptest.exe tv all
+
+  cmake-install:
+    name: CMake Install Test
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure
+      run: cmake --preset=install-test
+
+    - name: Build
+      run: cmake --build build/install-test -j$(nproc)
+
+    - name: Install
+      run: cmake --install build/install-test
+
+    - name: Verify installation
+      run: |
+        test -f build/install/lib/libcryptopp.a
+        test -d build/install/include/cryptopp
+        test -f build/install/include/cryptopp/aes.h
+        test -f build/install/share/cmake/cryptopp-modern/cryptopp-modernConfig.cmake
+        ls -la build/install/include/cryptopp/ | head -20
+
+    - name: Test find_package integration
+      run: |
+        mkdir -p test-project && cd test-project
+        cat > CMakeLists.txt << 'EOF'
+        cmake_minimum_required(VERSION 3.20)
+        project(test-cryptopp)
+        find_package(cryptopp-modern REQUIRED)
+        add_executable(test-app main.cpp)
+        target_link_libraries(test-app PRIVATE cryptopp::cryptopp)
+        EOF
+        cat > main.cpp << 'EOF'
+        #include <cryptopp/sha.h>
+        #include <cryptopp/hex.h>
+        #include <cryptopp/filters.h>
+        #include <iostream>
+        int main() {
+            CryptoPP::SHA256 hash;
+            std::string digest;
+            CryptoPP::StringSource ss("test", true,
+                new CryptoPP::HashFilter(hash,
+                    new CryptoPP::HexEncoder(
+                        new CryptoPP::StringSink(digest))));
+            std::cout << "SHA256: " << digest << std::endl;
+            return 0;
+        }
+        EOF
+        cmake -B build -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
+        cmake --build build
+        ./build/test-app
+
+  # =============================================================================
+  # Makefile Builds (Backward Compatibility)
+  # =============================================================================
+
+  makefile-linux-gcc:
+    name: Makefile Linux GCC ${{ matrix.gcc-version }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version: [11, 12, 13]
+        cxx-standard: [14, 17, 20]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GCC ${{ matrix.gcc-version }}
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt-get update
+        sudo apt-get install -y gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=g++-${{ matrix.gcc-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-linux-clang:
+    name: Makefile Linux Clang ${{ matrix.clang-version }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        clang-version: [15, 16, 17]
+        cxx-standard: [14, 17, 20]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Clang ${{ matrix.clang-version }}
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh ${{ matrix.clang-version }}
+        sudo apt-get install -y clang-${{ matrix.clang-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=clang++-${{ matrix.clang-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-macos:
+    name: Makefile macOS (Apple Clang)
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx-standard: [14, 17, 20]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }} -stdlib=libc++"
+        make clean
+        make -j$(sysctl -n hw.ncpu)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-windows-msvc:
+    name: Makefile Windows MSVC
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, Win32]
+        configuration: [Release]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build library and tests
+      run: msbuild cryptest.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m
+
+    - name: Run validation tests
+      shell: cmd
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe v
+
+    - name: Run test vectors
+      shell: cmd
+      run: ${{ matrix.platform }}\Output\${{ matrix.configuration }}\cryptest.exe tv all
+
+  # =============================================================================
+  # Sanitizer Builds
+  # =============================================================================
+
+  sanitizers:
+    name: Sanitizer ${{ matrix.sanitizer }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [ubsan, asan]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GCC 12
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-12 g++-12
+
+    - name: Build with ${{ matrix.sanitizer }}
+      run: |
+        export CXX=g++-12
+        make clean
+        make ${{ matrix.sanitizer }} -j$(nproc)
+
+    - name: Run validation tests
+      run: ./cryptest.exe v 2>&1 | tee validation.log
+
+    - name: Check for sanitizer errors
+      run: |
+        if grep -E "(runtime error:|ERROR:|ASAN)" validation.log; then
+          echo "Sanitizer errors found"
+          exit 1
+        fi
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
