@@ -35,19 +35,6 @@
 
 ---
 
-## Documentation
-
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Quick start guide with code examples
-- **[CMAKE.md](CMAKE.md)** - CMake build system documentation
-- **[GNUMAKEFILE.md](GNUMAKEFILE.md)** - GNUmakefile build system documentation
-- **[ROADMAP.md](ROADMAP.md)** - Development roadmap and future plans
-- **[FORK.md](FORK.md)** - Relationship to upstream Crypto++
-- **[Readme.txt](Readme.txt)** - Complete algorithm list and instructions
-- **[Install.txt](Install.txt)** - Detailed installation guide
-- **[License.txt](License.txt)** - Boost Software License 1.0
-
----
-
 ## Quick Build
 
 ### CMake (Recommended)
@@ -66,6 +53,20 @@ make -j$(nproc)
 ```
 
 See [CMAKE.md](CMAKE.md) or [GNUMAKEFILE.md](GNUMAKEFILE.md) for detailed build instructions.
+
+---
+
+## Documentation
+
+- **[cryptopp-modern.com](https://cryptopp-modern.com)** - Full API and algorithm documentation
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Quick start guide with code examples
+- **[CMAKE.md](CMAKE.md)** - CMake build system documentation
+- **[GNUMAKEFILE.md](GNUMAKEFILE.md)** - GNUmakefile build system documentation
+- **[ROADMAP.md](ROADMAP.md)** - Development roadmap and future plans
+- **[FORK.md](FORK.md)** - Relationship to upstream Crypto++
+- **[Readme.txt](Readme.txt)** - Complete algorithm list and instructions
+- **[Install.txt](Install.txt)** - Detailed installation guide
+- **[License.txt](License.txt)** - Boost Software License 1.0
 
 ---
 
@@ -149,6 +150,8 @@ Contributions are welcome! Areas where you can help:
 - 📚 Documentation improvements
 - 🧪 Tests and test vectors
 - 🔧 Build system enhancements
+
+If you're migrating from Crypto++ 8.9.0 and encounter any issues, please open an issue – migration feedback is especially valuable.
 
 Please:
 1. Fork the repository
