@@ -1065,10 +1065,18 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE2B_FLAGS}"
 )
 
-set_source_files_properties(
-    ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
-    PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX2_FLAGS}"
-)
+# BLAKE3 SIMD: Use /arch:AVX2 on MSVC for fair comparison with GCC -mavx2
+if(MSVC)
+    set_source_files_properties(
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+        PROPERTIES COMPILE_OPTIONS "/arch:AVX2"
+    )
+else()
+    set_source_files_properties(
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+        PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX2_FLAGS}"
+    )
+endif()
 
 set_source_files_properties(
     ${cryptopp_SOURCE_DIR}/src/symmetric/chacha_simd.cpp
