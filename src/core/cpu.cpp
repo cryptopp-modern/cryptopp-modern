@@ -368,6 +368,8 @@ bool CRYPTOPP_SECTION_INIT g_hasCLMUL = false;
 bool CRYPTOPP_SECTION_INIT g_hasMOVBE = false;
 bool CRYPTOPP_SECTION_INIT g_hasAVX = false;
 bool CRYPTOPP_SECTION_INIT g_hasAVX2 = false;
+bool CRYPTOPP_SECTION_INIT g_hasAVX512F = false;
+bool CRYPTOPP_SECTION_INIT g_hasAVX512VL = false;
 bool CRYPTOPP_SECTION_INIT g_hasADX = false;
 bool CRYPTOPP_SECTION_INIT g_hasSHA = false;
 bool CRYPTOPP_SECTION_INIT g_hasRDRAND = false;
@@ -581,7 +583,8 @@ void DetectX86Features()
 	CRYPTOPP_CONSTANT(OSXSAVE_FLAG = (1 << 27)); // ECX
 
 	CRYPTOPP_CONSTANT(AVX_FLAG = (3 << 27));     // ECX
-	CRYPTOPP_CONSTANT(YMM_FLAG = (3 <<  1));     // CR0
+	CRYPTOPP_CONSTANT(YMM_FLAG = (3 <<  1));     // CR0 (XCR0)
+	CRYPTOPP_CONSTANT(ZMM_FLAG = (7 <<  5));     // CR0 (XCR0) - bits 5,6,7 for AVX512
 
     // x86_64 machines don't check some flags because SSE2
     // is part of the core instruction set architecture
@@ -637,6 +640,8 @@ void DetectX86Features()
 		CRYPTOPP_CONSTANT(   ADX_FLAG = (1 << 19));
 		CRYPTOPP_CONSTANT(   SHA_FLAG = (1 << 29));
 		CRYPTOPP_CONSTANT(  AVX2_FLAG = (1 <<  5));
+		CRYPTOPP_CONSTANT(AVX512F_FLAG = (1 << 16));
+		CRYPTOPP_CONSTANT(AVX512VL_FLAG = (1 << 31));
 
 		g_isP4 = ((cpuid1[0] >> 8) & 0xf) == 0xf;
 		g_cacheLineSize = 8 * GETBYTE(cpuid1[1], 1);
@@ -650,6 +655,8 @@ void DetectX86Features()
 				g_hasADX    = (cpuid2[EBX_REG] & ADX_FLAG) != 0;
 				g_hasSHA    = (cpuid2[EBX_REG] & SHA_FLAG) != 0;
 				g_hasAVX2   = (cpuid2[EBX_REG] & AVX2_FLAG) != 0;
+				g_hasAVX512F = (cpuid2[EBX_REG] & AVX512F_FLAG) != 0;
+				g_hasAVX512VL = (cpuid2[EBX_REG] & AVX512VL_FLAG) != 0;
 			}
 		}
 	}
@@ -660,6 +667,8 @@ void DetectX86Features()
 		CRYPTOPP_CONSTANT(   ADX_FLAG = (1 << 19));
 		CRYPTOPP_CONSTANT(   SHA_FLAG = (1 << 29));
 		CRYPTOPP_CONSTANT(  AVX2_FLAG = (1 <<  5));
+		CRYPTOPP_CONSTANT(AVX512F_FLAG = (1 << 16));
+		CRYPTOPP_CONSTANT(AVX512VL_FLAG = (1 << 31));
 
 		CpuId(0x80000005, 0, cpuid2);
 		g_cacheLineSize = GETBYTE(cpuid2[ECX_REG], 0);
@@ -673,6 +682,8 @@ void DetectX86Features()
 				g_hasADX    = (cpuid2[EBX_REG] & ADX_FLAG) != 0;
 				g_hasSHA    = (cpuid2[EBX_REG] & SHA_FLAG) != 0;
 				g_hasAVX2   = (cpuid2[EBX_REG] & AVX2_FLAG) != 0;
+				g_hasAVX512F = (cpuid2[EBX_REG] & AVX512F_FLAG) != 0;
+				g_hasAVX512VL = (cpuid2[EBX_REG] & AVX512VL_FLAG) != 0;
 			}
 		}
 
@@ -726,6 +737,21 @@ void DetectX86Features()
 	// Keep AVX2 in sync with OS support for AVX. AVX tests both
 	// cpu support and OS support, while AVX2 only tests cpu support.
 	g_hasAVX2 &= g_hasAVX;
+
+	// AVX512 requires OS support for ZMM registers (XCR0 bits 5,6,7).
+	// Check if the OS has enabled AVX512 state saving.
+	if (g_hasAVX512F && g_hasAVX)
+	{
+		word64 xcr0 = XGetBV(0);
+		bool osSupportsAVX512 = (xcr0 & ZMM_FLAG) == ZMM_FLAG;
+		g_hasAVX512F &= osSupportsAVX512;
+		g_hasAVX512VL &= osSupportsAVX512;
+	}
+	else
+	{
+		g_hasAVX512F = false;
+		g_hasAVX512VL = false;
+	}
 
 done:
 

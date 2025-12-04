@@ -54,6 +54,7 @@ set(cryptopp_SOURCES_HASH
     src/hash/blake2s_simd.cpp
     src/hash/blake3.cpp
     src/hash/blake3_simd.cpp
+    src/hash/blake3_avx512.cpp
     src/hash/crc.cpp
     src/hash/crc_simd.cpp
     src/hash/keccak.cpp

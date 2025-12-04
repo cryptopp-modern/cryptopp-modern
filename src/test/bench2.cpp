@@ -134,6 +134,7 @@ void BenchmarkSharedKeyedAlgorithms(double t, double hertz)
 		BenchMarkByName<MessageAuthenticationCode>("Poly1305TLS");
 		BenchMarkByName<MessageAuthenticationCode>("BLAKE2s");
 		BenchMarkByName<MessageAuthenticationCode>("BLAKE2b");
+		BenchMarkByName<MessageAuthenticationCode>("BLAKE3");
 		BenchMarkByName<MessageAuthenticationCode>("SipHash-2-4");
 		BenchMarkByName<MessageAuthenticationCode>("SipHash-4-8");
 	}

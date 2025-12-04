@@ -10,7 +10,7 @@ jobs:
 
   cmake-linux:
     name: CMake Linux (GCC)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -22,10 +22,83 @@ jobs:
       run: cmake --preset=ci-linux
 
     - name: Build
-      run: cmake --build build/ci-linux -j$(nproc)
+      run: cmake --build build/ci-linux -j"$(nproc)"
 
     - name: Run validation tests
       run: ./build/ci-linux/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-linux/cryptest.exe tv all
+
+  cmake-linux-gcc14:
+    name: CMake Linux (GCC 14)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install GCC 14 and Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-14 g++-14 ninja-build
+
+    - name: Configure (GCC 14)
+      env:
+        CC: gcc-14
+        CXX: g++-14
+      run: cmake --preset=ci-linux
+
+    - name: Build
+      run: cmake --build build/ci-linux -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./build/ci-linux/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-linux/cryptest.exe tv all
+
+  cmake-linux-clang19:
+    name: CMake Linux (Clang 19)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Clang 19 and Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-19 ninja-build
+
+    - name: Check CPU features
+      run: |
+        echo "=== CPU Information ==="
+        lscpu | grep -E "Model name|Flags"
+        echo ""
+        echo "=== AVX512 Flags ==="
+        if grep -q avx512f /proc/cpuinfo; then
+          echo "AVX512F: SUPPORTED"
+        else
+          echo "AVX512F: NOT SUPPORTED"
+        fi
+
+    - name: Configure (Clang 19)
+      env:
+        CC: clang-19
+        CXX: clang++-19
+      run: cmake --preset=ci-linux
+
+    - name: Build
+      run: cmake --build build/ci-linux -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./build/ci-linux/cryptest.exe v
+
+    - name: Run BLAKE3 benchmark
+      run: |
+        cd build/ci-linux
+        echo "=== BLAKE3 Benchmark ==="
+        ./cryptest.exe b 3 4.0 blake3
+        echo ""
 
     - name: Run test vectors
       run: ./build/ci-linux/cryptest.exe tv all
@@ -44,7 +117,7 @@ jobs:
       run: cmake --preset=ci-macos
 
     - name: Build
-      run: cmake --build build/ci-macos -j$(sysctl -n hw.ncpu)
+      run: cmake --build build/ci-macos -j"$(sysctl -n hw.ncpu)"
 
     - name: Run validation tests
       run: ./build/ci-macos/cryptest.exe v
@@ -73,7 +146,7 @@ jobs:
 
   cmake-no-asm:
     name: CMake No-ASM (Pure C++)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -85,7 +158,7 @@ jobs:
       run: cmake --preset=no-asm
 
     - name: Build
-      run: cmake --build build/no-asm -j$(nproc)
+      run: cmake --build build/no-asm -j"$(nproc)"
 
     - name: Run validation tests
       run: ./build/no-asm/cryptest.exe v
@@ -95,7 +168,7 @@ jobs:
 
   cmake-install:
     name: CMake Install Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -107,7 +180,7 @@ jobs:
       run: cmake --preset=install-test
 
     - name: Build
-      run: cmake --build build/install-test -j$(nproc)
+      run: cmake --build build/install-test -j"$(nproc)"
 
     - name: Install
       run: cmake --install build/install-test
@@ -156,7 +229,7 @@ jobs:
 
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -177,7 +250,7 @@ jobs:
         export CXX=g++-${{ matrix.gcc-version }}
         export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
         make clean
-        make -j$(nproc)
+        make -j"$(nproc)"
 
     - name: Run validation tests
       run: ./cryptest.exe v
@@ -185,7 +258,7 @@ jobs:
     - name: Run test vectors
       run: ./cryptest.exe tv all
 
-  makefile-linux-clang:
+  makefile-linux-clang-old:
     name: Makefile Linux Clang ${{ matrix.clang-version }}
     runs-on: ubuntu-22.04
     strategy:
@@ -209,7 +282,37 @@ jobs:
         export CXX=clang++-${{ matrix.clang-version }}
         export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
         make clean
-        make -j$(nproc)
+        make -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-linux-clang-new:
+    name: Makefile Linux Clang ${{ matrix.clang-version }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        clang-version: [18, 19]
+        cxx-standard: [14, 17, 20]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Clang ${{ matrix.clang-version }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-${{ matrix.clang-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=clang++-${{ matrix.clang-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j"$(nproc)"
 
     - name: Run validation tests
       run: ./cryptest.exe v
@@ -232,7 +335,7 @@ jobs:
       run: |
         export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }} -stdlib=libc++"
         make clean
-        make -j$(sysctl -n hw.ncpu)
+        make -j"$(sysctl -n hw.ncpu)"
 
     - name: Run validation tests
       run: ./cryptest.exe v
@@ -272,7 +375,7 @@ jobs:
 
   sanitizers:
     name: Sanitizer ${{ matrix.sanitizer }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -281,16 +384,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install GCC 12
+    - name: Install GCC 13
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-12 g++-12
+        sudo apt-get install -y gcc-13 g++-13
 
     - name: Build with ${{ matrix.sanitizer }}
       run: |
-        export CXX=g++-12
+        export CXX=g++-13
         make clean
-        make ${{ matrix.sanitizer }} -j$(nproc)
+        make ${{ matrix.sanitizer }} -j"$(nproc)"
 
     - name: Run validation tests
       run: ./cryptest.exe v 2>&1 | tee validation.log
@@ -304,3 +407,46 @@ jobs:
 
     - name: Run test vectors
       run: ./cryptest.exe tv all
+
+  # =============================================================================
+  # AVX512 Testing
+  # =============================================================================
+
+  avx512-test:
+    name: AVX512 Feature Test
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check CPU features
+      run: |
+        echo "=== CPU Information ==="
+        lscpu | grep -E "Model name|Flags"
+        echo ""
+        echo "=== AVX512 Flags ==="
+        if grep -q avx512f /proc/cpuinfo; then
+          echo "AVX512F: SUPPORTED"
+        else
+          echo "AVX512F: NOT SUPPORTED"
+        fi
+        if grep -q avx512vl /proc/cpuinfo; then
+          echo "AVX512VL: SUPPORTED"
+        else
+          echo "AVX512VL: NOT SUPPORTED"
+        fi
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure
+      run: cmake --preset=ci-linux
+
+    - name: Build
+      run: cmake --build build/ci-linux -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./build/ci-linux/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/ci-linux/cryptest.exe tv all

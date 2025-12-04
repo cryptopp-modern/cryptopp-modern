@@ -22,6 +22,7 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/sha3.h>
 #include <cryptopp/blake2.h>
+#include <cryptopp/blake3.h>
 #include <cryptopp/ripemd.h>
 #include <cryptopp/chacha.h>
 #include <cryptopp/poly1305.h>
@@ -77,6 +78,7 @@ void RegisterFactories2()
 	RegisterDefaultFactoryFor<MessageAuthenticationCode, CMAC<DES_EDE3> >();
 	RegisterDefaultFactoryFor<MessageAuthenticationCode, BLAKE2s>();
 	RegisterDefaultFactoryFor<MessageAuthenticationCode, BLAKE2b>();
+	RegisterDefaultFactoryFor<MessageAuthenticationCode, BLAKE3>();
 	RegisterDefaultFactoryFor<MessageAuthenticationCode, SipHash<2,4> >();
 	RegisterDefaultFactoryFor<MessageAuthenticationCode, SipHash<4,8> >();
 }

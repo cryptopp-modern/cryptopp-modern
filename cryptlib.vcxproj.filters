@@ -68,6 +68,9 @@
     <ClCompile Include="blake3_simd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="blake3_avx512.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="blowfish.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
