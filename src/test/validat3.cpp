@@ -391,6 +391,8 @@ bool TestSettings()
 	bool hasSSE42 = HasSSE42();
 	bool hasAVX = HasAVX();
 	bool hasAVX2 = HasAVX2();
+	bool hasAVX512F = HasAVX512F();
+	bool hasAVX512VL = HasAVX512VL();
 	bool hasAESNI = HasAESNI();
 	bool hasCLMUL = HasCLMUL();
 	bool hasRDRAND = HasRDRAND();
@@ -400,7 +402,7 @@ bool TestSettings()
 
 	std::cout << "hasSSE2 == " << hasSSE2 << ", hasSSSE3 == " << hasSSSE3;
 	std::cout << ", hasSSE4.1 == " << hasSSE41 << ", hasSSE4.2 == " << hasSSE42;
-	std::cout << ", hasAVX == " << hasAVX << ", hasAVX2 == " << hasAVX2;
+	std::cout << ", hasAVX == " << hasAVX << ", hasAVX2 == " << hasAVX2 << ", hasAVX512F == " << hasAVX512F << ", hasAVX512VL == " << hasAVX512VL;
 	std::cout << ", hasAESNI == " << hasAESNI << ", hasCLMUL == " << hasCLMUL;
 	std::cout << ", hasRDRAND == " << hasRDRAND << ", hasRDSEED == " << hasRDSEED;
 	std::cout << ", hasSHA == " << hasSHA << ", isP4 == " << isP4;

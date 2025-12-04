@@ -280,6 +280,7 @@ ifeq ($(DETECT_FEATURES),1)
     AESNI_FLAG = -maes
     AVX_FLAG = -mavx
     AVX2_FLAG = -mavx2
+    AVX512_FLAG = -mavx512f -mavx512vl
     SHANI_FLAG = -msha
   endif
 
@@ -414,6 +415,18 @@ ifeq ($(DETECT_FEATURES),1)
       SUN_LDFLAGS += $(AVX2_FLAG)
     else
       AVX2_FLAG =
+    endif
+
+    # AVX512 test - needs AVX512F and AVX512VL for BLAKE3
+    TPROG = TestPrograms/test_x86_avx512.cpp
+    TOPT = $(AVX512_FLAG)
+    HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
+    ifeq ($(strip $(HAVE_OPT)),0)
+      # BLAKE3 AVX512 needs SSE4.1, AVX2 (for fallback) and AVX512
+      BLAKE3_AVX512_FLAG = $(SSE41_FLAG) $(AVX2_FLAG) $(AVX512_FLAG)
+      SUN_LDFLAGS += $(AVX512_FLAG)
+    else
+      AVX512_FLAG =
     endif
 
     TPROG = TestPrograms/test_x86_sha.cpp
@@ -1667,6 +1680,10 @@ src/hash/blake2b_simd.o : src/hash/blake2b_simd.cpp
 # SSE4.1+AVX2 or NEON available
 src/hash/blake3_simd.o : src/hash/blake3_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_AVX2_FLAG) -c) $<
+
+# AVX512 available
+src/hash/blake3_avx512.o : src/hash/blake3_avx512.cpp
+	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_AVX512_FLAG) -c) $<
 
 # SSE2 or NEON available
 src/symmetric/chacha_simd.o : src/symmetric/chacha_simd.cpp

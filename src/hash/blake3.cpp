@@ -58,6 +58,12 @@ NAMESPACE_BEGIN(CryptoPP)
 
 ////////////////////////////// SIMD Function Declarations //////////////////////////////
 
+#if (CRYPTOPP_AVX512F_AVAILABLE) && (CRYPTOPP_AVX512VL_AVAILABLE)
+extern size_t BLAKE3_HashMany_AVX512(const byte *input, size_t input_len,
+                                      const word32 key[8], word64 counter,
+                                      byte flags, byte *out);
+#endif
+
 #if CRYPTOPP_AVX2_AVAILABLE
 extern size_t BLAKE3_HashMany_AVX2(const byte *input, size_t input_len,
                                     const word32 key[8], word64 counter,
@@ -337,6 +343,10 @@ unsigned int BLAKE3::OptimalDataAlignment() const
 
 std::string BLAKE3::AlgorithmProvider() const
 {
+#if (CRYPTOPP_AVX512F_AVAILABLE) && (CRYPTOPP_AVX512VL_AVAILABLE)
+	if (HasAVX512F() && HasAVX512VL())
+		return "AVX512";
+#endif
 #if CRYPTOPP_AVX2_AVAILABLE
 	if (HasAVX2())
 		return "AVX2";
@@ -434,6 +444,52 @@ void BLAKE3::Update(const byte *input, size_t length)
 			m_state.m_chunk.m_chunkCounter = total_chunks;
 			m_state.m_chunk.m_flags = m_state.m_flags;
 		}
+
+#if (CRYPTOPP_AVX512F_AVAILABLE) && (CRYPTOPP_AVX512VL_AVAILABLE)
+		// Use AVX512 16-way parallel hashing when we have 16+ complete chunks
+		// This provides ~2x speedup over AVX2 8-way for large messages
+		if (HasAVX512F() && HasAVX512VL() &&
+		    m_state.m_chunk.m_buf_len == 0 &&
+		    m_state.m_chunk.m_blocks_compressed == 0 &&
+		    length >= 16 * CHUNKSIZE)
+		{
+			size_t num_chunks = length / CHUNKSIZE;
+			byte cv_buffer[16 * 32];  // 16 CVs at a time
+
+			while (num_chunks >= 16) {
+				// Hash 16 chunks in parallel
+				BLAKE3_HashMany_AVX512(input, 16 * CHUNKSIZE,
+				                        m_state.m_key.data(),
+				                        m_state.m_chunk.m_chunkCounter,
+				                        m_state.m_flags, cv_buffer);
+
+				// Add each chunk's CV to the tree
+				for (size_t i = 0; i < 16; i++) {
+					word32 cv[8];
+					for (size_t j = 0; j < 8; j++) {
+						cv[j] = GetWord<word32>(false, LITTLE_ENDIAN_ORDER,
+						                        cv_buffer + i * 32 + j * 4);
+					}
+					word64 total_chunks = m_state.m_chunk.m_chunkCounter + 1;
+					AddChunkCV(cv, total_chunks);
+					m_state.m_chunk.m_chunkCounter = total_chunks;
+				}
+
+				input += 16 * CHUNKSIZE;
+				length -= 16 * CHUNKSIZE;
+				num_chunks -= 16;
+			}
+
+			// Reset chunk state for any remaining data
+			// Preserve chunk counter across reset
+			word64 savedCounter = m_state.m_chunk.m_chunkCounter;
+			m_state.m_chunk.Reset();
+			m_state.m_chunk.m_chunkCounter = savedCounter;
+			std::memcpy(m_state.m_chunk.m_cv.data(), m_state.m_key.data(), 8 * sizeof(word32));
+			m_state.m_chunk.m_flags = m_state.m_flags;
+			continue;
+		}
+#endif
 
 #if CRYPTOPP_AVX2_AVAILABLE
 		// Use AVX2 8-way parallel hashing when we have 8+ complete chunks

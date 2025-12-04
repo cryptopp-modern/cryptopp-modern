@@ -94,6 +94,8 @@ extern CRYPTOPP_DLL bool g_hasAESNI;
 extern CRYPTOPP_DLL bool g_hasCLMUL;
 extern CRYPTOPP_DLL bool g_hasAVX;
 extern CRYPTOPP_DLL bool g_hasAVX2;
+extern CRYPTOPP_DLL bool g_hasAVX512F;
+extern CRYPTOPP_DLL bool g_hasAVX512VL;
 extern CRYPTOPP_DLL bool g_hasSHA;
 extern CRYPTOPP_DLL bool g_hasADX;
 extern CRYPTOPP_DLL bool g_isP4;
@@ -282,6 +284,39 @@ inline bool HasAVX2()
 	if (!g_x86DetectionDone)
 		DetectX86Features();
 	return g_hasAVX2;
+#else
+	return false;
+#endif
+}
+
+/// \brief Determine AVX512F availability
+/// \return true if AVX512F is determined to be available, false otherwise
+/// \details HasAVX512F() is a runtime check performed using CPUID
+/// \since Crypto++ 9.0
+/// \note This function is only available on Intel IA-32 platforms
+inline bool HasAVX512F()
+{
+#if CRYPTOPP_AVX512F_AVAILABLE
+	if (!g_x86DetectionDone)
+		DetectX86Features();
+	return g_hasAVX512F;
+#else
+	return false;
+#endif
+}
+
+/// \brief Determine AVX512VL availability
+/// \return true if AVX512VL is determined to be available, false otherwise
+/// \details HasAVX512VL() is a runtime check performed using CPUID.
+///  AVX512VL provides 256-bit and 128-bit versions of AVX512 instructions.
+/// \since Crypto++ 9.0
+/// \note This function is only available on Intel IA-32 platforms
+inline bool HasAVX512VL()
+{
+#if CRYPTOPP_AVX512VL_AVAILABLE
+	if (!g_x86DetectionDone)
+		DetectX86Features();
+	return g_hasAVX512VL;
 #else
 	return false;
 #endif

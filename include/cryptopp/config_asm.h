@@ -167,6 +167,25 @@
 #define CRYPTOPP_AVX2_AVAILABLE 1
 #endif
 
+// AVX512F is different from AVX512 generally. Different different different.
+// Requires GCC 4.9, MSVC 2017 (15.0), Clang 3.9, Intel i16
+// AVX512 is only available on 64-bit x86 (x64), not 32-bit x86
+#if !defined(CRYPTOPP_DISABLE_AVX512) && defined(CRYPTOPP_AVX2_AVAILABLE) && \
+	(CRYPTOPP_BOOL_X64 || defined(__x86_64__)) && \
+	(defined(__AVX512F__) || (CRYPTOPP_MSC_VERSION >= 1910) || \
+	(CRYPTOPP_GCC_VERSION >= 40900) || (__INTEL_COMPILER >= 1600) || \
+	(CRYPTOPP_LLVM_CLANG_VERSION >= 30900) || (CRYPTOPP_APPLE_CLANG_VERSION >= 80000))
+#define CRYPTOPP_AVX512F_AVAILABLE 1
+#endif
+
+// AVX512VL provides 256-bit and 128-bit versions of AVX512 instructions
+#if !defined(CRYPTOPP_DISABLE_AVX512) && defined(CRYPTOPP_AVX512F_AVAILABLE) && \
+	(defined(__AVX512VL__) || (CRYPTOPP_MSC_VERSION >= 1910) || \
+	(CRYPTOPP_GCC_VERSION >= 40900) || (__INTEL_COMPILER >= 1600) || \
+	(CRYPTOPP_LLVM_CLANG_VERSION >= 30900) || (CRYPTOPP_APPLE_CLANG_VERSION >= 80000))
+#define CRYPTOPP_AVX512VL_AVAILABLE 1
+#endif
+
 // Guessing at SHA for SunCC. Its not in Sun Studio 12.6. Also see
 // http://stackoverflow.com/questions/45872180/which-xarch-for-sha-extensions-on-solaris
 // Guessing for Intel ICPC. A slide deck says SHA support is in version 16.0-beta
@@ -218,6 +237,8 @@
 #define CONST_M128_CAST(x) ((const __m128i *)(const void *)(x))
 #define M256_CAST(x) ((__m256i *)(void *)(x))
 #define CONST_M256_CAST(x) ((const __m256i *)(const void *)(x))
+#define M512_CAST(x) ((__m512i *)(void *)(x))
+#define CONST_M512_CAST(x) ((const __m512i *)(const void *)(x))
 
 #endif  // CRYPTOPP_DISABLE_ASM
 

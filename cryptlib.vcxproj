@@ -187,6 +187,12 @@
     <ClCompile Include="src\hash\blake2b_simd.cpp" />
     <ClCompile Include="src\hash\blake3.cpp" />
     <ClCompile Include="src\hash\blake3_simd.cpp" />
+    <ClCompile Include="src\hash\blake3_avx512.cpp">
+      <!-- AVX512 requires VS2019 16.4+ (v142+) -->
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition=" '$(PlatformToolset)' == 'v100' Or '$(PlatformToolset)' == 'v110' Or '$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'v140' Or '$(PlatformToolset)' == 'v141' ">true</ExcludedFromBuild>
+      <AdditionalOptions>/arch:AVX512 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="src\symmetric\blowfish.cpp" />
     <ClCompile Include="src\random\blumshub.cpp" />
     <ClCompile Include="src\symmetric\camellia.cpp" />

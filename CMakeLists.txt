@@ -561,6 +561,7 @@ if(
         set(aesni_flag "-xarch=aes")
         set(avx_flag "-xarch=avx")
         set(avx2_flag "-xarch=avx2")
+        set(avx512_flag "-xarch=avx512")
         set(shani_flag "-xarch=sha")
     else()
         set(sse2_flag "-msse2")
@@ -572,6 +573,7 @@ if(
         set(aesni_flag "-maes")
         set(avx_flag "-mavx")
         set(avx2_flag "-mavx2")
+        set(avx512_flag "-mavx512f;-mavx512vl")
         set(shani_flag "-msha")
     endif()
 
@@ -685,6 +687,17 @@ if(
             list(APPEND CRYPTOPP_SUN_LDFLAGS "${avx2_flag}")
         else()
             set(avx2_flag "")
+        endif()
+
+        check_compile_link_option("${avx512_flag}" CRYPTOPP_HAVE_AVX512
+                                  "${TEST_PROG_DIR}/test_x86_avx512.cpp"
+        )
+        if(CRYPTOPP_HAVE_AVX512)
+            # BLAKE3 AVX512 needs SSE4.1, AVX2 (for fallback) and AVX512
+            list(APPEND CRYPTOPP_BLAKE3_AVX512_FLAGS "${sse41_flag}" "${avx2_flag}" "${avx512_flag}")
+            list(APPEND CRYPTOPP_SUN_LDFLAGS "${avx512_flag}")
+        else()
+            set(avx512_flag "")
         endif()
 
         check_compile_link_option(${shani_flag} CRYPTOPP_HAVE_SHANI
@@ -1075,6 +1088,19 @@ else()
     set_source_files_properties(
         ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
         PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX2_FLAGS}"
+    )
+endif()
+
+# BLAKE3 AVX512: Use /arch:AVX512 on MSVC for 16-way parallel hashing
+if(MSVC)
+    set_source_files_properties(
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_avx512.cpp
+        PROPERTIES COMPILE_OPTIONS "/arch:AVX512"
+    )
+else()
+    set_source_files_properties(
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_avx512.cpp
+        PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX512_FLAGS}"
     )
 endif()
 
