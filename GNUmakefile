@@ -1585,7 +1585,7 @@ cryptopp.pc libcryptopp.pc:
 	@echo 'Libs: -L$${libdir} -lcryptopp' >> libcryptopp.pc
 
 # This recipe prepares the distro files
-TEXT_FILES := *.h *.cpp *.S GNUmakefile GNUmakefile-cross License.txt Readme.txt Install.txt Filelist.txt Doxyfile cryptest* cryptlib* dlltest* cryptdll* *.sln *.vcxproj *.filters cryptopp.rc TestVectors/*.txt TestData/*.dat TestPrograms/*.cpp
+TEXT_FILES := *.h *.cpp *.S GNUmakefile GNUmakefile-cross LICENSE Readme.txt Install.txt Filelist.txt Doxyfile cryptest* cryptlib* dlltest* cryptdll* *.sln *.vcxproj *.filters cryptopp.rc TestVectors/*.txt TestData/*.dat TestPrograms/*.cpp
 EXEC_FILES := TestScripts/*.sh TestScripts/*.cmd
 ifneq ($(wildcard *.sh),)
   EXEC_FILES += $(wildcard *.sh)

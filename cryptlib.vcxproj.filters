@@ -553,7 +553,7 @@
     <None Include="GNUmakefile">
       <Filter>Miscellaneous</Filter>
     </None>
-    <None Include="License.txt">
+    <None Include="LICENSE">
       <Filter>Miscellaneous</Filter>
     </None>
     <None Include="Readme.txt">

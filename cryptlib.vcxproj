@@ -374,7 +374,7 @@
     </CustomBuild>
     <None Include="Doxyfile" />
     <None Include="GNUmakefile" />
-    <None Include="License.txt" />
+    <None Include="LICENSE" />
     <None Include="Readme.txt" />
   </ItemGroup>
   <ItemGroup>

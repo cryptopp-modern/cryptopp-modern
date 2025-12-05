@@ -223,7 +223,7 @@ Built upon the excellent work of:
 - **Compilation:** Boost Software License 1.0
 - **Individual files:** Public domain
 
-See [License.txt](License.txt) for details.
+See [LICENSE](LICENSE) for details.
 
 ---
 

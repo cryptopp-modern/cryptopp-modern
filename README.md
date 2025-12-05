@@ -3,7 +3,7 @@
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
 [![Version](https://img.shields.io/badge/version-2025.12.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
-[![License](https://img.shields.io/badge/license-Boost-green.svg)](License.txt)
+[![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
 
@@ -66,7 +66,7 @@ See [CMAKE.md](CMAKE.md) or [GNUMAKEFILE.md](GNUMAKEFILE.md) for detailed build 
 - **[FORK.md](FORK.md)** - Relationship to upstream Crypto++
 - **[Readme.txt](Readme.txt)** - Complete algorithm list and instructions
 - **[Install.txt](Install.txt)** - Detailed installation guide
-- **[License.txt](License.txt)** - Boost Software License 1.0
+- **[LICENSE](LICENSE)** - Boost Software License 1.0
 
 ---
 
@@ -169,7 +169,7 @@ Like the original Crypto++, this library uses:
 - **Compilation:** Boost Software License 1.0
 - **Individual files:** Public domain
 
-See [License.txt](License.txt) for details.
+See [LICENSE](LICENSE) for details.
 
 ---
 

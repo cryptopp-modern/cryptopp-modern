@@ -90,7 +90,7 @@ Other features include:
 
 The Crypto++ library was originally written by Wei Dai. The library is now
 maintained by several team members and the community. You are welcome to use it
-for any purpose without paying anyone, but see License.txt for the fine print.
+for any purpose without paying anyone, but see LICENSE for the fine print.
 
 The following compilers are supported for this release. Please visit
 http://www.cryptopp.com the most up to date build instructions and porting notes.
