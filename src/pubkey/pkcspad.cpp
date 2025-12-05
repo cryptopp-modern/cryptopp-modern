@@ -113,7 +113,7 @@ DecodingResult PKCS_EncryptionPaddingScheme::Unpad(const byte *pkcsBlock, size_t
 
 		// Constant-time conditional: record position using bitwise ops
 		// Equivalent to: if (isZero && notFoundYet) separatorIndex = j;
-		size_t mask = -(isZero & notFoundYet);  // all 1s if true, all 0s if false
+		size_t mask = static_cast<size_t>(0) - (isZero & notFoundYet);  // all 1s if true, all 0s if false
 		separatorIndex = (separatorIndex & ~mask) | (j & mask);
 
 		// Mark that we found a separator

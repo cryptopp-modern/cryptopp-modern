@@ -265,7 +265,6 @@ inline void transpose_msg_vecs4(const byte *const *inputs, size_t block_offset,
 // Perform one round of BLAKE3 compression on 4 parallel states
 inline void round_fn4(__m128i v[16], __m128i m[16], size_t r)
 {
-    __m128i t0, t1;
     v[0]  = addv(v[0], m[BLAKE3_MSG_SCHEDULE[r][0]]);
     v[1]  = addv(v[1], m[BLAKE3_MSG_SCHEDULE[r][2]]);
     v[2]  = addv(v[2], m[BLAKE3_MSG_SCHEDULE[r][4]]);

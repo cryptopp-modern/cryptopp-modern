@@ -315,7 +315,7 @@ inline void FillFirstBlocks(Block* blocks, const byte* h0, word32 lane)
 /// \param pseudoRand pseudo-random value J1
 /// \param sameLane true if selecting within same lane
 /// \return reference block index
-inline word32 IndexAlpha(word32 pass, word32 lane, word32 slice, word32 index,
+inline word32 IndexAlpha(word32 pass, word32 /* lane */, word32 slice, word32 index,
     word32 pseudoRand, bool sameLane, word32 segmentLength, word32 laneLength)
 {
     word32 referenceAreaSize;
