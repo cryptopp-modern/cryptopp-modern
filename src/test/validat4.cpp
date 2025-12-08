@@ -51,6 +51,7 @@
 #include <cryptopp/ttmac.h>
 
 #include <cryptopp/drbg.h>
+#include <cryptopp/aes_ctr_hmac.h>
 
 #include <iostream>
 #include <iomanip>
@@ -1807,6 +1808,576 @@ bool ValidateCMAC()
 {
 	std::cout << "\nCMAC validation suite running...\n";
 	return RunTestDataFile("TestVectors/cmac.txt");
+}
+
+bool ValidateAES_CTR_HMAC()
+{
+	std::cout << "\nAES-CTR-HMAC validation suite running...\n\n";
+	bool pass = true, fail;
+
+	// Test 1: Algorithm name
+	{
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		fail = enc.AlgorithmName() != "AES/CTR-HMAC(SHA-256)";
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Algorithm name\n";
+	}
+
+	// Test 2: Key and IV requirements
+	{
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		fail = false;
+
+		// Key lengths should match AES: 16, 24, or 32 bytes
+		fail = fail || enc.MinKeyLength() != 16;
+		fail = fail || enc.MaxKeyLength() != 32;
+		fail = fail || enc.DefaultKeyLength() != 16;
+		fail = fail || !enc.IsValidKeyLength(16);
+		fail = fail || !enc.IsValidKeyLength(24);
+		fail = fail || !enc.IsValidKeyLength(32);
+		fail = fail || enc.IsValidKeyLength(20);  // Invalid for AES
+		fail = fail || enc.IVSize() != 12;
+		fail = fail || enc.DigestSize() != 32;  // Full SHA-256 digest
+		fail = fail || enc.TagSize() != 16;     // Default tag size
+
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Key/IV/Tag requirements\n";
+	}
+
+	// ========================================================================
+	// Test vectors verified against Python reference implementation
+	// ========================================================================
+
+	// Test Vector 1: AES-128/SHA-256, normal case
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_ct[] = {
+			0x3E, 0x1E, 0x8B, 0x64, 0x29, 0x3E, 0xFA, 0x0D,
+			0x35, 0xC4, 0x6E, 0xDC, 0x02, 0xAD, 0xB9, 0xDC
+		};
+		const byte expected_tag[] = {
+			0x72, 0x74, 0xE9, 0x32, 0x91, 0xCB, 0x08, 0xA3,
+			0x3D, 0xCE, 0x67, 0xC0, 0x38, 0xDA, 0x32, 0x7D
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(ct, expected_ct, sizeof(ct)) != 0 ||
+		       std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 1: AES-128/SHA-256 encrypt\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 1: AES-128/SHA-256 decrypt\n";
+	}
+
+	// Test Vector 2: Empty AAD
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_ct[] = {
+			0x3E, 0x1E, 0x8B, 0x64, 0x29, 0x3E, 0xFA, 0x0D,
+			0x35, 0xC4, 0x6E, 0xDC, 0x02, 0xAD, 0xB9, 0xDC
+		};
+		const byte expected_tag[] = {
+			0xDA, 0x38, 0x46, 0x11, 0x63, 0xB9, 0xEE, 0xE8,
+			0x66, 0x20, 0x4F, 0x59, 0x75, 0x93, 0x49, 0x32
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, pt, sizeof(pt));
+
+		fail = std::memcmp(ct, expected_ct, sizeof(ct)) != 0 ||
+		       std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 2: Empty AAD\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 2: Empty AAD decrypt\n";
+	}
+
+	// Test Vector 3: Empty message
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte expected_tag[] = {
+			0xA4, 0xB8, 0x35, 0xE2, 0x0C, 0xBD, 0x41, 0xF2,
+			0x37, 0x17, 0x88, 0x03, 0x2F, 0x7B, 0x92, 0x02
+		};
+
+		byte tag[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(NULLPTR, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), NULLPTR, 0);
+
+		fail = std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 3: Empty message\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(NULLPTR, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), NULLPTR, 0);
+
+		fail = !verified;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 3: Empty message decrypt\n";
+	}
+
+	// Test Vector 4: Empty AAD and empty message
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte expected_tag[] = {
+			0xE1, 0x73, 0xEB, 0xB8, 0xB0, 0xEE, 0x43, 0x0C,
+			0x60, 0x73, 0xC0, 0x0F, 0x68, 0x9A, 0x42, 0xF4
+		};
+
+		byte tag[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(NULLPTR, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, NULLPTR, 0);
+
+		fail = std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 4: Empty AAD and message\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(NULLPTR, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, NULLPTR, 0);
+
+		fail = !verified;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 4: Empty AAD and message decrypt\n";
+	}
+
+	// Test Vector 5: Short tag (12 bytes)
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_tag[] = {
+			0x72, 0x74, 0xE9, 0x32, 0x91, 0xCB, 0x08, 0xA3,
+			0x3D, 0xCE, 0x67, 0xC0
+		};
+
+		byte ct[16], tag[12], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 5: Short tag (12 bytes)\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 5: Short tag decrypt\n";
+	}
+
+	// Test Vector 6: Full-length tag (32 bytes for SHA-256)
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_tag[] = {
+			0x72, 0x74, 0xE9, 0x32, 0x91, 0xCB, 0x08, 0xA3,
+			0x3D, 0xCE, 0x67, 0xC0, 0x38, 0xDA, 0x32, 0x7D,
+			0x16, 0x22, 0x9A, 0xCB, 0x44, 0x99, 0x9B, 0xBF,
+			0x34, 0x9D, 0xBC, 0xAE, 0xD1, 0x6A, 0x13, 0x34
+		};
+
+		byte ct[16], tag[32], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 6: Full-length tag (32 bytes)\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 6: Full-length tag decrypt\n";
+	}
+
+	// Test Vector 7: AES-256/SHA-256
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_ct[] = {
+			0x6B, 0x91, 0xF0, 0x38, 0x04, 0x8F, 0xCA, 0x10,
+			0x2B, 0xCF, 0xCF, 0xA8, 0xEF, 0x9B, 0xB7, 0xA2
+		};
+		const byte expected_tag[] = {
+			0xC1, 0xDD, 0x03, 0x21, 0x9B, 0x90, 0xBC, 0xC7,
+			0xE1, 0xAD, 0x57, 0xE9, 0x2A, 0x57, 0x5A, 0x08
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(ct, expected_ct, sizeof(ct)) != 0 ||
+		       std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 7: AES-256/SHA-256\n";
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 7: AES-256/SHA-256 decrypt\n";
+	}
+
+	// Test Vector 8: AES-128/SHA-512
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_ct[] = {
+			0x1A, 0x05, 0x30, 0x22, 0x3A, 0x1D, 0xFB, 0x36,
+			0x70, 0x39, 0xEC, 0x09, 0xFE, 0x28, 0x92, 0x22
+		};
+		const byte expected_tag[] = {
+			0xA8, 0x88, 0x4E, 0x24, 0x9D, 0x50, 0xDA, 0x4D,
+			0x93, 0xFC, 0x39, 0xBF, 0x2A, 0xEE, 0xAB, 0x5E
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA512>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(ct, expected_ct, sizeof(ct)) != 0 ||
+		       std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 8: AES-128/SHA-512\n";
+
+		AES_CTR_HMAC<AES, SHA512>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 8: AES-128/SHA-512 decrypt\n";
+	}
+
+	// Test Vector 9: AES-256/SHA-512 with full tag (64 bytes)
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte aad[] = {
+			0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+			0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+		const byte expected_ct[] = {
+			0xD2, 0xD4, 0x01, 0x53, 0x9A, 0xEB, 0x1A, 0xF5,
+			0xE7, 0x3B, 0x20, 0x5F, 0x6D, 0xA1, 0xB0, 0xB4
+		};
+		const byte expected_tag[] = {
+			0x22, 0x80, 0x51, 0x3C, 0x30, 0xBC, 0x1D, 0x98,
+			0x5F, 0x74, 0xA6, 0xAA, 0x2F, 0xCD, 0xA7, 0x16,
+			0x0F, 0xA7, 0x5E, 0xE1, 0x31, 0xF2, 0x39, 0xFA,
+			0xCD, 0xC1, 0x05, 0x46, 0x8E, 0xEC, 0xEE, 0x04,
+			0xAB, 0xC5, 0x6A, 0x40, 0x9C, 0x10, 0x8F, 0x02,
+			0xE8, 0x7D, 0x16, 0xCD, 0x9D, 0xD8, 0x60, 0xCA,
+			0xC3, 0x44, 0x53, 0x3D, 0x8B, 0x46, 0x53, 0x1B,
+			0xAE, 0x5D, 0x1F, 0xBC, 0x6C, 0x22, 0xBA, 0x91
+		};
+
+		byte ct[16], tag[64], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA512>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), pt, sizeof(pt));
+
+		fail = std::memcmp(ct, expected_ct, sizeof(ct)) != 0 ||
+		       std::memcmp(tag, expected_tag, sizeof(tag)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 9: AES-256/SHA-512, full tag (64 bytes)\n";
+
+		AES_CTR_HMAC<AES, SHA512>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			aad, sizeof(aad), ct, sizeof(ct));
+
+		fail = !verified || std::memcmp(decrypted, pt, sizeof(pt)) != 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Test vector 9: AES-256/SHA-512 decrypt\n";
+	}
+
+	// ========================================================================
+	// Negative tests - authentication failures
+	// ========================================================================
+
+	// Test: Authentication failure on modified ciphertext
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, pt, sizeof(pt));
+
+		// Modify ciphertext
+		ct[0] ^= 0x01;
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, ct, sizeof(ct));
+
+		fail = verified;  // Should fail
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Authentication failure on modified ciphertext\n";
+	}
+
+	// Test: Authentication failure on modified tag
+	{
+		const byte key[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+
+		byte ct[16], tag[16], decrypted[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc;
+		enc.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, pt, sizeof(pt));
+
+		// Modify tag
+		tag[0] ^= 0x01;
+
+		AES_CTR_HMAC<AES, SHA256>::Decryption dec;
+		dec.SetKeyWithIV(key, sizeof(key), iv, sizeof(iv));
+		bool verified = dec.DecryptAndVerify(decrypted, tag, sizeof(tag), iv, sizeof(iv),
+			NULLPTR, 0, ct, sizeof(ct));
+
+		fail = verified;  // Should fail
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Authentication failure on modified tag\n";
+	}
+
+	// Test: Different keys produce different outputs
+	{
+		const byte key1[] = {
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+		};
+		const byte key2[] = {
+			0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8,
+			0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF1, 0xF0
+		};
+		const byte iv[] = {
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1A, 0x1B
+		};
+		const byte pt[] = {
+			0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+			0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F
+		};
+
+		byte ct1[16], tag1[16], ct2[16], tag2[16];
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc1;
+		enc1.SetKeyWithIV(key1, sizeof(key1), iv, sizeof(iv));
+		enc1.EncryptAndAuthenticate(ct1, tag1, sizeof(tag1), iv, sizeof(iv),
+			NULLPTR, 0, pt, sizeof(pt));
+
+		AES_CTR_HMAC<AES, SHA256>::Encryption enc2;
+		enc2.SetKeyWithIV(key2, sizeof(key2), iv, sizeof(iv));
+		enc2.EncryptAndAuthenticate(ct2, tag2, sizeof(tag2), iv, sizeof(iv),
+			NULLPTR, 0, pt, sizeof(pt));
+
+		fail = std::memcmp(ct1, ct2, sizeof(ct1)) == 0 ||
+		       std::memcmp(tag1, tag2, sizeof(tag1)) == 0;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Different keys produce different outputs\n";
+	}
+
+	std::cout << std::endl;
+	return pass;
 }
 
 NAMESPACE_END  // Test

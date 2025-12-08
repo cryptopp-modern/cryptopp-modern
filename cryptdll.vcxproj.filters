@@ -205,6 +205,9 @@
     <ClInclude Include="aes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="aes_ctr_hmac.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="algebra.h">
       <Filter>Header Files</Filter>
     </ClInclude>

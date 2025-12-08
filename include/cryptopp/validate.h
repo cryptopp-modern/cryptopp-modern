@@ -120,6 +120,7 @@ bool ValidateSosemanuk();
 bool ValidateVMAC();
 bool ValidateCCM();
 bool ValidateGCM();
+bool ValidateAES_CTR_HMAC();
 bool ValidateXTS();
 bool ValidateCMAC();
 

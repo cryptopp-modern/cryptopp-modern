@@ -175,6 +175,7 @@ bool ValidateAll(bool thorough)
 	pass=ValidateGCM() && pass;
 	pass=ValidateXTS() && pass;
 	pass=ValidateCMAC() && pass;
+	pass=ValidateAES_CTR_HMAC() && pass;
 	pass=RunTestDataFile("TestVectors/eax.txt") && pass;
 
 	pass=ValidateBBS() && pass;

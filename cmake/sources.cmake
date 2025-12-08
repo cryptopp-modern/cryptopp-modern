@@ -277,6 +277,7 @@ set(cryptopp_HEADERS
     include/cryptopp/adv_simd.h
     include/cryptopp/aes.h
     include/cryptopp/aes_armv4.h
+    include/cryptopp/aes_ctr_hmac.h
     include/cryptopp/algebra.h
     include/cryptopp/algparam.h
     include/cryptopp/allocate.h

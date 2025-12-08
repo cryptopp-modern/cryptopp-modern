@@ -419,6 +419,7 @@
     <ClInclude Include="include\cryptopp\adler32.h" />
     <ClInclude Include="include\cryptopp\adv_simd.h" />
     <ClInclude Include="include\cryptopp\aes.h" />
+    <ClInclude Include="include\cryptopp\aes_ctr_hmac.h" />
     <ClInclude Include="include\cryptopp\algebra.h" />
     <ClInclude Include="include\cryptopp\algparam.h" />
     <ClInclude Include="include\cryptopp\allocate.h" />
