@@ -41,6 +41,7 @@
 #include <cryptopp/skipjack.h>
 #include <cryptopp/blowfish.h>
 #include <cryptopp/chachapoly.h>
+#include <cryptopp/aes_ctr_hmac.h>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
@@ -76,6 +77,8 @@ void RegisterFactories4()
 	RegisterAuthenticatedSymmetricCipherDefaultFactories<EAX<AES> >();
 	RegisterAuthenticatedSymmetricCipherDefaultFactories<ChaCha20Poly1305>();
 	RegisterAuthenticatedSymmetricCipherDefaultFactories<XChaCha20Poly1305>();
+	RegisterAuthenticatedSymmetricCipherDefaultFactories<AES_CTR_HMAC<AES, SHA256> >();
+	RegisterAuthenticatedSymmetricCipherDefaultFactories<AES_CTR_HMAC<AES, SHA512> >();
 
 	RegisterSymmetricCipherDefaultFactories<CBC_Mode<ARIA> >();  // For test vectors
 	RegisterSymmetricCipherDefaultFactories<CTR_Mode<ARIA> >();
