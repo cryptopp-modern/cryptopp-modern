@@ -24,6 +24,8 @@
 /// - Fixed 12-byte IV (unique per message under the same key)
 /// - Counter block format: IV || 0x00000001 (big-endian, 16 bytes total)
 /// - Counter starts at 1, reserving block 0
+/// - IVs must never repeat for a given master key; reuse under AES-CTR
+///   catastrophically breaks confidentiality
 ///
 /// \par MAC Input Layout
 /// The HMAC is computed over the following concatenation:
@@ -35,9 +37,10 @@
 /// 6. Length block: len(AAD) || len(Ciphertext) as two 64-bit big-endian integers
 ///
 /// \par Tag Size
-/// Default tag size is 16 bytes. Maximum tag size is the full HMAC digest
-/// (e.g. 32 bytes for SHA-256, 64 bytes for SHA-512). Tags are truncated
-/// to the requested length via TruncatedFinal/TruncatedVerify.
+/// Default tag size is 16 bytes. Minimum tag size is 12 bytes.
+/// Maximum tag size is the full HMAC digest (e.g. 32 bytes for SHA-256,
+/// 64 bytes for SHA-512). Tags are truncated to the requested length
+/// via TruncatedFinal/TruncatedVerify.
 ///
 /// \since cryptopp-modern 2025.12
 
@@ -64,6 +67,14 @@ class CRYPTOPP_NO_VTABLE AES_CTR_HMAC_Base : public AuthenticatedSymmetricCipher
 {
 public:
 	CRYPTOPP_COMPILE_ASSERT(T_BlockCipher::BLOCKSIZE == 16);
+	CRYPTOPP_CONSTANT(MIN_TAG_SIZE = 12);
+
+	virtual ~AES_CTR_HMAC_Base()
+	{
+		// IV is public, but wipe for hygiene
+		SecureWipeArray(m_iv, sizeof(m_iv));
+		// m_encKey and m_macKey are SecByteBlock and use cleaning allocator
+	}
 
 	// AuthenticatedSymmetricCipher
 	std::string AlgorithmName() const
@@ -108,6 +119,25 @@ public:
 	bool DecryptAndVerify(byte *message, const byte *mac, size_t macSize,
 		const byte *iv, int ivLength, const byte *aad, size_t aadLength,
 		const byte *ciphertext, size_t ciphertextLength);
+
+	// Enforce minimum tag size for all usage paths, including streaming
+	void TruncatedFinal(byte *mac, size_t macSize)
+	{
+		if (macSize < MIN_TAG_SIZE)
+			throw InvalidArgument(AlgorithmName() + ": tag size " +
+				IntToString(macSize) + " is less than minimum " +
+				IntToString(static_cast<unsigned int>(MIN_TAG_SIZE)));
+		AuthenticatedSymmetricCipherBase::TruncatedFinal(mac, macSize);
+	}
+
+	bool TruncatedVerify(const byte *mac, size_t macSize)
+	{
+		if (macSize < MIN_TAG_SIZE)
+			throw InvalidArgument(AlgorithmName() + ": tag size " +
+				IntToString(macSize) + " is less than minimum " +
+				IntToString(static_cast<unsigned int>(MIN_TAG_SIZE)));
+		return AuthenticatedSymmetricCipherBase::TruncatedVerify(mac, macSize);
+	}
 
 protected:
 	// AuthenticatedSymmetricCipherBase
@@ -214,6 +244,7 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::DeriveKeys(
 
 	std::memcpy(m_encKey, derived, encKeyLen);
 	std::memcpy(m_macKey, derived + encKeyLen, macKeyLen);
+	// derived is SecByteBlock - auto-wipes on destruction
 }
 
 template <class T_BlockCipher, class T_HashFunction>
@@ -229,6 +260,8 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::Resync(
 	const byte *iv, size_t len)
 {
 	CRYPTOPP_ASSERT(len == 12);
+	if (len != 12)
+		throw InvalidArgument(AlgorithmName() + ": IV length must be 12 bytes");
 
 	std::memcpy(m_iv, iv, 12);
 
@@ -288,6 +321,9 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::AuthenticateLastFooterBlo
 
 	size_t copySize = STDMIN(macSize, (size_t)AccessMAC().DigestSize());
 	std::memcpy(mac, fullTag, copySize);
+	// fullTag is SecByteBlock - auto-wipes on destruction
+	// lengthBlock is raw stack array - wipe explicitly
+	SecureWipeArray(lengthBlock, sizeof(lengthBlock));
 }
 
 template <class T_BlockCipher, class T_HashFunction>
@@ -297,13 +333,14 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::EncryptAndAuthenticate(
 	const byte *aad, size_t aadLength,
 	const byte *message, size_t messageLength)
 {
-	this->Resynchronize(iv, ivLength);
+	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
+	Resync(iv, len);
 	this->SpecifyDataLengths(aadLength, messageLength, 0);
 	if (aadLength)
 		this->Update(aad, aadLength);
 	if (messageLength)
 		this->ProcessString(ciphertext, message, messageLength);
-	this->TruncatedFinal(mac, macSize);
+	TruncatedFinal(mac, macSize);
 }
 
 template <class T_BlockCipher, class T_HashFunction>
@@ -313,13 +350,14 @@ bool AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::DecryptAndVerify(
 	const byte *aad, size_t aadLength,
 	const byte *ciphertext, size_t ciphertextLength)
 {
-	this->Resynchronize(iv, ivLength);
+	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
+	Resync(iv, len);
 	this->SpecifyDataLengths(aadLength, ciphertextLength, 0);
 	if (aadLength)
 		this->Update(aad, aadLength);
 	if (ciphertextLength)
 		this->ProcessString(message, ciphertext, ciphertextLength);
-	return this->TruncatedVerify(mac, macSize);
+	return TruncatedVerify(mac, macSize);
 }
 
 NAMESPACE_END
