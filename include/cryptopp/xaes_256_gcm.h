@@ -26,7 +26,7 @@
 /// as it does not change the nonce and would result in catastrophic nonce reuse.
 ///
 /// \sa <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM specification</A>
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 
 #ifndef CRYPTOPP_XAES_256_GCM_H
 #define CRYPTOPP_XAES_256_GCM_H
