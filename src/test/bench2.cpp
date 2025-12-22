@@ -261,6 +261,7 @@ void BenchmarkSharedKeyedAlgorithms(double t, double hertz)
 		BenchMarkByName2<AuthenticatedSymmetricCipher, AuthenticatedSymmetricCipher>("XChaCha20/Poly1305");
 		BenchMarkByName2<AuthenticatedSymmetricCipher, AuthenticatedSymmetricCipher>("AES/CTR-HMAC(SHA-256)");
 		BenchMarkByName2<AuthenticatedSymmetricCipher, AuthenticatedSymmetricCipher>("AES/CTR-HMAC(SHA-512)");
+		BenchMarkByName2<AuthenticatedSymmetricCipher, AuthenticatedSymmetricCipher>("XAES-256-GCM");
 	}
 
 	std::cout << "\n</TABLE>" << std::endl;

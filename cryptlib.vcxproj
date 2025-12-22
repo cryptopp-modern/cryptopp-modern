@@ -589,6 +589,7 @@
     <ClInclude Include="include\cryptopp\xed25519.h" />
     <ClInclude Include="include\cryptopp\xtr.h" />
     <ClInclude Include="include\cryptopp\xtrcrypt.h" />
+    <ClInclude Include="include\cryptopp\xaes_256_gcm.h" />
     <ClInclude Include="include\cryptopp\xts.h" />
     <ClInclude Include="include\cryptopp\zdeflate.h" />
     <ClInclude Include="include\cryptopp\zinflate.h" />
