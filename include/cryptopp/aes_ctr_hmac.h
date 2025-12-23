@@ -18,7 +18,7 @@
 /// - MAC key: T_HashFunction::DIGESTSIZE bytes (e.g. 32 bytes for SHA-256)
 ///
 /// The HKDF info parameter includes the hash algorithm name for domain separation
-/// (e.g. "AES-CTR-HMAC-SHA256").
+/// (e.g. "AES-CTR-HMAC-SHA-256").
 ///
 /// \par IV/Nonce Requirements
 /// - Fixed 12-byte IV (unique per message under the same key)
