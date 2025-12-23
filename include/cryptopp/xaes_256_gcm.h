@@ -11,8 +11,9 @@
 ///  (24 byte) nonce. The extended nonce is safe for random generation with up to
 ///  2^80 messages at 2^-32 collision probability. The first 96 bits of the nonce
 ///  are used for key derivation, and the last 96 bits are used as the GCM nonce.
-/// \details The scheme adds only 3 AES-256 block encryptions per message compared
-///  to standard GCM. One block encryption (L computation) is precomputed per key.
+/// \details The scheme adds only 2 AES-256 block encryptions per message compared
+///  to standard GCM. One additional block encryption (L computation for CMAC subkey)
+///  is precomputed once per master key and cached.
 ///
 /// \par Nonce Generation
 /// Nonces MUST be unique for each message under the same key. The 192-bit nonce
@@ -57,7 +58,7 @@ public:
 	CRYPTOPP_CONSTANT(TAG_SIZE = 16);
 	CRYPTOPP_CONSTANT(BLOCK_SIZE = 16);
 
-	XAES_256_GCM_Final() : m_keySet(false) {}
+	XAES_256_GCM_Final() : m_keySet(false), m_ivSet(false) {}
 	virtual ~XAES_256_GCM_Final();
 
 	static std::string StaticAlgorithmName()
@@ -115,15 +116,34 @@ public:
 	void UncheckedSetKey(const byte *key, unsigned int length, const NameValuePairs &params)
 		{SetKey(key, length, params);}
 
-	// Streaming interface - delegated to GCM
+	// Streaming interface - delegated to GCM with IV state enforcement
 	void Update(const byte *input, size_t length)
-		{m_gcm.Update(input, length);}
+	{
+		ThrowIfNoKey();
+		ThrowIfNoIV();
+		m_gcm.Update(input, length);
+	}
 	void ProcessData(byte *outString, const byte *inString, size_t length)
-		{m_gcm.ProcessData(outString, inString, length);}
+	{
+		ThrowIfNoKey();
+		ThrowIfNoIV();
+		m_gcm.ProcessData(outString, inString, length);
+	}
 	void TruncatedFinal(byte *mac, size_t macSize)
-		{m_gcm.TruncatedFinal(mac, macSize);}
+	{
+		ThrowIfNoKey();
+		ThrowIfNoIV();
+		m_gcm.TruncatedFinal(mac, macSize);
+		m_ivSet = false;
+	}
 	bool TruncatedVerify(const byte *mac, size_t length)
-		{return m_gcm.TruncatedVerify(mac, length);}
+	{
+		ThrowIfNoKey();
+		ThrowIfNoIV();
+		bool result = m_gcm.TruncatedVerify(mac, length);
+		m_ivSet = false;
+		return result;
+	}
 	void Restart()
 		{
 			// XAES-256-GCM does not support Restart() between messages.
@@ -174,6 +194,7 @@ public:
 protected:
 	void DeriveKey(const byte *nonce12, byte *derivedKey);
 	void ThrowIfNoKey() const;
+	void ThrowIfNoIV() const;
 
 	SecByteBlock m_key;
 	CRYPTOPP_ALIGN_DATA(16) byte m_L[BLOCK_SIZE];
@@ -183,6 +204,7 @@ protected:
 		GCM<AES>::Encryption, GCM<AES>::Decryption>::type m_gcm;
 	SecByteBlock m_derivedKey;
 	bool m_keySet;
+	bool m_ivSet;
 };
 
 /// \brief XAES-256-GCM authenticated encryption scheme
@@ -206,6 +228,13 @@ void XAES_256_GCM_Final<T_IsEncryption>::ThrowIfNoKey() const
 {
 	if (!m_keySet)
 		throw BadState(AlgorithmName(), "SetKey");
+}
+
+template <bool T_IsEncryption>
+void XAES_256_GCM_Final<T_IsEncryption>::ThrowIfNoIV() const
+{
+	if (!m_ivSet)
+		throw BadState(AlgorithmName(), "Resynchronize");
 }
 
 template <bool T_IsEncryption>
@@ -241,16 +270,18 @@ void XAES_256_GCM_Final<T_IsEncryption>::SetKey(const byte *userKey, size_t keyl
 
 	// Compute K1 = L << 1, with conditional XOR of 0x87 if MSB was set
 	// This is the CMAC subkey derivation from NIST SP 800-38B
+	// Use constant-time mask to avoid secret-dependent branch
 	byte msb = m_L[0] >> 7;
 	for (unsigned int i = 0; i < BLOCK_SIZE - 1; ++i)
 		m_K1[i] = (m_L[i] << 1) | (m_L[i + 1] >> 7);
 	m_K1[BLOCK_SIZE - 1] = m_L[BLOCK_SIZE - 1] << 1;
 
-	// If MSB of L was 1, XOR with the polynomial 0x87
-	if (msb)
-		m_K1[BLOCK_SIZE - 1] ^= 0x87;
+	// Constant-time conditional XOR: mask is 0xFF if msb==1, 0x00 otherwise
+	const byte mask = static_cast<byte>(0 - msb);
+	m_K1[BLOCK_SIZE - 1] ^= (0x87 & mask);
 
 	m_keySet = true;
+	m_ivSet = false;
 
 	// Check for IV in params
 	size_t ivLength;
@@ -307,6 +338,9 @@ void XAES_256_GCM_Final<T_IsEncryption>::Resynchronize(const byte *iv, int ivLen
 {
 	ThrowIfNoKey();
 
+	if (iv == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": IV is null");
+
 	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
 	CRYPTOPP_ASSERT(len == IV_SIZE);
 	if (len != IV_SIZE)
@@ -317,6 +351,8 @@ void XAES_256_GCM_Final<T_IsEncryption>::Resynchronize(const byte *iv, int ivLen
 
 	// Set up GCM with derived key and last 12 bytes of nonce
 	m_gcm.SetKeyWithIV(m_derivedKey, KEY_SIZE, iv + 12, 12);
+
+	m_ivSet = true;
 }
 
 template <bool T_IsEncryption>
@@ -331,9 +367,24 @@ void XAES_256_GCM_Final<T_IsEncryption>::EncryptAndAuthenticate(byte *ciphertext
 	const byte *message, size_t messageLength)
 {
 	ThrowIfNoKey();
+
+	// Enforce fixed 16-byte tag for interoperability
+	if (macSize != TAG_SIZE)
+		throw InvalidArgument(AlgorithmName() + ": tag size must be " +
+			IntToString(static_cast<unsigned int>(TAG_SIZE)) + " bytes");
+
+	// Null pointer checks for non-zero lengths
+	if (messageLength > 0 && (message == NULLPTR || ciphertext == NULLPTR))
+		throw InvalidArgument(AlgorithmName() + ": null buffer with non-zero length");
+	if (aadLength > 0 && aad == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": null AAD with non-zero length");
+	if (mac == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
+
 	Resynchronize(iv, ivLength);
 	m_gcm.EncryptAndAuthenticate(ciphertext, mac, macSize,
 		iv + 12, 12, aad, aadLength, message, messageLength);
+	m_ivSet = false;
 }
 
 template <bool T_IsEncryption>
@@ -342,9 +393,25 @@ bool XAES_256_GCM_Final<T_IsEncryption>::DecryptAndVerify(byte *message, const b
 	const byte *ciphertext, size_t ciphertextLength)
 {
 	ThrowIfNoKey();
+
+	// Enforce fixed 16-byte tag for interoperability
+	if (macSize != TAG_SIZE)
+		throw InvalidArgument(AlgorithmName() + ": tag size must be " +
+			IntToString(static_cast<unsigned int>(TAG_SIZE)) + " bytes");
+
+	// Null pointer checks for non-zero lengths
+	if (ciphertextLength > 0 && (ciphertext == NULLPTR || message == NULLPTR))
+		throw InvalidArgument(AlgorithmName() + ": null buffer with non-zero length");
+	if (aadLength > 0 && aad == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": null AAD with non-zero length");
+	if (mac == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
+
 	Resynchronize(iv, ivLength);
-	return m_gcm.DecryptAndVerify(message, mac, macSize,
+	bool result = m_gcm.DecryptAndVerify(message, mac, macSize,
 		iv + 12, 12, aad, aadLength, ciphertext, ciphertextLength);
+	m_ivSet = false;
+	return result;
 }
 
 NAMESPACE_END
