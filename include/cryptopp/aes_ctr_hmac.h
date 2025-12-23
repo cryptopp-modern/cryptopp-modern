@@ -37,10 +37,9 @@
 /// 6. Length block: len(AAD) || len(Ciphertext) as two 64-bit big-endian integers
 ///
 /// \par Tag Size
-/// Default tag size is 16 bytes. Minimum tag size is 12 bytes.
-/// Maximum tag size is the full HMAC digest (e.g. 32 bytes for SHA-256,
-/// 64 bytes for SHA-512). Tags are truncated to the requested length
-/// via TruncatedFinal/TruncatedVerify.
+/// Default tag size is 16 bytes. Tag size must be between 12 bytes and
+/// the full HMAC digest size (32 bytes for SHA-256, 64 bytes for SHA-512).
+/// Values outside this range throw InvalidArgument.
 ///
 /// \since cryptopp-modern 2025.12
 
@@ -120,13 +119,17 @@ public:
 		const byte *iv, int ivLength, const byte *aad, size_t aadLength,
 		const byte *ciphertext, size_t ciphertextLength);
 
-	// Enforce minimum tag size for all usage paths, including streaming
+	// Enforce tag size bounds for all usage paths, including streaming
 	void TruncatedFinal(byte *mac, size_t macSize)
 	{
 		if (macSize < MIN_TAG_SIZE)
 			throw InvalidArgument(AlgorithmName() + ": tag size " +
 				IntToString(macSize) + " is less than minimum " +
 				IntToString(static_cast<unsigned int>(MIN_TAG_SIZE)));
+		if (macSize > static_cast<size_t>(DigestSize()))
+			throw InvalidArgument(AlgorithmName() + ": tag size " +
+				IntToString(macSize) + " exceeds maximum " +
+				IntToString(static_cast<unsigned int>(DigestSize())));
 		AuthenticatedSymmetricCipherBase::TruncatedFinal(mac, macSize);
 	}
 
@@ -136,6 +139,10 @@ public:
 			throw InvalidArgument(AlgorithmName() + ": tag size " +
 				IntToString(macSize) + " is less than minimum " +
 				IntToString(static_cast<unsigned int>(MIN_TAG_SIZE)));
+		if (macSize > static_cast<size_t>(DigestSize()))
+			throw InvalidArgument(AlgorithmName() + ": tag size " +
+				IntToString(macSize) + " exceeds maximum " +
+				IntToString(static_cast<unsigned int>(DigestSize())));
 		return AuthenticatedSymmetricCipherBase::TruncatedVerify(mac, macSize);
 	}
 
@@ -319,8 +326,8 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::AuthenticateLastFooterBlo
 	SecByteBlock fullTag(AccessMAC().DigestSize());
 	AccessMAC().Final(fullTag);
 
-	size_t copySize = STDMIN(macSize, (size_t)AccessMAC().DigestSize());
-	std::memcpy(mac, fullTag, copySize);
+	// macSize is already validated by TruncatedFinal/TruncatedVerify
+	std::memcpy(mac, fullTag, macSize);
 	// fullTag is SecByteBlock - auto-wipes on destruction
 	// lengthBlock is raw stack array - wipe explicitly
 	SecureWipeArray(lengthBlock, sizeof(lengthBlock));
