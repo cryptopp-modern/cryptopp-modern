@@ -29,7 +29,7 @@
 ///
 /// \par MAC Input Layout
 /// The HMAC is computed over the following concatenation:
-/// 1. Domain string: "AES-CTR-HMAC-{HashName}" (ASCII)
+/// 1. Domain string: "{BlockCipher}-CTR-HMAC-{HashName}" (ASCII, e.g. "AES-CTR-HMAC-SHA-256")
 /// 2. Separator: 0x00 (1 byte)
 /// 3. IV: 12 bytes
 /// 4. AAD: Additional authenticated data (variable length)
@@ -55,6 +55,8 @@
 #include <cryptopp/hkdf.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/misc.h>
+
+#include <string>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -106,7 +108,11 @@ public:
 	lword MaxHeaderLength() const
 		{return LWORD_MAX;}
 	lword MaxMessageLength() const
-		{return LWORD_MAX;}
+		{
+			// 32-bit counter starting at 1, so max (2^32 - 1) blocks of 16 bytes
+			// This prevents counter overflow into the IV portion
+			return static_cast<lword>(0xFFFFFFFFU) * T_BlockCipher::BLOCKSIZE;
+		}
 	lword MaxFooterLength() const
 		{return 0;}
 	bool NeedsPrespecifiedDataLengths() const
@@ -146,6 +152,14 @@ public:
 		return AuthenticatedSymmetricCipherBase::TruncatedVerify(mac, macSize);
 	}
 
+	void Restart()
+	{
+		// AES-CTR-HMAC does not support Restart() between messages.
+		// Use Resynchronize() with a fresh 12-byte IV instead.
+		// Restarting with the same IV would reuse the keystream, which is catastrophic.
+		throw BadState(AlgorithmName(), "Restart");
+	}
+
 protected:
 	// AuthenticatedSymmetricCipherBase
 	bool AuthenticationIsOnPlaintext() const
@@ -166,7 +180,8 @@ protected:
 	void DeriveKeys(const byte *masterKey, size_t masterKeyLen);
 
 	std::string DomainString() const {
-		return std::string("AES-CTR-HMAC-") + T_HashFunction::StaticAlgorithmName();
+		return std::string(T_BlockCipher::StaticAlgorithmName()) + "-CTR-HMAC-" +
+			T_HashFunction::StaticAlgorithmName();
 	}
 
 	SecByteBlock m_encKey;
@@ -258,6 +273,8 @@ template <class T_BlockCipher, class T_HashFunction>
 void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::SetKeyWithoutResync(
 	const byte *userKey, size_t keylength, const NameValuePairs& /*params*/)
 {
+	if (userKey == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": key is null");
 	DeriveKeys(userKey, keylength);
 	AccessMAC().SetKey(m_macKey, m_macKey.size());
 }
@@ -266,6 +283,8 @@ template <class T_BlockCipher, class T_HashFunction>
 void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::Resync(
 	const byte *iv, size_t len)
 {
+	if (iv == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": IV is null");
 	CRYPTOPP_ASSERT(len == 12);
 	if (len != 12)
 		throw InvalidArgument(AlgorithmName() + ": IV length must be 12 bytes");
@@ -281,6 +300,9 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::Resync(
 	counterBlock[15] = 1;
 
 	m_ctr.SetKeyWithIV(m_encKey, m_encKey.size(), counterBlock, 16);
+
+	// Wipe counter block for hygiene (IV is public but consistency is good)
+	SecureWipeArray(counterBlock, sizeof(counterBlock));
 
 	// Initialize HMAC with domain separation and IV
 	AccessMAC().Restart();
@@ -340,6 +362,18 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::EncryptAndAuthenticate(
 	const byte *aad, size_t aadLength,
 	const byte *message, size_t messageLength)
 {
+	// Null pointer checks for non-zero lengths
+	if (messageLength > 0 && (message == NULLPTR || ciphertext == NULLPTR))
+		throw InvalidArgument(AlgorithmName() + ": null buffer with non-zero length");
+	if (aadLength > 0 && aad == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": null AAD with non-zero length");
+	if (mac == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
+
+	// Enforce message length limit to prevent counter overflow
+	if (messageLength > MaxMessageLength())
+		throw InvalidArgument(AlgorithmName() + ": message length exceeds maximum");
+
 	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
 	Resync(iv, len);
 	this->SpecifyDataLengths(aadLength, messageLength, 0);
@@ -357,6 +391,18 @@ bool AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::DecryptAndVerify(
 	const byte *aad, size_t aadLength,
 	const byte *ciphertext, size_t ciphertextLength)
 {
+	// Null pointer checks for non-zero lengths
+	if (ciphertextLength > 0 && (ciphertext == NULLPTR || message == NULLPTR))
+		throw InvalidArgument(AlgorithmName() + ": null buffer with non-zero length");
+	if (aadLength > 0 && aad == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": null AAD with non-zero length");
+	if (mac == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
+
+	// Enforce message length limit to prevent counter overflow
+	if (ciphertextLength > MaxMessageLength())
+		throw InvalidArgument(AlgorithmName() + ": ciphertext length exceeds maximum");
+
 	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
 	Resync(iv, len);
 	this->SpecifyDataLengths(aadLength, ciphertextLength, 0);
