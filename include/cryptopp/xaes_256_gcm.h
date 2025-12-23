@@ -39,6 +39,8 @@
 #include <cryptopp/misc.h>
 
 #include <cstring>
+#include <string>
+#include <type_traits>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -121,26 +123,47 @@ public:
 	{
 		ThrowIfNoKey();
 		ThrowIfNoIV();
+		if (length > 0 && input == NULLPTR)
+			throw InvalidArgument(AlgorithmName() + ": null input with non-zero length");
 		m_gcm.Update(input, length);
 	}
 	void ProcessData(byte *outString, const byte *inString, size_t length)
 	{
 		ThrowIfNoKey();
 		ThrowIfNoIV();
+		if (length > 0 && (inString == NULLPTR || outString == NULLPTR))
+			throw InvalidArgument(AlgorithmName() + ": null buffer with non-zero length");
 		m_gcm.ProcessData(outString, inString, length);
 	}
 	void TruncatedFinal(byte *mac, size_t macSize)
 	{
 		ThrowIfNoKey();
 		ThrowIfNoIV();
-		m_gcm.TruncatedFinal(mac, macSize);
+		if (macSize != TAG_SIZE)
+			throw InvalidArgument(AlgorithmName() + ": tag size must be " +
+				IntToString(static_cast<unsigned int>(TAG_SIZE)) + " bytes");
+		try {
+			m_gcm.TruncatedFinal(mac, macSize);
+		} catch (...) {
+			m_ivSet = false;
+			throw;
+		}
 		m_ivSet = false;
 	}
-	bool TruncatedVerify(const byte *mac, size_t length)
+	bool TruncatedVerify(const byte *mac, size_t macSize)
 	{
 		ThrowIfNoKey();
 		ThrowIfNoIV();
-		bool result = m_gcm.TruncatedVerify(mac, length);
+		if (macSize != TAG_SIZE)
+			throw InvalidArgument(AlgorithmName() + ": tag size must be " +
+				IntToString(static_cast<unsigned int>(TAG_SIZE)) + " bytes");
+		bool result;
+		try {
+			result = m_gcm.TruncatedVerify(mac, macSize);
+		} catch (...) {
+			m_ivSet = false;
+			throw;
+		}
 		m_ivSet = false;
 		return result;
 	}
@@ -253,6 +276,8 @@ XAES_256_GCM_Final<T_IsEncryption>::~XAES_256_GCM_Final()
 template <bool T_IsEncryption>
 void XAES_256_GCM_Final<T_IsEncryption>::SetKey(const byte *userKey, size_t keylength, const NameValuePairs &params)
 {
+	if (userKey == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": key is null");
 	CRYPTOPP_ASSERT(keylength == KEY_SIZE);
 	if (keylength != KEY_SIZE)
 		throw InvalidKeyLength(AlgorithmName(), keylength);
@@ -358,6 +383,8 @@ void XAES_256_GCM_Final<T_IsEncryption>::Resynchronize(const byte *iv, int ivLen
 template <bool T_IsEncryption>
 void XAES_256_GCM_Final<T_IsEncryption>::GetNextIV(RandomNumberGenerator &rng, byte *iv)
 {
+	if (iv == NULLPTR)
+		throw InvalidArgument(AlgorithmName() + ": IV buffer is null");
 	rng.GenerateBlock(iv, IV_SIZE);
 }
 
@@ -382,8 +409,13 @@ void XAES_256_GCM_Final<T_IsEncryption>::EncryptAndAuthenticate(byte *ciphertext
 		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
 
 	Resynchronize(iv, ivLength);
-	m_gcm.EncryptAndAuthenticate(ciphertext, mac, macSize,
-		iv + 12, 12, aad, aadLength, message, messageLength);
+	try {
+		m_gcm.EncryptAndAuthenticate(ciphertext, mac, macSize,
+			iv + 12, 12, aad, aadLength, message, messageLength);
+	} catch (...) {
+		m_ivSet = false;
+		throw;
+	}
 	m_ivSet = false;
 }
 
@@ -408,8 +440,14 @@ bool XAES_256_GCM_Final<T_IsEncryption>::DecryptAndVerify(byte *message, const b
 		throw InvalidArgument(AlgorithmName() + ": MAC buffer is null");
 
 	Resynchronize(iv, ivLength);
-	bool result = m_gcm.DecryptAndVerify(message, mac, macSize,
-		iv + 12, 12, aad, aadLength, ciphertext, ciphertextLength);
+	bool result;
+	try {
+		result = m_gcm.DecryptAndVerify(message, mac, macSize,
+			iv + 12, 12, aad, aadLength, ciphertext, ciphertextLength);
+	} catch (...) {
+		m_ivSet = false;
+		throw;
+	}
 	m_ivSet = false;
 	return result;
 }
