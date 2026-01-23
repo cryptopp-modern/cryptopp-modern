@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2025.12.0
+**Current Version:** 2026.1.0
 
 ---
 
@@ -139,6 +139,20 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.1.0 (January 2026) - New Algorithms Release
+- ⚡ **BLAKE3 AVX-512** - 16-way parallel chunk hashing
+  - ~4000+ MiB/s on supported processors
+  - Automatic runtime CPU detection with graceful fallback
+- ✨ **XAES-256-GCM** - Extended-nonce AES-GCM (C2SP specification)
+  - 256-bit (32-byte) nonces safe for random generation
+  - Solves nonce management problem for AES-GCM users
+- ✨ **AES-CTR-HMAC** - Encrypt-then-MAC authenticated encryption
+  - Template-based: works with any block cipher and hash function
+  - HKDF key derivation for encryption and MAC keys
+- 🔒 Hardened XAES-256-GCM and AES-CTR-HMAC against misuse
+- 🔧 Improved exception safety and portability
+- 🔧 Dropped non-standard stdext namespace usage
 
 ### 2025.12.0 (December 2025) - Organization & CMake Release
 - 📁 Complete project reorganization (Phase 2)

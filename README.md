@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2025.12.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.1.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -23,15 +23,13 @@
 ---
 
 
-## What's New in 2025.12.0
+## What's New in 2026.1.0
 
-- 📁 **Complete Project Reorganization** - All 204 source files organized into categorized `src/` directories
-- ⚡ **BLAKE3 SIMD Acceleration** - SSE4.1/AVX2/NEON parallel chunk processing (~2500 MiB/s)
-- 🔧 **Modern CMake Build System** - CMake 3.20+ with presets, `find_package()` support, and proper target exports
-- 🔧 **Build System Updates** - Updated GNUmakefile, MSVC projects, and nmake for new structure
-- 📦 **Backward Compatible** - Flat `include/cryptopp/` structure maintained for drop-in replacement
-- ✅ **Multi-Platform CI/CD** - 50+ build configurations tested on Windows, Linux, and macOS
-- 📚 **Comprehensive Documentation** - CMAKE.md, GNUMAKEFILE.md, and GETTING_STARTED.md guides
+- ⚡ **BLAKE3 AVX-512** - 16-way parallel chunk hashing (~4000+ MiB/s on supported CPUs)
+- ✨ **XAES-256-GCM** - Extended-nonce AES-GCM with 256-bit nonces (C2SP specification)
+- ✨ **AES-CTR-HMAC** - Encrypt-then-MAC authenticated encryption with HKDF key derivation
+- 🔒 **Security Hardening** - Improved misuse resistance for authenticated encryption modes
+- 🔧 **Portability Improvements** - Enhanced exception safety and cross-platform compatibility
 
 ---
 

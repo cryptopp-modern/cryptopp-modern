@@ -26,6 +26,13 @@
 
 ### cryptopp-modern Releases
 
+**2026.1.0** (January 2026) - Minor Release
+- Added BLAKE3 AVX-512 16-way parallel chunk hashing (~4000+ MiB/s)
+- Added XAES-256-GCM extended-nonce authenticated encryption (C2SP spec)
+- Added AES-CTR-HMAC authenticated encryption (encrypt-then-MAC)
+- Hardened XAES-256-GCM and AES-CTR-HMAC against misuse
+- Improved exception safety and portability
+
 **2025.12.0** (December 2025) - Major Release
 - Complete project reorganization (204 source files in categorized src/ directories)
 - BLAKE3 SIMD acceleration (SSE4.1/AVX2/NEON parallel chunk processing, ~2500 MiB/s)
@@ -95,12 +102,14 @@ This is a friendly fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2025.12.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.1.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | December 2025 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2025.12.0) |
-| **BLAKE3** | ❌ | ✅ with SIMD (~2500 MiB/s) |
+| **Last Release** | October 1, 2023 | January 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.1.0) |
+| **BLAKE3** | ❌ | ✅ with AVX-512 (~4000+ MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
+| **XAES-256-GCM** | ❌ | ✅ C2SP spec |
+| **AES-CTR-HMAC** | ❌ | ✅ Encrypt-then-MAC |
 | **Marvin Fix** | ❌ | ✅ CVE-2023-50979 |
 | **CMake** | Basic | Modern (presets, find_package) |
 | **Organization** | Flat structure | Categorized src/ dirs |
@@ -130,6 +139,6 @@ This is a friendly fork to:
 
 ---
 
-**Last Updated:** 2025-11-29
+**Last Updated:** 2026-01-23
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2025.12.0
+**Current Version:** 2026.1.0

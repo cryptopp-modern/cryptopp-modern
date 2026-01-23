@@ -298,7 +298,22 @@ documentation is one of the highest returns on investment.
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
 
-2025.12.0 - December 2025 (Release Candidate)
+2026.1.0 - January 2026
+      - minor release
+      - added BLAKE3 AVX-512 16-way parallel chunk hashing
+        * ~4000+ MiB/s on supported processors
+        * automatic runtime CPU detection with fallback
+      - added XAES-256-GCM extended-nonce authenticated encryption
+        * 256-bit (32-byte) nonces safe for random generation
+        * C2SP specification
+      - added AES-CTR-HMAC authenticated encryption
+        * encrypt-then-MAC construction using AES-CTR + HMAC
+        * template-based: works with any block cipher and hash function
+      - hardened XAES-256-GCM and AES-CTR-HMAC against misuse
+      - improved exception safety and portability
+      - dropped non-standard stdext namespace usage
+
+2025.12.0 - December 2025
       - major release, recompile of programs required
       - complete project reorganization
         * organized 204 source files into categorized src/ subdirectories

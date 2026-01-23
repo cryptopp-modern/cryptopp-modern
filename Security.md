@@ -5,6 +5,7 @@
 We support modern versions of cryptopp-modern. Modern versions include the main branch and the latest release.
 
 Currently supported versions:
+- 2026.1.0
 - 2025.12.0
 - 2025.11.0
 

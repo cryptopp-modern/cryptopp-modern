@@ -4,6 +4,26 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2026.1.0 - January 2026
+      - minor release
+      - added BLAKE3 AVX-512 16-way parallel chunk hashing
+        * 16-way parallel processing using AVX-512F and AVX-512VL
+        * ~4000+ MiB/s on supported processors
+        * automatic runtime CPU detection with graceful fallback
+      - added XAES-256-GCM extended-nonce authenticated encryption
+        * 256-bit (32-byte) nonces safe for random generation
+        * C2SP specification
+        * solves nonce management problem for AES-GCM users
+      - added AES-CTR-HMAC authenticated encryption
+        * encrypt-then-MAC construction using AES-CTR + HMAC
+        * template-based: works with any block cipher and hash function
+        * HKDF key derivation for encryption and MAC keys
+      - hardened XAES-256-GCM against streaming misuse and side channels
+      - hardened AES-CTR-HMAC against misuse and improved portability
+      - improved exception safety and portability
+      - dropped non-standard stdext namespace usage
+      - fixed MSVC warnings and improved CI workflows
+
 2025.12.0 - December 2025
       - major release, recompile of programs required
       - complete project reorganization
