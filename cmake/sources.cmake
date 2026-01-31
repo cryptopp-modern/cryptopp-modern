@@ -264,6 +264,7 @@ set(cryptopp_SOURCES_TEST
     src/test/validat8.cpp
     src/test/validat9.cpp
     src/test/validat10.cpp
+    src/test/validat_cve_2024_28285.cpp
     src/test/regtest1.cpp
     src/test/regtest2.cpp
     src/test/regtest3.cpp

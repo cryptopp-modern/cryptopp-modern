@@ -132,6 +132,7 @@ bool ValidateFHMQV();
 bool ValidateRSA();
 bool ValidateElGamal();
 bool ValidateDLIES();
+bool ValidateCVE_2024_28285();
 bool ValidateNR();
 bool ValidateDSA(bool thorough);
 bool ValidateLUC();

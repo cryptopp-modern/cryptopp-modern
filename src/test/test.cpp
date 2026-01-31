@@ -1037,6 +1037,7 @@ bool Validate(int alg, bool thorough)
 	case 92: result = ValidateHmacDRBG(); break;
 	case 93: result = ValidateNaCl(); break;
 	case 94: result = ValidateAES_CTR_HMAC(); break;
+	case 95: result = ValidateCVE_2024_28285(); break;
 
 	case 100: result = ValidateCHAM(); break;
 	case 101: result = ValidateSIMECK(); break;
