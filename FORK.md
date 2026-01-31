@@ -26,6 +26,11 @@
 
 ### cryptopp-modern Releases
 
+**2026.2.0** (February 2026) - Security Release
+- Fixed CVE-2024-28285: Hardened hybrid DL decryption against fault injection
+- No-write-on-failure guarantee for ElGamal, ECIES, DLIES decryption
+- Exponent blinding verification to detect faulted computations
+
 **2026.1.0** (January 2026) - Minor Release
 - Added BLAKE3 AVX-512 16-way parallel chunk hashing (~4000+ MiB/s)
 - Added XAES-256-GCM extended-nonce authenticated encryption (C2SP spec)
@@ -102,10 +107,10 @@ This is a friendly fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.1.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.2.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | January 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.1.0) |
+| **Last Release** | October 1, 2023 | February 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.2.0) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (~4000+ MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
@@ -139,6 +144,6 @@ This is a friendly fork to:
 
 ---
 
-**Last Updated:** 2026-01-23
+**Last Updated:** 2026-02-01
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.1.0
+**Current Version:** 2026.2.0

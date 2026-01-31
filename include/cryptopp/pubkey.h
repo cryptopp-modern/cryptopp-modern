@@ -1834,28 +1834,77 @@ public:
 
 	virtual ~DL_DecryptorBase() {}
 
+	/// \brief Decrypt a message
+	/// \param rng a RandomNumberGenerator for blinding verification
+	/// \param ciphertext the ciphertext
+	/// \param ciphertextLength the ciphertext length
+	/// \param plaintext the plaintext (output)
+	/// \param parameters additional parameters
+	/// \return DecodingResult with message length on success
+	/// \details This function provides a no-write-on-failure guarantee.
+	///  The plaintext buffer is only written on successful decryption. On any failure
+	///  (invalid ciphertext length, invalid element, decryption error), the function
+	///  returns DecodingResult() and the caller's buffer remains untouched.
+	/// \details The function uses blinding verification to detect faulted computations.
+	///  After computing the shared secret z, it verifies using z2 = ephemeralPub^(x + k*order)
+	///  where k is random. A mismatch indicates a fault and the decryption is rejected.
+	/// \sa <A HREF="https://nvd.nist.gov/vuln/detail/CVE-2024-28285">CVE-2024-28285</A>
 	DecodingResult Decrypt(RandomNumberGenerator &rng, const byte *ciphertext, size_t ciphertextLength, byte *plaintext, const NameValuePairs &parameters = g_nullNameValuePairs) const
 	{
 		try
 		{
-			CRYPTOPP_UNUSED(rng);
 			const DL_KeyAgreementAlgorithm<T> &agreeAlg = this->GetKeyAgreementAlgorithm();
 			const DL_KeyDerivationAlgorithm<T> &derivAlg = this->GetKeyDerivationAlgorithm();
 			const DL_SymmetricEncryptionAlgorithm &encAlg = this->GetSymmetricEncryptionAlgorithm();
 			const DL_GroupParameters<T> &params = this->GetAbstractGroupParameters();
 			const DL_PrivateKey<T> &key = this->GetKeyInterface();
 
-			Element q = params.DecodeElement(ciphertext, true);
+			// CVE-2024-28285: Validate ciphertext length before any processing
+			// Prevents out-of-bounds reads and size_t underflow
 			size_t elementSize = params.GetEncodedElementSize(true);
+			if (ciphertextLength < elementSize)
+				return DecodingResult();
+
+			// Decode and validate ephemeral public key
+			Element ephemeralPub = params.DecodeElement(ciphertext, true);
 			ciphertext += elementSize;
 			ciphertextLength -= elementSize;
 
-			Element z = agreeAlg.AgreeWithStaticPrivateKey(params, q, true, key.GetPrivateExponent());
+			// Key agreement computation
+			const Integer &x = key.GetPrivateExponent();
+			Element z = agreeAlg.AgreeWithStaticPrivateKey(params, ephemeralPub, true, x);
 
-			SecByteBlock derivedKey(encAlg.GetSymmetricKeyLength(encAlg.GetMaxSymmetricPlaintextLength(ciphertextLength)));
-			derivAlg.Derive(params, derivedKey, derivedKey.size(), z, q, parameters);
+			// CVE-2024-28285: Blinding verification to detect faulted computations
+			// Compute z2 = ephemeralPub^(x + k*order) which should equal z
+			// For multiplicative groups: ephemeralPub^order = 1, so z2 = ephemeralPub^x * 1^k = z
+			// For EC groups: order*ephemeralPub = O (infinity), so z2 = x*P + k*O = z
+			const Integer &order = params.GetSubgroupOrder();
+			Integer k(rng, Integer::One(), order);
+			Integer blindExp = x + k * order;
+			Element z2 = params.ExponentiateElement(ephemeralPub, blindExp);
+			if (!(z == z2))
+				return DecodingResult();  // Fault detected, reject decryption
 
-			return encAlg.SymmetricDecrypt(derivedKey, ciphertext, ciphertextLength, plaintext, parameters);
+			// Derive symmetric key
+			size_t derivedKeyLen = encAlg.GetSymmetricKeyLength(encAlg.GetMaxSymmetricPlaintextLength(ciphertextLength));
+			SecByteBlock derivedKey(derivedKeyLen);
+			derivAlg.Derive(params, derivedKey, derivedKey.size(), z, ephemeralPub, parameters);
+
+			// CVE-2024-28285: Decrypt into temporary buffer first
+			// Only copy to caller's buffer on success (no-write-on-failure guarantee)
+			// Use ciphertextLength as buffer size - it's always >= plaintext length
+			size_t tempBufferLen = ciphertextLength > 0 ? ciphertextLength : 1;
+			SecByteBlock tempPlaintext(tempBufferLen);
+
+			DecodingResult result = encAlg.SymmetricDecrypt(derivedKey, ciphertext, ciphertextLength, tempPlaintext, parameters);
+
+			if (result.isValidCoding && result.messageLength <= tempBufferLen)
+			{
+				// Success: copy plaintext to caller's buffer
+				std::memcpy(plaintext, tempPlaintext, result.messageLength);
+			}
+
+			return result;
 		}
 		catch (DL_BadElement &)
 		{

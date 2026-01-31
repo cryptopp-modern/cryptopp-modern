@@ -133,9 +133,6 @@ StringSource(cipher, true,
 - Dropped non-standard `stdext` namespace usage for better portability
 - Fixed MSVC warnings and updated CI workflows
 - Added `/arch:AVX2` flag for BLAKE3 SIMD on MSVC
-- Added `branch-build-and-test.yml` for manual CI triggers
-- Consolidated license files
-- Improved README layout and discoverability
 
 ---
 

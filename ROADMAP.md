@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.1.0
+**Current Version:** 2026.2.0
 
 ---
 

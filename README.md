@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.1.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.2.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -23,13 +23,13 @@
 ---
 
 
-## What's New in 2026.1.0
+## What's New in 2026.2.0
 
-- ⚡ **BLAKE3 AVX-512** - 16-way parallel chunk hashing (~4000+ MiB/s on supported CPUs)
-- ✨ **XAES-256-GCM** - Extended-nonce AES-GCM with 256-bit nonces (C2SP specification)
-- ✨ **AES-CTR-HMAC** - Encrypt-then-MAC authenticated encryption with HKDF key derivation
-- 🔒 **Security Hardening** - Improved misuse resistance for authenticated encryption modes
-- 🔧 **Portability Improvements** - Enhanced exception safety and cross-platform compatibility
+- 🔒 **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection
+- 🛡️ **No-Write-on-Failure** - Plaintext buffer untouched unless decryption succeeds
+- ✅ **Blinded Verification** - Detects faulted key-agreement computations before releasing plaintext
+
+See [RELEASE-2026.2.0.md](RELEASE-2026.2.0.md) for details and [Security.md](Security.md) for the full advisory.
 
 ---
 

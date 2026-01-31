@@ -4,6 +4,21 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2026.2.0 - February 2026
+      - security release
+      - fixed CVE-2024-28285: Hardened hybrid DL decryption (ElGamal, ECIES, DLIES)
+        against fault injection attacks
+        * validate ciphertext length before processing
+        * exponent blinding verification detects faulted key agreement computations
+        * RNG parameter now used for blinding (was previously ignored)
+        * decrypt into temporary buffer, copy to caller only on success
+        * no-write-on-failure guarantee: caller buffer untouched unless success
+        * defence-in-depth validation in ElGamal symmetric decryption
+      - added CVE-2024-28285 security validation test suite
+        * tests no-write-on-failure for ElGamal and ECIES
+        * tests sentinel preservation on decryption failure
+        * blinding math stress tests (1000+ iterations)
+
 2026.1.0 - January 2026
       - minor release
       - added BLAKE3 AVX-512 16-way parallel chunk hashing

@@ -506,6 +506,9 @@
     <ClCompile Include="validat10.cpp">
       <Filter>Source Code</Filter>
     </ClCompile>
+    <ClCompile Include="validat_cve_2024_28285.cpp">
+      <Filter>Source Code</Filter>
+    </ClCompile>
     <ClCompile Include="fipsalgt.cpp">
       <Filter>Source Code</Filter>
     </ClCompile>
