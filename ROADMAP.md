@@ -120,6 +120,27 @@
   - Code coverage reporting
   - Benchmark tracking
 
+---
+
+## Phase 6: Post-Quantum Cryptography 🚧 IN PROGRESS
+
+**Goal:** Implement NIST FIPS standardized post-quantum algorithms
+
+**Status:** Active development on feature branch. Targeting a 2026 release.
+
+### Planned
+- 🔲 **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation Mechanism
+  - ML-KEM-512, ML-KEM-768, ML-KEM-1024 parameter sets
+  - 128-bit, 192-bit, and 256-bit security levels
+- 🔲 **ML-DSA (FIPS 204)** - Module-Lattice Digital Signature Algorithm
+  - ML-DSA-44, ML-DSA-65, ML-DSA-87 parameter sets
+  - PK_Signer/PK_Verifier interface integration
+- 🔲 **SLH-DSA (FIPS 205)** - Stateless Hash-Based Digital Signature Algorithm
+  - All 12 parameter sets (SHA-2 and SHAKE variants)
+  - Small (s) and fast (f) variants
+- 🔲 **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
+
+**Note:** Post-quantum algorithms provide security against both classical and quantum computer attacks, preparing applications for the post-quantum era.
 
 ---
 
@@ -139,6 +160,11 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.2.0 (February 2026) - Security Release
+- 🔒 **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection
+- 🛡️ **No-Write-on-Failure** - Plaintext buffer untouched unless decryption succeeds
+- ✅ **Blinded Verification** - Detects faulted key-agreement computations before releasing plaintext
 
 ### 2026.1.0 (January 2026) - New Algorithms Release
 - ⚡ **BLAKE3 AVX-512** - 16-way parallel chunk hashing

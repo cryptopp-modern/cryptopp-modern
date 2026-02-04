@@ -15,7 +15,7 @@
 
 - ✨ **BLAKE3** - Modern, fast cryptographic hash function
 - ✨ **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
-- 🔒 **Security Patches** - Marvin attack fix (CVE-2023-50979), ESIGN improvements
+- 🔒 **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), ESIGN improvements
 - 📅 **Calendar Versioning** - Clear release dates (YEAR.MONTH.INCREMENT format)
 - 🔄 **Active Maintenance** - Regular updates and improvements
 - ✅ **Drop-in Compatible** - Uses same `CryptoPP` namespace
