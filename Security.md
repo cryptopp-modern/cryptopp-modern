@@ -5,6 +5,7 @@
 We support modern versions of cryptopp-modern. Modern versions include the main branch and the latest release.
 
 Currently supported versions:
+- 2026.2.1
 - 2026.2.0
 - 2026.1.0
 - 2025.12.0
@@ -26,6 +27,28 @@ If we receive a report of a security related bug then we will:
 All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
 
 ## Security Advisories
+
+### Crypto++ Issue #1342: DSA/ECDSA Invalid Signature (Fixed in 2026.2.1)
+
+**Component:** DSA, ECDSA, and related signature schemes (DSA2, ECGDSA, NR)
+
+**Issue:** DSA/ECDSA signing could output an invalid signature with `r = 0` or `s = 0` in release builds. Per FIPS 186-4, both components must be in `[1, q-1]`. The code only had a `CRYPTOPP_ASSERT` check which is compiled out in release builds.
+
+**Affected Versions:** All versions prior to 2026.2.1
+
+**Fix Summary:**
+- Probabilistic signatures: retry with fresh random `k` until `r != 0` and `s != 0`
+- Deterministic signatures (RFC 6979): abort with exception per FIPS 186-5 guidance
+- Safe `dynamic_cast` with proper error handling
+- Consistent use of cached subgroup order
+
+**Severity:** Low (probability ~2^(-255), invalid signatures fail verification anyway)
+
+**References:**
+- [Upstream Issue #1342](https://github.com/weidai11/cryptopp/issues/1342)
+- [Full Analysis](docs/security/cryptopp-1342-dsa-signature.md)
+
+---
 
 ### CVE-2024-28285 (Fixed in 2026.2.0)
 

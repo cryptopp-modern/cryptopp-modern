@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.2.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.2.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -23,13 +23,13 @@
 ---
 
 
-## What's New in 2026.2.0
+## What's New in 2026.2.1
 
-- 🔒 **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection
-- 🛡️ **No-Write-on-Failure** - Plaintext buffer untouched unless decryption succeeds
-- ✅ **Blinded Verification** - Detects faulted key-agreement computations before releasing plaintext
+- 🔧 **DSA/ECDSA Fix** - Fixed invalid signature (r=0 or s=0) handling per FIPS 186-4
+- 🔄 **Probabilistic Signatures** - Retry with fresh random k until valid (64-attempt cap)
+- ⚠️ **Deterministic Signatures** - Abort with exception (API limitation)
 
-See [RELEASE-2026.2.0.md](RELEASE-2026.2.0.md) for details and [Security.md](Security.md) for the full advisory.
+See [RELEASE-2026.2.1.md](RELEASE-2026.2.1.md) for details and [Security.md](Security.md) for the full advisory.
 
 ---
 
