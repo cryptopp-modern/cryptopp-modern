@@ -315,7 +315,7 @@ public:
 	virtual size_t MinRepresentativeBitLength(size_t hashIdentifierLength, size_t digestLength) const
 		{CRYPTOPP_UNUSED(hashIdentifierLength); CRYPTOPP_UNUSED(digestLength); return 0;}
 	virtual size_t MaxRecoverableLength(size_t representativeBitLength, size_t hashIdentifierLength, size_t digestLength) const
-		{CRYPTOPP_UNUSED(representativeBitLength); CRYPTOPP_UNUSED(representativeBitLength); CRYPTOPP_UNUSED(hashIdentifierLength); CRYPTOPP_UNUSED(digestLength); return 0;}
+		{CRYPTOPP_UNUSED(representativeBitLength); CRYPTOPP_UNUSED(hashIdentifierLength); CRYPTOPP_UNUSED(digestLength); return 0;}
 
 	/// \brief Determines whether an encoding method requires a random number generator
 	/// \return true if the encoding method requires a RandomNumberGenerator()
@@ -1652,27 +1652,62 @@ public:
 
 		Integer k, ks;
 		const Integer& q = params.GetSubgroupOrder();
+		Integer r, s;
+
+		// DSA/ECDSA requires r != 0 and s != 0. Per FIPS 186-4 section 4.6,
+		// if r = 0 or s = 0, a new k must be generated and signature recomputed.
+		// https://github.com/weidai11/cryptopp/issues/1342
 		if (alg.IsDeterministic())
 		{
+			// Deterministic signatures (RFC 6979): GenerateRandom() returns a single k.
+			// RFC 6979 allows looping with updated HMAC_DRBG state, but the API doesn't
+			// expose that. Throw exception as defensive measure (probability ~2/q).
 			const Integer& x = key.GetPrivateExponent();
-			const DeterministicSignatureAlgorithm& det = dynamic_cast<const DeterministicSignatureAlgorithm&>(alg);
-			k = det.GenerateRandom(x, q, e);
+			const DeterministicSignatureAlgorithm* det =
+				dynamic_cast<const DeterministicSignatureAlgorithm*>(&alg);
+			if (!det)
+				throw Exception(Exception::OTHER_ERROR,
+					"DL_SignerBase: IsDeterministic() but algorithm is not DeterministicSignatureAlgorithm");
+			k = det->GenerateRandom(x, q, e);
+
+			// Timing side-channel mitigation for nonce length (Jancar)
+			// https://github.com/weidai11/cryptopp/issues/869
+			ks = k + q;
+			if (ks.BitCount() == q.BitCount())
+				ks += q;
+
+			r = params.ConvertElementToInteger(params.ExponentiateBase(ks));
+			alg.Sign(params, key.GetPrivateExponent(), k, e, r, s);
+
+			if (r.IsZero() || s.IsZero())
+				throw Exception(Exception::OTHER_ERROR,
+					"DL_SignerBase: deterministic signature produced r=0 or s=0");
 		}
 		else
 		{
-			k.Randomize(rng, 1, params.GetSubgroupOrder()-1);
-		}
+			// Probabilistic signatures: retry with fresh random k until valid.
+			// 64 attempts is a safety cap to avoid infinite loops under RNG failure;
+			// expected retries is ~1 (probability of r=0 or s=0 is ~1/q).
+			for (unsigned int i = 0; i < 64; ++i)
+			{
+				k.Randomize(rng, 1, q - 1);
 
-		// Due to timing attack on nonce length by Jancar
-		// https://github.com/weidai11/cryptopp/issues/869
-		ks = k + q;
-		if (ks.BitCount() == q.BitCount()) {
-			ks += q;
-		}
+				// Timing side-channel mitigation for nonce length (Jancar)
+				// https://github.com/weidai11/cryptopp/issues/869
+				ks = k + q;
+				if (ks.BitCount() == q.BitCount())
+					ks += q;
 
-		Integer r, s;
-		r = params.ConvertElementToInteger(params.ExponentiateBase(ks));
-		alg.Sign(params, key.GetPrivateExponent(), k, e, r, s);
+				r = params.ConvertElementToInteger(params.ExponentiateBase(ks));
+				alg.Sign(params, key.GetPrivateExponent(), k, e, r, s);
+
+				if (!r.IsZero() && !s.IsZero())
+					break;
+			}
+			if (r.IsZero() || s.IsZero())
+				throw Exception(Exception::OTHER_ERROR,
+					"DL_SignerBase: probabilistic signature failed after 64 attempts (r=0 or s=0)");
+		}
 
 		/*
 		Integer r, s;
@@ -1879,7 +1914,7 @@ public:
 			// For multiplicative groups: ephemeralPub^order = 1, so z2 = ephemeralPub^x * 1^k = z
 			// For EC groups: order*ephemeralPub = O (infinity), so z2 = x*P + k*O = z
 			const Integer &order = params.GetSubgroupOrder();
-			Integer k(rng, Integer::One(), order);
+			Integer k(rng, Integer::One(), order - 1);
 			Integer blindExp = x + k * order;
 			Element z2 = params.ExponentiateElement(ephemeralPub, blindExp);
 			if (!(z == z2))
