@@ -208,6 +208,12 @@ bool ValidateAll(bool thorough)
 	pass=ValidateEd25519() && pass;
 	pass=ValidateNaCl() && pass;
 
+	// Post-Quantum Cryptography (FIPS 203, 204, 205)
+	pass=ValidateMLKEM() && pass;
+	pass=ValidateMLDSA() && pass;
+	pass=ValidateSLHDSA() && pass;
+	pass=ValidateXWing() && pass;
+
 	if (pass)
 		std::cout << "\nAll tests passed!\n";
 	else

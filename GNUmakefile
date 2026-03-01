@@ -149,24 +149,41 @@ endif
 #####                General Variables                #####
 ###########################################################
 
+# Build type: release, debug, or relwithdebinfo (default)
+#   make BUILD=release       - optimized, no debug symbols, stripped
+#   make BUILD=debug         - debug symbols, no optimization, assertions enabled
+#   make BUILD=relwithdebinfo - optimized with debug symbols (default, upstream behavior)
+BUILD ?= relwithdebinfo
+
 # Base CPPFLAGS and CXXFLAGS used if the user did not specify them
 ifeq ($(filter -DDEBUG -DNDEBUG,$(CPPFLAGS)$(CXXFLAGS)),)
-  CRYPTOPP_CPPFLAGS += -DNDEBUG
+  ifeq ($(BUILD),debug)
+    CRYPTOPP_CPPFLAGS += -DDEBUG
+  else
+    CRYPTOPP_CPPFLAGS += -DNDEBUG
+  endif
 endif
 ifeq ($(filter -g%,$(CPPFLAGS)$(CXXFLAGS)),)
-  ifeq ($(SUN_COMPILER),1)
-    CRYPTOPP_CXXFLAGS += -g
-  else
-    CRYPTOPP_CXXFLAGS += -g2
+  ifneq ($(BUILD),release)
+    ifeq ($(SUN_COMPILER),1)
+      CRYPTOPP_CXXFLAGS += -g
+    else
+      CRYPTOPP_CXXFLAGS += -g2
+    endif
   endif
 endif
 ifeq ($(filter -O% -xO%,$(CPPFLAGS)$(CXXFLAGS)),)
-  ifeq ($(SUN_COMPILER),1)
-    CRYPTOPP_CXXFLAGS += -xO3
-    ZOPT = -xO0
-  else
-    CRYPTOPP_CXXFLAGS += -O3
+  ifeq ($(BUILD),debug)
+    CRYPTOPP_CXXFLAGS += -O0
     ZOPT = -O0
+  else
+    ifeq ($(SUN_COMPILER),1)
+      CRYPTOPP_CXXFLAGS += -xO3
+      ZOPT = -xO0
+    else
+      CRYPTOPP_CXXFLAGS += -O3
+      ZOPT = -O0
+    endif
   endif
 endif
 
@@ -1203,7 +1220,7 @@ endif
 ###########################################################
 
 # Tell make where to find source files
-VPATH = src/core:src/hash:src/kdf:src/symmetric:src/pubkey:src/mac:src/modes:src/encoding:src/random:src/util:src/test
+VPATH = src/core:src/hash:src/kdf:src/symmetric:src/pubkey:src/mac:src/modes:src/encoding:src/random:src/util:src/pqc:src/test
 
 # List cryptlib.cpp first, then cpu.cpp, then integer.cpp to tame C++ static initialization problems.
 SRCS := src/core/cryptlib.cpp src/core/cpu.cpp src/core/integer.cpp $(filter-out src/core/cryptlib.cpp src/core/cpu.cpp src/core/integer.cpp src/core/pch.cpp src/core/simple.cpp src/test/%,$(sort $(wildcard src/*/*.cpp)))
@@ -1271,7 +1288,7 @@ OBJS := $(OBJS:.S=.o)
 OBJS := $(notdir $(OBJS))
 
 # List test.cpp first to tame C++ static initialization problems.
-TESTSRCS := src/test/adhoc.cpp src/test/test.cpp src/test/bench1.cpp src/test/bench2.cpp src/test/bench3.cpp src/test/datatest.cpp src/test/dlltest.cpp src/core/fipsalgt.cpp src/test/fipstest.cpp src/test/validat0.cpp src/test/validat1.cpp src/test/validat2.cpp src/test/validat3.cpp src/test/validat4.cpp src/test/validat5.cpp src/test/validat6.cpp src/test/validat7.cpp src/test/validat8.cpp src/test/validat9.cpp src/test/validat10.cpp src/test/validat_cve_2024_28285.cpp src/test/regtest1.cpp src/test/regtest2.cpp src/test/regtest3.cpp src/test/regtest4.cpp
+TESTSRCS := src/test/adhoc.cpp src/test/test.cpp src/test/bench1.cpp src/test/bench2.cpp src/test/bench3.cpp src/test/datatest.cpp src/test/dlltest.cpp src/core/fipsalgt.cpp src/test/fipstest.cpp src/test/validat0.cpp src/test/validat1.cpp src/test/validat2.cpp src/test/validat3.cpp src/test/validat4.cpp src/test/validat5.cpp src/test/validat6.cpp src/test/validat7.cpp src/test/validat8.cpp src/test/validat9.cpp src/test/validat10.cpp src/test/validat11.cpp src/test/validat_cve_2024_28285.cpp src/test/regtest1.cpp src/test/regtest2.cpp src/test/regtest3.cpp src/test/regtest4.cpp
 TESTINCL := include/cryptopp/bench.h include/cryptopp/factory.h include/cryptopp/validate.h
 
 # Test objects - strip paths

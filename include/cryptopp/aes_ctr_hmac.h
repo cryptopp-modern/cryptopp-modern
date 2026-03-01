@@ -41,7 +41,7 @@
 /// the full HMAC digest size (32 bytes for SHA-256, 64 bytes for SHA-512).
 /// Values outside this range throw InvalidArgument.
 ///
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 
 #ifndef CRYPTOPP_AES_CTR_HMAC_H
 #define CRYPTOPP_AES_CTR_HMAC_H
@@ -62,7 +62,7 @@ NAMESPACE_BEGIN(CryptoPP)
 
 /// \brief AES-CTR-HMAC block cipher base implementation
 /// \details Base implementation of the AuthenticatedSymmetricCipher interface
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 template <class T_BlockCipher, class T_HashFunction>
 class CRYPTOPP_NO_VTABLE AES_CTR_HMAC_Base : public AuthenticatedSymmetricCipherBase
 {
@@ -196,7 +196,7 @@ protected:
 /// \tparam T_BlockCipher block cipher
 /// \tparam T_HashFunction hash function for HMAC
 /// \tparam T_IsEncryption direction in which to operate the cipher
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 template <class T_BlockCipher, class T_HashFunction, bool T_IsEncryption>
 class AES_CTR_HMAC_Final : public AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>
 {
@@ -224,7 +224,7 @@ private:
 ///  implementation.
 /// \details The AES variant (128/192/256) is determined by the master key length
 ///  passed to SetKey (16, 24, or 32 bytes respectively).
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 template <class T_BlockCipher = AES, class T_HashFunction = SHA256>
 struct AES_CTR_HMAC : public AuthenticatedSymmetricCipherDocumentation
 {

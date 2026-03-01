@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.2.0
+**Current Version:** 2026.3.0
 
 ---
 
@@ -122,23 +122,28 @@
 
 ---
 
-## Phase 6: Post-Quantum Cryptography 🚧 IN PROGRESS
+## Phase 6: Post-Quantum Cryptography ✅ COMPLETE
 
 **Goal:** Implement NIST FIPS standardized post-quantum algorithms
 
-**Status:** Active development on feature branch. Targeting a 2026 release.
-
-### Planned
-- 🔲 **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation Mechanism
-  - ML-KEM-512, ML-KEM-768, ML-KEM-1024 parameter sets
-  - 128-bit, 192-bit, and 256-bit security levels
-- 🔲 **ML-DSA (FIPS 204)** - Module-Lattice Digital Signature Algorithm
-  - ML-DSA-44, ML-DSA-65, ML-DSA-87 parameter sets
+### Completed
+- ✅ **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation Mechanism
+  - ML-KEM-512 (Level 1, 128-bit security)
+  - ML-KEM-768 (Level 3, 192-bit security)
+  - ML-KEM-1024 (Level 5, 256-bit security)
+  - NTT-based polynomial multiplication for performance
+  - Compliant with FIPS 203 final specification
+- ✅ **ML-DSA (FIPS 204)** - Module-Lattice Digital Signature Algorithm
+  - ML-DSA-44 (Level 2, 128-bit security)
+  - ML-DSA-65 (Level 3, 192-bit security)
+  - ML-DSA-87 (Level 5, 256-bit security)
+  - Based on CRYSTALS-Dilithium reference implementation
   - PK_Signer/PK_Verifier interface integration
-- 🔲 **SLH-DSA (FIPS 205)** - Stateless Hash-Based Digital Signature Algorithm
+- ✅ **SLH-DSA (FIPS 205)** - Stateless Hash-Based Digital Signature Algorithm
   - All 12 parameter sets (SHA-2 and SHAKE variants)
+  - 128-bit, 192-bit, and 256-bit security levels
   - Small (s) and fast (f) variants
-- 🔲 **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
+- ✅ **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
 
 **Note:** Post-quantum algorithms provide security against both classical and quantum computer attacks, preparing applications for the post-quantum era.
 
@@ -160,6 +165,18 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.3.0 (March 2026) - Post-Quantum Cryptography Release
+- 🔐 **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation (512/768/1024)
+- 🔐 **ML-DSA (FIPS 204)** - Module-Lattice Digital Signatures (44/65/87)
+- 🔐 **SLH-DSA (FIPS 205)** - Stateless Hash-Based Signatures (all 12 parameter sets)
+- 🔐 **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
+- 🔧 ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
+- 🧪 NIST ACVP test vectors for all PQC algorithms
+- 🔧 Updated build systems (GNUmakefile, nmake, Visual Studio)
+
+### 2026.2.1 (February 2026) - Correctness Fix
+- 🔧 **DSA/ECDSA Fix** - Fixed invalid signature (r=0 or s=0) in release builds (Issue #1342)
 
 ### 2026.2.0 (February 2026) - Security Release
 - 🔒 **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection

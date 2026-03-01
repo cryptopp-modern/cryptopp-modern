@@ -116,7 +116,8 @@ LIB_SRCS = \
     src\core\tweetnacl.cpp src\symmetric\twofish.cpp src\mac\vmac.cpp \
     src\symmetric\wake.cpp src\hash\whrlpool.cpp src\pubkey\xed25519.cpp \
     src\pubkey\xtr.cpp src\pubkey\xtrcrypt.cpp src\modes\xts.cpp \
-    src\encoding\zdeflate.cpp src\encoding\zinflate.cpp src\encoding\zlib.cpp
+    src\encoding\zdeflate.cpp src\encoding\zinflate.cpp src\encoding\zlib.cpp \
+    src\pqc\mldsa.cpp src\pqc\mlkem.cpp src\pqc\slhdsa.cpp src\pqc\xwing.cpp
 
 LIB_OBJS = \
     cryptlib.obj cpu.obj integer.obj 3way.obj adler32.obj algebra.obj \
@@ -147,7 +148,8 @@ LIB_OBJS = \
     square.obj squaretb.obj sse_simd.obj strciphr.obj tea.obj tftables.obj \
     threefish.obj tiger.obj tigertab.obj ttmac.obj tweetnacl.obj twofish.obj \
     vmac.obj wake.obj whrlpool.obj xed25519.obj xtr.obj xtrcrypt.obj xts.obj \
-    zdeflate.obj zinflate.obj zlib.obj
+    zdeflate.obj zinflate.obj zlib.obj \
+    mldsa.obj mlkem.obj slhdsa.obj xwing.obj
 
 ASM_OBJS = \
     cpuid64.obj rdrand-x86.obj rdrand-x64.obj rdseed-x86.obj rdseed-x64.obj \
@@ -161,14 +163,15 @@ TEST_SRCS = \
     src\test\validat5.cpp src\test\validat6.cpp src\test\validat7.cpp \
     src\test\validat8.cpp src\test\validat9.cpp src\test\validat10.cpp \
     src\test\regtest1.cpp src\test\regtest2.cpp src\test\regtest3.cpp \
-    src\test\regtest4.cpp
+    src\test\regtest4.cpp src\test\validat_cve_2024_28285.cpp \
+    src\test\validat11.cpp
 
 TEST_OBJS = \
     test.obj bench1.obj bench2.obj bench3.obj datatest.obj \
     dlltest.obj fipsalgt.obj validat0.obj validat1.obj validat2.obj \
     validat3.obj validat4.obj validat5.obj validat6.obj validat7.obj \
     validat8.obj validat9.obj validat10.obj regtest1.obj regtest2.obj \
-    regtest3.obj regtest4.obj
+    regtest3.obj regtest4.obj validat_cve_2024_28285.obj validat11.obj
 
 CXX = cl.exe
 LD = link.exe
@@ -423,6 +426,9 @@ cpuid64.obj: src\core\cpuid64.asm
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
 
 {src\util}.cpp.obj:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
+
+{src\pqc}.cpp.obj:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) /c $<
 
 {src\test}.cpp.obj:

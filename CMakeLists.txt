@@ -1506,6 +1506,7 @@ if(CRYPTOPP_BUILD_TESTING)
             FIXTURES_CLEANUP cryptest-build
             LABELS "cryptopp-modern;cryptopp-cryptest"
     )
+
 endif()
 
 # ==============================================================================

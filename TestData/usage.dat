@@ -75,7 +75,13 @@ Test Driver for Crypto++(R) Library, a C++ Class Library of Cryptographic Scheme
 	cryptest v
 
 - To display version number
-       cryptest V
+	cryptest V
 
 - To run benchmarks
-	cryptest b [time allocated for each benchmark in seconds] [frequency of CPU in gigahertz]
+	cryptest b [time] [freq]  - All benchmarks
+	cryptest b1 [time] [freq] - Unkeyed algorithms (hashes, RNGs)
+	cryptest b2 [time] [freq] - Shared key algorithms (ciphers, MACs)
+	cryptest b3 [time] [freq] - Public key algorithms (RSA, DSA, etc.)
+	cryptest b4 [time] [freq] - Elliptic curve algorithms (ECDSA, x25519)
+	cryptest b5 [time] [freq] - Post-Quantum (ML-KEM, ML-DSA, SLH-DSA)
+	[time] = seconds per benchmark, [freq] = CPU frequency in GHz

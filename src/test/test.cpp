@@ -1052,6 +1052,12 @@ bool Validate(int alg, bool thorough)
 	case 121: result = ValidateHMQV(); break;
 	case 122: result = ValidateFHMQV(); break;
 
+	// Post-Quantum Cryptography (FIPS 203, 204, 205)
+	case 130: result = ValidateMLKEM(); break;
+	case 131: result = ValidateMLDSA(); break;
+	case 132: result = ValidateSLHDSA(); break;
+	case 133: result = ValidateXWing(); break;
+
 #if defined(CRYPTOPP_EXTENDED_VALIDATION)
 	// http://github.com/weidai11/cryptopp/issues/92
 	case 9999: result = TestSecBlock(); break;
