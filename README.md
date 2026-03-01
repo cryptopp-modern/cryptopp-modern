@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.2.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.3.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -13,6 +13,7 @@
 
 **cryptopp-modern** is an actively maintained fork of [Crypto++ 8.9.0](https://github.com/weidai11/cryptopp) featuring:
 
+- ✨ **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing hybrid KEM
 - ✨ **BLAKE3** - Modern, fast cryptographic hash function
 - ✨ **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
 - 🔒 **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), ESIGN improvements
@@ -23,13 +24,15 @@
 ---
 
 
-## What's New in 2026.2.1
+## What's New in 2026.3.0
 
-- 🔧 **DSA/ECDSA Fix** - Fixed invalid signature (r=0 or s=0) handling per FIPS 186-4
-- 🔄 **Probabilistic Signatures** - Retry with fresh random k until valid (64-attempt cap)
-- ⚠️ **Deterministic Signatures** - Abort with exception (API limitation)
-
-See [RELEASE-2026.2.1.md](RELEASE-2026.2.1.md) for details and [Security.md](Security.md) for the full advisory.
+- ✨ **ML-KEM** - FIPS 203 key encapsulation (ML-KEM-512, ML-KEM-768, ML-KEM-1024)
+- ✨ **ML-DSA** - FIPS 204 digital signatures (ML-DSA-44, ML-DSA-65, ML-DSA-87)
+- ✨ **SLH-DSA** - FIPS 205 stateless hash-based signatures (all 12 parameter sets)
+- ✨ **X-Wing** - Hybrid KEM combining X25519 and ML-KEM-768
+- ✨ **XAES-256-GCM** - Extended-nonce AES-256-GCM (C2SP specification)
+- 🔧 **GNUmakefile BUILD flag** - Support for release, debug, and relwithdebinfo modes
+- 🔒 **Security hardening** - Constant-time operations, stack zeroization, input validation
 
 ---
 
@@ -77,7 +80,7 @@ See [CMAKE.md](CMAKE.md) or [GNUMAKEFILE.md](GNUMAKEFILE.md) for detailed build 
 
 **cryptopp-modern Goals:**
 - Active maintenance and regular releases
-- Modern algorithm support (BLAKE3, Argon2, future: post-quantum)
+- Modern algorithm support (BLAKE3, Argon2, post-quantum cryptography)
 - Better code organization
 - Modern CMake build system
 - Calendar versioning
@@ -102,6 +105,12 @@ See [FORK.md](FORK.md) for detailed explanation.
 **Symmetric Encryption:**
 - AES, ChaCha20, Serpent, Twofish, Camellia, ARIA
 - Modes: GCM, CCM, EAX, CBC, CTR, and more
+
+**Post-Quantum Cryptography:**
+- **ML-KEM** (FIPS 203) - Key encapsulation ⭐
+- **ML-DSA** (FIPS 204) - Digital signatures ⭐
+- **SLH-DSA** (FIPS 205) - Hash-based signatures ⭐
+- **X-Wing** - Hybrid KEM (X25519 + ML-KEM-768) ⭐
 
 **Public Key Cryptography:**
 - RSA, DSA, ECDSA, Ed25519

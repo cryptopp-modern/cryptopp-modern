@@ -227,12 +227,17 @@
     <ClCompile Include="src\test\validat9.cpp" />
     <ClCompile Include="src\test\validat10.cpp" />
     <ClCompile Include="src\test\validat_cve_2024_28285.cpp" />
+    <ClCompile Include="src\test\validat11.cpp" />
   </ItemGroup>
   <!-- Header Files -->
   <ItemGroup>
     <ClInclude Include="include\cryptopp\bench.h" />
     <ClInclude Include="include\cryptopp\factory.h" />
     <ClInclude Include="include\cryptopp\validate.h" />
+    <ClInclude Include="include\cryptopp\mlkem.h" />
+    <ClInclude Include="include\cryptopp\mldsa.h" />
+    <ClInclude Include="include\cryptopp\slhdsa.h" />
+    <ClInclude Include="include\cryptopp\xwing.h" />
   </ItemGroup>
   <!-- Test Vectors -->
   <ItemGroup>
@@ -304,6 +309,10 @@
     <Text Include="TestVectors\vmac.txt" />
     <Text Include="TestVectors\wake.txt" />
     <Text Include="TestVectors\whrlpool.txt" />
+    <Text Include="TestVectors\mlkem.txt" />
+    <Text Include="TestVectors\mldsa.txt" />
+    <Text Include="TestVectors\slhdsa.txt" />
+    <Text Include="TestVectors\xwing.txt" />
   </ItemGroup>
   <!-- Test Data -->
   <ItemGroup>

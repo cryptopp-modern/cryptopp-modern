@@ -50,7 +50,7 @@ NAMESPACE_BEGIN(CryptoPP)
 ///  implementations of XAES-256-GCM authenticated encryption.
 /// \sa XAES_256_GCM, <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM
 ///  specification</A>
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 template <bool T_IsEncryption>
 class XAES_256_GCM_Final : public AuthenticatedSymmetricCipher
 {
@@ -235,7 +235,7 @@ protected:
 ///  See XAES_256_GCM_Final for the AuthenticatedSymmetricCipher implementation.
 /// \sa XAES_256_GCM_Final, <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM
 ///  specification</A>
-/// \since cryptopp-modern 2025.12
+/// \since cryptopp-modern 2025.12.0
 struct XAES_256_GCM : public AuthenticatedSymmetricCipherDocumentation
 {
 	/// \brief XAES-256-GCM encryption
@@ -308,18 +308,17 @@ void XAES_256_GCM_Final<T_IsEncryption>::SetKey(const byte *userKey, size_t keyl
 	m_keySet = true;
 	m_ivSet = false;
 
-	// Check for IV in params
-	size_t ivLength;
-	const byte *iv = GetIVAndThrowIfInvalid(params, ivLength);
-	if (iv)
-		Resynchronize(iv, (int)ivLength);
+	// Check for IV in params (don't throw if absent - one-shot methods supply their own IV)
+	ConstByteArrayParameter ivParam;
+	if (params.GetValue(Name::IV(), ivParam))
+		Resynchronize(ivParam.begin(), static_cast<int>(ivParam.size()));
 }
 
 template <bool T_IsEncryption>
 void XAES_256_GCM_Final<T_IsEncryption>::SetKeyWithIV(const byte *key, size_t length, const byte *iv, size_t ivLength)
 {
-	SetKey(key, length);
-	Resynchronize(iv, (int)ivLength);
+	SetKey(key, length, MakeParameters
+		(Name::IV(), ConstByteArrayParameter(iv, ivLength)));
 }
 
 template <bool T_IsEncryption>

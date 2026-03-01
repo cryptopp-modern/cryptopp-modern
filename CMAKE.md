@@ -214,7 +214,7 @@ The build system automatically detects CPU capabilities and enables appropriate 
 - CLMUL (carryless multiplication for GCM)
 - SHA-NI (hardware SHA acceleration)
 
-**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way) and AVX2 (8-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2).
+**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way), AVX2 (8-way), and AVX-512 (16-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2, ~4000+ MiB/s with AVX-512).
 
 ### ARM
 - NEON
@@ -302,7 +302,7 @@ cryptopp-modern/
 │   ├── sources.cmake        # Source file lists
 │   └── TargetArch.cmake     # Architecture detection
 ├── include/cryptopp/        # Header files
-├── src/                     # Source files (organized by category)
+├── src/                     # Source files (organized by category, including src/pqc/)
 ├── TestData/                # Test data files
 └── TestVectors/             # Test vector files
 ```

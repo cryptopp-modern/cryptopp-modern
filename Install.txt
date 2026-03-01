@@ -27,7 +27,7 @@ Wiki pages are available for some platforms with specific build instructions. Th
 
 cryptopp-modern does not depend upon other tools or libraries. The library only needs GNU Make 3.80 on Unix & Linux; or Visual Studio 2010 and above build tools on Windows. The library does not use Autotools and does not use Boost.
 
-Note: CMake support is planned for a future release (Phase 3). Currently, the library uses GNU Make (GNUmakefile), Visual Studio project files (.vcxproj), and nmake (cryptest.nmake) as its build systems.
+The library supports multiple build systems: CMake (recommended for IDE integration), GNU Make (GNUmakefile), Visual Studio project files (.vcxproj), and nmake (cryptest.nmake). See CMAKE.md for CMake details.
 
 
 PREREQUISITES

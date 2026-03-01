@@ -1,13 +1,15 @@
-Crypto++: free C++ Class Library of Cryptographic Schemes
-Version 2025.12 - December 2025 (Release Candidate)
+cryptopp-modern: Maintained Fork of the Crypto++ Library
+Version 2026.3.0 - March 2026
 
-Crypto++ Library is a free C++ class library of cryptographic schemes.
-Currently the library contains the following algorithms:
+cryptopp-modern is an actively maintained fork of the Crypto++ library,
+a free C++ class library of cryptographic schemes. The library contains
+the following algorithms:
 
                    algorithm type  name
 
- authenticated encryption schemes  GCM, CCM, EAX, ChaCha20Poly1305 and
-                                   XChaCha20Poly1305
+ authenticated encryption schemes  GCM, CCM, EAX, ChaCha20Poly1305,
+                                   XChaCha20Poly1305, XAES-256-GCM,
+                                   AES-CTR-HMAC
 
         high speed stream ciphers  ChaCha (8/12/20), ChaCha (IETF), Panama, Salsa20,
                                    Sosemanuk, XSalsa20, XChaCha20
@@ -28,28 +30,36 @@ Currently the library contains the following algorithms:
                                    Poly1305, Poly1305 (IETF), SipHash, Two-Track-MAC,
                                    VMAC
 
-                                   BLAKE2s, BLAKE2b, BLAKE3, Keccack (F1600),
-                   hash functions  LSH (256/512), SHA-1, SHA-2 (224/256/384/512),
-                                   SHA-3 (224/256), SHA-3 (384/512), SHAKE (128/256),
+                                   BLAKE2s, BLAKE2b, BLAKE3 (with AVX-512),
+                   hash functions  Keccak (F1600), LSH (256/512),
+                                   SHA-1, SHA-2 (224/256/384/512),
+                                   SHA-3 (224/256/384/512), SHAKE (128/256),
                                    SipHash, SM3, Tiger, RIPEMD (128/160/256/320), WHIRLPOOL
 
-       password-based key derivation  Argon2 (Argon2d/Argon2i/Argon2id), HKDF, PBKDF1,
-                                   PBKDF2, PBKDF (PKCS #12), Scrypt
+  password-based key derivation  Argon2 (Argon2d/Argon2i/Argon2id, RFC 9106),
+                                   HKDF, PBKDF1, PBKDF2, PBKDF (PKCS #12), Scrypt
 
                                    RSA, DSA, Deterministic DSA, ElGamal,
           public-key cryptography  Nyberg-Rueppel (NR), Rabin-Williams (RW), LUC,
                                    LUCELG, EC-based German Digital Signature (ECGDSA),
-                                   DLIES (variants of DHAES), ESIGN
+                                   DLIES (variants of DHAES), ESIGN,
+                                   ML-DSA (FIPS 204), SLH-DSA (FIPS 205)
 
    padding schemes for public-key  PKCS#1 v2.0, OAEP, PSS, PSSR, IEEE P1363
                           systems  EMSA2 and EMSA5
 
                                    Diffie-Hellman (DH), Unified Diffie-Hellman (DH2),
             key agreement schemes  Menezes-Qu-Vanstone (MQV), Hashed MQV (HMQV),
-                                   Fully Hashed MQV (FHMQV), LUCDIF, XTR-DH
+                                   Fully Hashed MQV (FHMQV), LUCDIF, XTR-DH,
+                                   ML-KEM (FIPS 203), X-Wing (X25519 + ML-KEM-768)
 
       elliptic curve cryptography  ECDSA, Deterministic ECDSA, ed25519, ECNR, ECIES,
                                    ECDH, ECMQV, x25519
+
+   post-quantum cryptography (PQC) ML-KEM (FIPS 203) key encapsulation,
+                                   ML-DSA (FIPS 204) digital signatures,
+                                   SLH-DSA (FIPS 205) hash-based signatures,
+                                   X-Wing hybrid KEM (X25519 + ML-KEM-768)
 
           insecure or obsolescent  MD2, MD4, MD5, Panama Hash, DES, ARC4, SEAL
 algorithms retained for backwards  3.0, WAKE-OFB, DESX (DES-XEX3), RC2,
@@ -88,21 +98,17 @@ Other features include:
       + ARM-32, Aarch32 and Aarch64 provides NEON, ASIMD and ARMv8 implementations
       + Power8 provides in-core AES using NX Crypto Acceleration
 
-The Crypto++ library was originally written by Wei Dai. The library is now
-maintained by several team members and the community. You are welcome to use it
-for any purpose without paying anyone, but see LICENSE for the fine print.
+The Crypto++ library was originally written by Wei Dai. cryptopp-modern is
+maintained by CoraleSoft and the community. You are welcome to use it for any
+purpose without paying anyone, but see LICENSE for the fine print.
 
 The following compilers are supported for this release. Please visit
-http://www.cryptopp.com the most up to date build instructions and porting notes.
+https://cryptopp-modern.com for build instructions and documentation.
 
-  * Visual Studio 2003 - 2022
-  * GCC 3.3 - 13.1
-  * Apple Clang 4.3 - 12.0
-  * LLVM Clang 2.9 - 14.0
-  * C++ Builder 2015
-  * Intel C++ Compiler 9 - 16.0
-  * Sun Studio 12u1 - 12.7
-  * IBM XL C/C++ 10.0 - 14.0
+  * Visual Studio 2019 - 2022
+  * GCC 11 - 14
+  * Apple Clang 14 - 16
+  * LLVM Clang 15 - 18
 
 *** Important Usage Notes ***
 
@@ -116,9 +122,20 @@ A no longer needs it.
 Crypto++ safely in a multithreaded application, but you must provide
 synchronization when multiple threads access a common Crypto++ object.
 
+*** Build Systems ***
+
+cryptopp-modern supports multiple build systems:
+
+  * CMake (recommended for IDE integration and find_package support)
+  * GNUmakefile (traditional Make-based workflows)
+  * Visual Studio solution files (cryptest.sln)
+  * nmake (Windows command-line builds)
+
+See CMAKE.md, GNUMAKEFILE.md, or GETTING_STARTED.md for detailed instructions.
+
 *** MSVC-Specific Information ***
 
-To compile Crypto++ with MSVC, open "cryptest.sln" (for MSVC 2003 - 2015)
+To compile with MSVC, open "cryptest.sln" in Visual Studio 2019 or later
 and build one or more of the following projects:
 
 cryptest Non-DLL-Import Configuration - This builds the full static library
@@ -233,30 +250,22 @@ suspect or find an information leak then please report it.
 
 *** Documentation and Support ***
 
-Crypto++ is documented through inline comments in header files, which are
-processed through Doxygen to produce an HTML reference manual. You can find
-a link to the manual from http://www.cryptopp.com. Also at that site is
-the Crypto++ FAQ, which you should browse through before attempting to
-use this library, because it will likely answer many of questions that
-may come up. Finally, the site provides the wiki which has many topics
-and code examples.
+cryptopp-modern documentation is available at https://cryptopp-modern.com,
+including algorithm references, code examples, and migration guides.
 
-If you run into any problems, please try the Crypto++ mailing list.
-The subscription information and the list archive are available on
-http://www.cryptopp.com.
+The library is also documented through inline comments in header files,
+which are processed through Doxygen to produce an HTML reference manual.
+
+If you run into any problems, please open an issue on GitHub:
+https://github.com/cryptopp-modern/cryptopp-modern/issues
 
 *** Source Code and Contributing ***
 
-The source code and its planned changes are available at the following locations.
+The source code is available at:
 
-  * The Crypto++ GitHub repository allows you to view the latest (unreleased)
-    Crypto++ source code via the Linux kernel's git beginning around June 2015.
-    Its also serves as an incubator to nurture and grow the library.
-  * The former Crypto++ SourceForge repository allows you to view the Crypto++
-    source code via Apache's subversion until about July 2015. At that time,
-    SourceForge had infrastructure problems and a cutover to GutHub was performed.
-  * The Roadmap on the wiki provides the general direction the library is heading.
-    It includes planned features and releases, and even some wishlist items.
+  * https://github.com/cryptopp-modern/cryptopp-modern
+  * See ROADMAP.md for development direction and future plans
+  * Upstream Crypto++: https://github.com/weidai11/cryptopp
 
 Contributions of all types are welcomed. Contributions include the following.
 
@@ -297,6 +306,33 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.3.0 - March 2026
+      - major release, recompile of programs required
+      - added post-quantum cryptography (PQC) implementations
+        * ML-KEM (FIPS 203) key encapsulation (512/768/1024)
+        * ML-DSA (FIPS 204) digital signatures (44/65/87)
+        * SLH-DSA (FIPS 205) hash-based signatures (all 12 parameter sets)
+        * X-Wing hybrid KEM (X25519 + ML-KEM-768, IETF draft)
+      - added ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
+      - added PQC validation tests and NIST ACVP test vectors
+      - added PQC benchmarks for all algorithms
+      - updated build systems for PQC sources
+        * GNUmakefile, nmake, Visual Studio project files
+
+2026.2.1 - February 2026
+      - minor release
+      - fixed DSA/ECDSA invalid signature (r=0 or s=0) in release builds
+        * probabilistic signatures retry with fresh random k (Issue #1342)
+        * deterministic signatures (RFC 6979) abort with exception
+
+2026.2.0 - February 2026
+      - security release
+      - fixed CVE-2024-28285: Hardened hybrid DL decryption (ElGamal,
+        ECIES, DLIES) against fault injection attacks
+        * validate ciphertext length before processing
+        * exponent blinding verification detects faulted computations
+        * no-write-on-failure guarantee: caller buffer untouched unless success
 
 2026.1.0 - January 2026
       - minor release
@@ -529,4 +565,4 @@ June 2015 - Changing of the guard. Wei Dai turned the library over to the
         no longer involved with the daily operations of the project. Wei
         still provides guidance when we have questions.
 
-Originally written by Wei Dai, maintained by the Crypto++ Project
+Originally written by Wei Dai, maintained by CoraleSoft and the community

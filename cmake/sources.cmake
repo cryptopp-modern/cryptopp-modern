@@ -230,6 +230,14 @@ set(cryptopp_SOURCES_UTIL
     src/util/ida.cpp
 )
 
+# ***** Post-quantum cryptography sources *****
+set(cryptopp_SOURCES_PQC
+    src/pqc/mldsa.cpp
+    src/pqc/mlkem.cpp
+    src/pqc/slhdsa.cpp
+    src/pqc/xwing.cpp
+)
+
 # ***** Combine all library sources *****
 set(cryptopp_SOURCES
     ${cryptopp_SOURCES_CORE}
@@ -242,6 +250,7 @@ set(cryptopp_SOURCES
     ${cryptopp_SOURCES_ENCODING}
     ${cryptopp_SOURCES_RANDOM}
     ${cryptopp_SOURCES_UTIL}
+    ${cryptopp_SOURCES_PQC}
 )
 
 # ***** Test sources *****
@@ -265,6 +274,7 @@ set(cryptopp_SOURCES_TEST
     src/test/validat9.cpp
     src/test/validat10.cpp
     src/test/validat_cve_2024_28285.cpp
+    src/test/validat11.cpp
     src/test/regtest1.cpp
     src/test/regtest2.cpp
     src/test/regtest3.cpp
@@ -377,6 +387,8 @@ set(cryptopp_HEADERS
     include/cryptopp/md4.h
     include/cryptopp/md5.h
     include/cryptopp/mdc.h
+    include/cryptopp/mldsa.h
+    include/cryptopp/mlkem.h
     include/cryptopp/mersenne.h
     include/cryptopp/misc.h
     include/cryptopp/modarith.h
@@ -432,6 +444,7 @@ set(cryptopp_HEADERS
     include/cryptopp/shacal2.h
     include/cryptopp/shake.h
     include/cryptopp/shark.h
+    include/cryptopp/slhdsa.h
     include/cryptopp/simeck.h
     include/cryptopp/simon.h
     include/cryptopp/simple.h
@@ -460,6 +473,7 @@ set(cryptopp_HEADERS
     include/cryptopp/xed25519.h
     include/cryptopp/xtr.h
     include/cryptopp/xtrcrypt.h
+    include/cryptopp/xwing.h
     include/cryptopp/xts.h
     include/cryptopp/zdeflate.h
     include/cryptopp/zinflate.h

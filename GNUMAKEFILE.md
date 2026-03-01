@@ -45,6 +45,9 @@ sudo make install PREFIX=/usr/local
 # Build with static linking (no DLL dependencies)
 mingw32-make.exe -j10 static-exe
 
+# Release build (small binaries, no debug symbols)
+mingw32-make.exe -j10 BUILD=release
+
 # Or build with explicit flags
 mingw32-make.exe -j10 LDFLAGS="-static -static-libgcc -static-libstdc++"
 
@@ -115,27 +118,34 @@ mingw32-make.exe -j10 LDFLAGS="-static -static-libgcc -static-libstdc++"
 | `BINDIR` | `$(PREFIX)/bin` | Binary installation directory |
 | `DATADIR` | `$(PREFIX)/share` | Data installation directory |
 
-## Build Examples
+## Build Types
 
-### Basic Build
+The `BUILD` variable controls optimization and debug symbol settings:
 
 ```bash
-# Default build (Release, with debug symbols)
-make
-
-# Parallel build
+# Release with debug info (default) - optimized with debug symbols
 make -j$(nproc)
+make -j$(nproc) BUILD=relwithdebinfo
+
+# Release - optimized, no debug symbols (smallest binaries)
+make -j$(nproc) BUILD=release
+
+# Debug - no optimization, debug symbols, assertions enabled
+make -j$(nproc) BUILD=debug
 ```
 
-### Debug Build
+| Build Type | Optimization | Debug Symbols | Define | Use Case |
+|------------|-------------|---------------|--------|----------|
+| `relwithdebinfo` (default) | `-O3` | `-g2` | `-DNDEBUG` | Development and debugging |
+| `release` | `-O3` | none | `-DNDEBUG` | Production deployment |
+| `debug` | `-O0` | `-g2` | `-DDEBUG` | Debugging and diagnostics |
+
+You can also override flags manually:
+
+### Custom CXXFLAGS
 
 ```bash
 make CXXFLAGS="-g3 -O0 -DDEBUG"
-```
-
-### Release Build (No Debug Symbols)
-
-```bash
 make CXXFLAGS="-O3 -DNDEBUG"
 ```
 
@@ -303,7 +313,7 @@ The GNUmakefile automatically detects and enables CPU features:
 - PCLMUL (CLMUL)
 - SHA-NI
 
-**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way) and AVX2 (8-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2).
+**BLAKE3 Parallel Hashing**: BLAKE3 uses SSE4.1 (4-way), AVX2 (8-way), and AVX-512 (16-way) parallel chunk processing for high performance (~2500 MiB/s with AVX2, ~4000+ MiB/s with AVX-512).
 
 ### ARM
 - NEON

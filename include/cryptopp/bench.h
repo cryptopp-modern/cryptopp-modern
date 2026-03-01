@@ -51,15 +51,17 @@ enum TestClass {
 	PublicKeyOtherEC=(1<<14),
 	/// \brief Key derivation functions (Argon2, etc.)
 	KeyDerivation=(1<<15),
+	/// \brief Post-Quantum Cryptography (FIPS 203, 204, 205)
+	PostQuantum=(1<<16),
 
 	Unkeyed=UnkeyedRNG|UnkeyedHash|UnkeyedOther,
 	SharedKey=SharedKeyMAC|SharedKeyStream|SharedKeyBlock|SharedKeyOther,
 	PublicKey=PublicKeyAgreement|PublicKeyEncryption|PublicKeySignature|PublicKeyOther,
 	PublicKeyEC=PublicKeyAgreementEC|PublicKeyEncryptionEC|PublicKeySignatureEC|PublicKeyOtherEC,
 
-	All=Unkeyed|SharedKey|PublicKey|PublicKeyEC|KeyDerivation,
+	All=Unkeyed|SharedKey|PublicKey|PublicKeyEC|KeyDerivation|PostQuantum,
 
-	TestFirst=(0), TestLast=(1<<16)
+	TestFirst=(0), TestLast=(1<<17)
 };
 
 extern const double CLOCK_TICKS_PER_SECOND;
@@ -87,6 +89,8 @@ void BenchmarkPublicKeyAlgorithms(double t, double hertz);
 void BenchmarkEllipticCurveAlgorithms(double t, double hertz);
 // Password hashing / key derivation functions
 void BenchmarkArgon2(double t, double hertz);
+// Post-Quantum Cryptography (FIPS 203, 204, 205)
+void BenchmarkPostQuantumAlgorithms(double t, double hertz);
 
 // These are defined in bench1.cpp
 extern void OutputResultKeying(double iterations, double timeTaken);

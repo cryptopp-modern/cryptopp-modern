@@ -358,6 +358,8 @@ void BenchmarkWithCommand(int argc, const char* const argv[])
 
 	if (command == "b")  // All benchmarks
 		Benchmark(Test::All, runningTime, cpuFreq);
+	else if (command == "b5")  // Post-Quantum Cryptography (FIPS 203, 204, 205)
+		Test::Benchmark(Test::PostQuantum, runningTime, cpuFreq);
 	else if (command == "b4")  // Public key algorithms over EC
 		Test::Benchmark(Test::PublicKeyEC, runningTime, cpuFreq);
 	else if (command == "b3")  // Public key algorithms
@@ -431,6 +433,16 @@ void Benchmark(Test::TestClass suites, double t, double hertz)
 		count_breaks++;
 
 		BenchmarkArgon2(t, hertz);
+	}
+
+	// Post-Quantum Cryptography
+	if (suites & Test::PostQuantum)
+	{
+		if (count_breaks)
+			std::cout << "\n<BR>";
+		count_breaks++;
+
+		BenchmarkPostQuantumAlgorithms(t, hertz);
 	}
 
 	g_testEnd = ::time(NULLPTR);

@@ -249,6 +249,10 @@
     <ClCompile Include="src\symmetric\skipjack.cpp" />
     <ClCompile Include="src\core\sse_simd.cpp" />
     <ClCompile Include="src\core\strciphr.cpp" />
+    <ClCompile Include="src\pqc\mldsa.cpp" />
+    <ClCompile Include="src\pqc\mlkem.cpp" />
+    <ClCompile Include="src\pqc\slhdsa.cpp" />
+    <ClCompile Include="src\pqc\xwing.cpp" />
   </ItemGroup>
   <!-- Header Files -->
   <ItemGroup>
@@ -300,6 +304,8 @@
     <ClInclude Include="include\cryptopp\integer.h" />
     <ClInclude Include="include\cryptopp\iterhash.h" />
     <ClInclude Include="include\cryptopp\mdc.h" />
+    <ClInclude Include="include\cryptopp\mldsa.h" />
+    <ClInclude Include="include\cryptopp\mlkem.h" />
     <ClInclude Include="include\cryptopp\misc.h" />
     <ClInclude Include="include\cryptopp\modarith.h" />
     <ClInclude Include="include\cryptopp\modes.h" />
@@ -325,11 +331,13 @@
     <ClInclude Include="include\cryptopp\sha.h" />
     <ClInclude Include="include\cryptopp\simple.h" />
     <ClInclude Include="include\cryptopp\skipjack.h" />
+    <ClInclude Include="include\cryptopp\slhdsa.h" />
     <ClInclude Include="include\cryptopp\smartptr.h" />
     <ClInclude Include="include\cryptopp\stdcpp.h" />
     <ClInclude Include="include\cryptopp\strciphr.h" />
     <ClInclude Include="include\cryptopp\trap.h" />
     <ClInclude Include="include\cryptopp\words.h" />
+    <ClInclude Include="include\cryptopp\xwing.h" />
   </ItemGroup>
   <!-- Back to Visual Studio boilerplate -->
   <ItemGroup>

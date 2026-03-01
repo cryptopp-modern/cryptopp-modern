@@ -100,13 +100,6 @@ jobs:
     - name: Run validation tests
       run: ./build/ci-linux/cryptest.exe v
 
-    - name: Run BLAKE3 benchmark
-      run: |
-        cd build/ci-linux
-        echo "=== BLAKE3 Benchmark ==="
-        ./cryptest.exe b 3 4.0 blake3
-        echo ""
-
     - name: Run test vectors
       run: ./build/ci-linux/cryptest.exe tv all
 

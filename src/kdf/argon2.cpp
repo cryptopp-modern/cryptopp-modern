@@ -28,6 +28,7 @@ using CryptoPP::GetWord;
 using CryptoPP::PutWord;
 using CryptoPP::LITTLE_ENDIAN_ORDER;
 using CryptoPP::AlignedSecByteBlock;
+using CryptoPP::SecureWipeBuffer;
 using CryptoPP::BLAKE2b;
 
 // Argon2 constants
@@ -114,6 +115,7 @@ inline void Blake2bLong(byte* out, word32 outlen, const byte* in, word32 inlen)
         BLAKE2b blake_final(false, toproduce);
         blake_final.Update(out_buffer, 64);
         blake_final.TruncatedFinal(out, toproduce);
+        SecureWipeBuffer(out_buffer, sizeof(out_buffer));
     }
 }
 
@@ -305,6 +307,9 @@ inline void FillFirstBlocks(Block* blocks, const byte* h0, word32 lane)
     Blake2bLong(blockhash, 1024, temp, 72);
     for (word32 i = 0; i < ARGON2_QWORDS_IN_BLOCK; ++i)
         blocks[1].v[i] = Load64(blockhash + i * 8);
+
+    SecureWipeBuffer(temp, sizeof(temp));
+    SecureWipeBuffer(blockhash, sizeof(blockhash));
 }
 
 /// \brief Compute reference block index for Argon2i and Argon2id
@@ -474,18 +479,19 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen, const byte *password,
 
     // Extract parameters and make local copies since m_temp is reused
     ConstByteArrayParameter saltParam, secretParam, associatedDataParam;
-    std::string saltCopy, secretCopy, associatedDataCopy;
+    std::string saltCopy, associatedDataCopy;
+    SecByteBlock secretCopy;
 
     if (params.GetValue("Salt", saltParam))
         saltCopy.assign((const char*)saltParam.begin(), saltParam.size());
     if (params.GetValue("Secret", secretParam))
-        secretCopy.assign((const char*)secretParam.begin(), secretParam.size());
+        secretCopy.Assign(secretParam.begin(), secretParam.size());
     if (params.GetValue("AssociatedData", associatedDataParam))
         associatedDataCopy.assign((const char*)associatedDataParam.begin(), associatedDataParam.size());
 
     return DeriveKey(derived, derivedLen, password, passwordLen,
         (const byte*)saltCopy.data(), saltCopy.size(), timeCost, memoryCost, parallelism,
-        (const byte*)secretCopy.data(), secretCopy.size(),
+        secretCopy.data(), secretCopy.size(),
         (const byte*)associatedDataCopy.data(), associatedDataCopy.size());
 }
 
@@ -533,6 +539,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
     {
         FillFirstBlocks(memory + lane * laneLength, h0, lane);
     }
+    SecureWipeBuffer(h0, sizeof(h0));
 
     // Process all passes
     for (word32 pass = 0; pass < timeCost; ++pass)
@@ -653,6 +660,9 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
         Store64(blockhash + i * 8, finalBlock.v[i]);
 
     Blake2bLong(derived, static_cast<word32>(derivedLen), blockhash, ARGON2_BLOCK_SIZE);
+
+    SecureWipeBuffer(blockhash, sizeof(blockhash));
+    SecureWipeBuffer(reinterpret_cast<byte*>(&finalBlock), sizeof(finalBlock));
 
     return timeCost;
 }

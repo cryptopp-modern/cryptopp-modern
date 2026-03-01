@@ -15,6 +15,8 @@ Quick start guide with practical examples to get you up and running with cryptop
   - [Message Authentication](#message-authentication)
   - [Random Number Generation](#random-number-generation)
   - [Digital Signatures](#digital-signatures)
+  - [Post-Quantum Digital Signatures](#post-quantum-digital-signatures)
+  - [Post-Quantum Key Encapsulation](#post-quantum-key-encapsulation)
   - [Key Exchange](#key-exchange)
 - [Building Your Application](#building-your-application)
 - [Next Steps](#next-steps)
@@ -113,8 +115,8 @@ The GNUmakefile provides a straightforward Make-based build, suitable for classi
 
 ```bash
 # Download latest release
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.2.0/cryptopp-modern-2026.2.0.zip
-unzip cryptopp-modern-2026.2.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.3.0/cryptopp-modern-2026.3.0.zip
+unzip cryptopp-modern-2026.3.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -127,8 +129,8 @@ sudo ldconfig
 
 ```bash
 # Download and extract
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.2.0/cryptopp-modern-2026.2.0.zip
-unzip cryptopp-modern-2026.2.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.3.0/cryptopp-modern-2026.3.0.zip
+unzip cryptopp-modern-2026.3.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -139,11 +141,14 @@ sudo make install PREFIX=/usr/local
 #### Windows (MinGW)
 
 ```bash
-# Download and extract cryptopp-modern-2026.2.0.zip
+# Download and extract cryptopp-modern-2026.3.0.zip
 # Open MinGW terminal in extracted folder
 
 # Build
 mingw32-make.exe -j10
+
+# Release build (small binaries, no debug symbols)
+mingw32-make.exe -j10 BUILD=release
 ```
 
 ---
@@ -152,7 +157,7 @@ mingw32-make.exe -j10
 
 Visual Studio provides native Windows development with full IDE support, debugging, and IntelliSense.
 
-1. Download and extract cryptopp-modern-2026.2.0.zip
+1. Download and extract cryptopp-modern-2026.3.0.zip
 2. Open `cryptest.sln` in Visual Studio
 3. Build → Build Solution (Ctrl+Shift+B)
 
@@ -170,7 +175,7 @@ git clone https://github.com/cryptopp-modern/cryptopp-modern.git
 cd cryptopp-modern
 
 # Build
-nmake /f makefile.nmake
+nmake /f cryptest.nmake
 
 # Run tests
 cryptest.exe v
@@ -612,6 +617,115 @@ int main() {
 
 ---
 
+### Post-Quantum Digital Signatures
+
+**Use when:** Future-proof digital signatures resistant to quantum computer attacks
+
+#### ML-DSA (FIPS 204) - Recommended for Post-Quantum
+
+```cpp
+#include <cryptopp/mldsa.h>
+#include <cryptopp/osrng.h>
+#include <iostream>
+
+int main() {
+    CryptoPP::AutoSeededRandomPool rng;
+
+    // Generate key pair (ML-DSA-65 provides 192-bit security)
+    CryptoPP::MLDSASigner<CryptoPP::MLDSA_65> signer(rng);
+
+    // Create verifier from signer's public key
+    CryptoPP::MLDSAVerifier<CryptoPP::MLDSA_65> verifier(signer);
+
+    // Sign a message
+    std::string message = "Important document for post-quantum era";
+    CryptoPP::SecByteBlock signature(signer.SignatureLength());
+
+    size_t sigLen = signer.SignMessage(rng,
+        reinterpret_cast<const CryptoPP::byte*>(message.data()),
+        message.size(), signature.begin());
+
+    std::cout << "Message signed with ML-DSA-65" << std::endl;
+    std::cout << "Signature size: " << sigLen << " bytes" << std::endl;
+
+    // Verify signature
+    bool valid = verifier.VerifyMessage(
+        reinterpret_cast<const CryptoPP::byte*>(message.data()),
+        message.size(), signature.begin(), sigLen);
+
+    if (valid) {
+        std::cout << "Signature verified: Message is authentic" << std::endl;
+    } else {
+        std::cout << "Signature verification failed" << std::endl;
+    }
+
+    return 0;
+}
+```
+
+**Available parameter sets:**
+| Parameter Set | Security Level | Public Key | Signature |
+|--------------|----------------|------------|-----------|
+| `MLDSA_44` | Level 2 (128-bit) | 1,312 bytes | 2,420 bytes |
+| `MLDSA_65` | Level 3 (192-bit) | 1,952 bytes | 3,309 bytes |
+| `MLDSA_87` | Level 5 (256-bit) | 2,592 bytes | 4,627 bytes |
+
+---
+
+### Post-Quantum Key Encapsulation
+
+**Use when:** Quantum-resistant key exchange for establishing shared secrets
+
+#### ML-KEM (FIPS 203)
+
+```cpp
+#include <cryptopp/mlkem.h>
+#include <cryptopp/osrng.h>
+#include <iostream>
+
+int main() {
+    CryptoPP::AutoSeededRandomPool rng;
+
+    // Recipient generates key pair (ML-KEM-768 provides 192-bit security)
+    CryptoPP::MLKEM768::Decapsulator decapsulator(rng);
+
+    // Sender creates encapsulator from recipient's public key
+    CryptoPP::MLKEM768::Encapsulator encapsulator(
+        decapsulator.GetKey().GetPublicKeyBytePtr(),
+        decapsulator.GetKey().GetPublicKeySize());
+
+    // Sender encapsulates: generates ciphertext and shared secret
+    CryptoPP::SecByteBlock ciphertext(encapsulator.CiphertextLength());
+    CryptoPP::SecByteBlock sharedSecret1(encapsulator.SharedSecretLength());
+    encapsulator.Encapsulate(rng, ciphertext.begin(), sharedSecret1.begin());
+
+    std::cout << "Encapsulated shared secret" << std::endl;
+    std::cout << "Ciphertext size: " << ciphertext.size() << " bytes" << std::endl;
+
+    // Recipient decapsulates: recovers shared secret from ciphertext
+    CryptoPP::SecByteBlock sharedSecret2(decapsulator.SharedSecretLength());
+    decapsulator.Decapsulate(ciphertext.begin(), sharedSecret2.begin());
+
+    // Both parties now have the same shared secret
+    if (sharedSecret1 == sharedSecret2) {
+        std::cout << "Key exchange successful!" << std::endl;
+        std::cout << "Shared secret size: " << sharedSecret1.size() << " bytes" << std::endl;
+        // Use sharedSecret as encryption key
+    }
+
+    return 0;
+}
+```
+
+**Available parameter sets:**
+| Parameter Set | Security Level | Public Key | Ciphertext |
+|--------------|----------------|------------|------------|
+| `MLKEM512` | Level 1 (128-bit) | 800 bytes | 768 bytes |
+| `MLKEM768` | Level 3 (192-bit) | 1,184 bytes | 1,088 bytes |
+| `MLKEM1024` | Level 5 (256-bit) | 1,568 bytes | 1,568 bytes |
+
+---
+
 ### Key Exchange
 
 **Use when:** Establishing secure channels, TLS-like protocols
@@ -763,6 +877,7 @@ cryptopp-modern includes:
 - **Symmetric Encryption:** AES, ChaCha20, Serpent, Twofish, Camellia, ARIA
 - **Modes:** GCM, CCM, EAX, CBC, CTR, CFB, OFB
 - **Public Key:** RSA, DSA, ECDSA, Ed25519, Diffie-Hellman, ECIES, ElGamal
+- **Post-Quantum:** ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing
 - **Key Derivation:** Argon2, PBKDF2, HKDF, Scrypt
 - **MACs:** HMAC, CMAC, GMAC, Poly1305
 

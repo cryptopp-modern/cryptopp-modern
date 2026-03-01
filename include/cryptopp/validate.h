@@ -157,6 +157,12 @@ bool ValidateX25519();
 bool ValidateEd25519();
 bool ValidateNaCl();
 
+// Post-Quantum Cryptography (FIPS 203, 204, 205)
+bool ValidateMLKEM();
+bool ValidateMLDSA();
+bool ValidateSLHDSA();
+bool ValidateXWing();
+
 // If CRYPTOPP_DEBUG or CRYPTOPP_COVERAGE is in effect, then perform additional tests
 #if (defined(CRYPTOPP_DEBUG) || defined(CRYPTOPP_COVERAGE)) && !defined(CRYPTOPP_IMPORTS)
 # define CRYPTOPP_EXTENDED_VALIDATION 1

@@ -41,6 +41,12 @@
 #include <cryptopp/stdcpp.h>
 #include <cryptopp/hrtimer.h>
 
+// Post-Quantum Cryptography (FIPS 203, 204, 205)
+#include <cryptopp/mlkem.h>
+#include <cryptopp/mldsa.h>
+#include <cryptopp/slhdsa.h>
+#include <cryptopp/xwing.h>
+
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(disable: 4505 4355)
 #endif
@@ -298,6 +304,243 @@ void BenchMarkKeyAgreement(const char *filename, const char *name, double timeTo
 	D d(f);
 	BenchMarkKeyGen(name, d, timeTotal);
 	BenchMarkAgreement(name, d, timeTotal);
+}
+
+// ******************** Post-Quantum Cryptography Benchmarks ************************* //
+
+template <class PARAMS>
+void BenchMarkMLKEM(const char *name, double timeTotal)
+{
+	// Generate key pair
+	MLKEMDecapsulator<PARAMS> decapsulator(Test::GlobalRNG());
+	MLKEMEncapsulator<PARAMS> encapsulator(
+		decapsulator.GetKey().GetPublicKeyBytePtr(),
+		decapsulator.GetKey().GetPublicKeySize());
+
+	SecByteBlock ciphertext(encapsulator.CiphertextLength());
+	SecByteBlock sharedSecret(encapsulator.SharedSecretLength());
+
+	// Benchmark encapsulation
+	{
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			encapsulator.Encapsulate(Test::GlobalRNG(), ciphertext, sharedSecret);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Encapsulation", false, i, timeTaken);
+	}
+
+	// Benchmark decapsulation
+	{
+		encapsulator.Encapsulate(Test::GlobalRNG(), ciphertext, sharedSecret);
+
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			decapsulator.Decapsulate(ciphertext, sharedSecret);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Decapsulation", false, i, timeTaken);
+	}
+}
+
+template <class PARAMS>
+void BenchMarkMLDSA(const char *name, double timeTotal)
+{
+	MLDSASigner<PARAMS> signer(Test::GlobalRNG());
+	MLDSAVerifier<PARAMS> verifier(signer);
+
+	unsigned int len = 16;
+	AlignedSecByteBlock message(len), signature(signer.SignatureLength());
+	Test::GlobalRNG().GenerateBlock(message, len);
+
+	// Benchmark signing
+	{
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			signer.SignMessage(Test::GlobalRNG(), message, len, signature);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Signature", false, i, timeTaken);
+	}
+
+	// Benchmark verification
+	{
+		signer.SignMessage(Test::GlobalRNG(), message, len, signature);
+
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			verifier.VerifyMessage(message, len, signature, signature.size());
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Verification", false, i, timeTaken);
+	}
+}
+
+template <class PARAMS>
+void BenchMarkSLHDSA(const char *name, double timeTotal)
+{
+	SLHDSASigner<PARAMS> signer(Test::GlobalRNG());
+	SLHDSAVerifier<PARAMS> verifier(signer);
+
+	unsigned int len = 16;
+	AlignedSecByteBlock message(len), signature(signer.SignatureLength());
+	Test::GlobalRNG().GenerateBlock(message, len);
+
+	// Benchmark signing
+	{
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			signer.SignMessage(Test::GlobalRNG(), message, len, signature);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Signature", false, i, timeTaken);
+	}
+
+	// Benchmark verification
+	{
+		signer.SignMessage(Test::GlobalRNG(), message, len, signature);
+
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			verifier.VerifyMessage(message, len, signature, signature.size());
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Verification", false, i, timeTaken);
+	}
+}
+
+void BenchMarkXWing(const char *name, double timeTotal)
+{
+	// Generate key pair
+	XWingDecapsulator decapsulator(Test::GlobalRNG());
+
+	// Get public key
+	SecByteBlock pubKey(XWING_Constants::PUBLIC_KEY_SIZE);
+	decapsulator.GetKey().GetPublicKey(pubKey);
+
+	XWingEncapsulator encapsulator(pubKey.begin(), pubKey.size());
+
+	SecByteBlock ciphertext(encapsulator.CiphertextLength());
+	SecByteBlock sharedSecret(encapsulator.SharedSecretLength());
+
+	// Benchmark encapsulation
+	{
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			encapsulator.Encapsulate(Test::GlobalRNG(), ciphertext, sharedSecret);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Encapsulation", false, i, timeTaken);
+	}
+
+	// Benchmark decapsulation
+	{
+		encapsulator.Encapsulate(Test::GlobalRNG(), ciphertext, sharedSecret);
+
+		unsigned int i = 0;
+		double timeTaken;
+		ThreadUserTimer timer;
+		timer.StartTimer();
+
+		do {
+			decapsulator.Decapsulate(ciphertext, sharedSecret);
+			++i;
+			timeTaken = timer.ElapsedTimeAsDouble();
+		} while (timeTaken < timeTotal);
+
+		OutputResultOperations(name, "C++", "Decapsulation", false, i, timeTaken);
+	}
+}
+
+void BenchmarkPostQuantumAlgorithms(double t, double hertz)
+{
+	g_allocatedTime = t;
+	g_hertz = hertz;
+
+	const char *mco;
+	if (g_hertz > 1.0f)
+		mco = "<TH>Megacycles/Operation";
+	else
+		mco = "";
+
+	std::cout << "\n<TABLE>";
+	std::cout << "\n<COLGROUP><COL style=\"text-align: left;\"><COL style=";
+	std::cout << "\"text-align: right;\"><COL style=\"text-align: right;\">";
+	std::cout << "\n<THEAD style=\"background: #F0F0F0\">";
+	std::cout << "\n<TR><TH>Operation<TH>Milliseconds/Operation" << mco;
+
+	// ML-KEM (FIPS 203)
+	std::cout << "\n<TBODY style=\"background: white;\">";
+	{
+		BenchMarkMLKEM<MLKEM_512>("ML-KEM-512", t);
+		BenchMarkMLKEM<MLKEM_768>("ML-KEM-768", t);
+		BenchMarkMLKEM<MLKEM_1024>("ML-KEM-1024", t);
+	}
+
+	// ML-DSA (FIPS 204)
+	std::cout << "\n<TBODY style=\"background: yellow;\">";
+	{
+		BenchMarkMLDSA<MLDSA_44>("ML-DSA-44", t);
+		BenchMarkMLDSA<MLDSA_65>("ML-DSA-65", t);
+		BenchMarkMLDSA<MLDSA_87>("ML-DSA-87", t);
+	}
+
+	// SLH-DSA (FIPS 205) - fast variants only
+	std::cout << "\n<TBODY style=\"background: white;\">";
+	{
+		BenchMarkSLHDSA<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f", t);
+		BenchMarkSLHDSA<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f", t);
+	}
+
+	// X-Wing (Hybrid KEM)
+	std::cout << "\n<TBODY style=\"background: yellow;\">";
+	{
+		BenchMarkXWing("X-Wing", t);
+	}
+
+	std::cout << "\n</TABLE>" << std::endl;
 }
 
 void BenchmarkPublicKeyAlgorithms(double t, double hertz)

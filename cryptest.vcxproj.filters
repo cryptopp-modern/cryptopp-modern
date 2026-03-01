@@ -228,6 +228,18 @@
     <Text Include="TestVectors\whrlpool.txt">
       <Filter>TestVectors</Filter>
     </Text>
+    <Text Include="TestVectors\mlkem.txt">
+      <Filter>TestVectors</Filter>
+    </Text>
+    <Text Include="TestVectors\mldsa.txt">
+      <Filter>TestVectors</Filter>
+    </Text>
+    <Text Include="TestVectors\slhdsa.txt">
+      <Filter>TestVectors</Filter>
+    </Text>
+    <Text Include="TestVectors\xwing.txt">
+      <Filter>TestVectors</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <!-- Begin Test Data -->
@@ -512,6 +524,9 @@
     <ClCompile Include="fipsalgt.cpp">
       <Filter>Source Code</Filter>
     </ClCompile>
+    <ClCompile Include="src\test\validat11.cpp">
+      <Filter>Source Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bench.h">
@@ -521,6 +536,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="validate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cryptopp\mlkem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cryptopp\mldsa.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cryptopp\slhdsa.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cryptopp\xwing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,25 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2026.3.0 - March 2026
+      - major release, recompile of programs required
+      - added post-quantum cryptography (PQC) implementations
+        * ML-KEM (FIPS 203) key encapsulation (512/768/1024)
+        * ML-DSA (FIPS 204) digital signatures (44/65/87)
+        * SLH-DSA (FIPS 205) hash-based signatures (all 12 parameter sets)
+        * X-Wing hybrid KEM (X25519 + ML-KEM-768, IETF draft)
+      - added ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
+      - added PQC validation tests and NIST ACVP test vectors
+      - added PQC benchmarks for all algorithms
+      - updated build systems for PQC sources
+        * GNUmakefile, nmake, Visual Studio project files
+
+2026.2.1 - February 2026
+      - minor release
+      - fixed DSA/ECDSA invalid signature (r=0 or s=0) in release builds
+        * probabilistic signatures retry with fresh random k (Issue #1342)
+        * deterministic signatures (RFC 6979) abort with exception
+
 2026.2.0 - February 2026
       - security release
       - fixed CVE-2024-28285: Hardened hybrid DL decryption (ElGamal, ECIES, DLIES)
