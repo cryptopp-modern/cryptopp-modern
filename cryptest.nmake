@@ -117,7 +117,7 @@ LIB_SRCS = \
     src\symmetric\wake.cpp src\hash\whrlpool.cpp src\pubkey\xed25519.cpp \
     src\pubkey\xtr.cpp src\pubkey\xtrcrypt.cpp src\modes\xts.cpp \
     src\encoding\zdeflate.cpp src\encoding\zinflate.cpp src\encoding\zlib.cpp \
-    src\pqc\mldsa.cpp src\pqc\mlkem.cpp src\pqc\slhdsa.cpp src\pqc\xwing.cpp
+    src\pqc\mldsa.cpp src\pqc\mlkem.cpp src\pqc\slhdsa.cpp src\pqc\stateful.cpp src\pqc\xwing.cpp
 
 LIB_OBJS = \
     cryptlib.obj cpu.obj integer.obj 3way.obj adler32.obj algebra.obj \
@@ -149,7 +149,7 @@ LIB_OBJS = \
     threefish.obj tiger.obj tigertab.obj ttmac.obj tweetnacl.obj twofish.obj \
     vmac.obj wake.obj whrlpool.obj xed25519.obj xtr.obj xtrcrypt.obj xts.obj \
     zdeflate.obj zinflate.obj zlib.obj \
-    mldsa.obj mlkem.obj slhdsa.obj xwing.obj
+    mldsa.obj mlkem.obj slhdsa.obj stateful.obj xwing.obj
 
 ASM_OBJS = \
     cpuid64.obj rdrand-x86.obj rdrand-x64.obj rdseed-x86.obj rdseed-x64.obj \
