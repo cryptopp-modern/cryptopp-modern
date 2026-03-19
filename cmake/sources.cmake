@@ -235,6 +235,7 @@ set(cryptopp_SOURCES_PQC
     src/pqc/mldsa.cpp
     src/pqc/mlkem.cpp
     src/pqc/slhdsa.cpp
+    src/pqc/stateful.cpp
     src/pqc/xwing.cpp
 )
 
@@ -456,6 +457,7 @@ set(cryptopp_HEADERS
     include/cryptopp/sosemanuk.h
     include/cryptopp/speck.h
     include/cryptopp/square.h
+    include/cryptopp/stateful.h
     include/cryptopp/stdcpp.h
     include/cryptopp/strciphr.h
     include/cryptopp/tea.h

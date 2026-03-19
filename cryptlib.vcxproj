@@ -366,6 +366,7 @@
     <ClCompile Include="src\pqc\mldsa.cpp" />
     <ClCompile Include="src\pqc\mlkem.cpp" />
     <ClCompile Include="src\pqc\slhdsa.cpp" />
+    <ClCompile Include="src\pqc\stateful.cpp" />
     <ClCompile Include="src\pqc\xwing.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -588,6 +589,7 @@
     <ClInclude Include="include\cryptopp\sosemanuk.h" />
     <ClInclude Include="include\cryptopp\speck.h" />
     <ClInclude Include="include\cryptopp\square.h" />
+    <ClInclude Include="include\cryptopp\stateful.h" />
     <ClInclude Include="include\cryptopp\stdcpp.h" />
     <ClInclude Include="include\cryptopp\strciphr.h" />
     <ClInclude Include="include\cryptopp\tea.h" />

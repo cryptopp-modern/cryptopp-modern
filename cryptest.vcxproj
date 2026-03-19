@@ -237,6 +237,7 @@
     <ClInclude Include="include\cryptopp\mlkem.h" />
     <ClInclude Include="include\cryptopp\mldsa.h" />
     <ClInclude Include="include\cryptopp\slhdsa.h" />
+    <ClInclude Include="include\cryptopp\stateful.h" />
     <ClInclude Include="include\cryptopp\xwing.h" />
   </ItemGroup>
   <!-- Test Vectors -->

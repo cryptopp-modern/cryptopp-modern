@@ -547,6 +547,9 @@
     <ClInclude Include="include\cryptopp\slhdsa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\cryptopp\stateful.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\cryptopp\xwing.h">
       <Filter>Header Files</Filter>
     </ClInclude>

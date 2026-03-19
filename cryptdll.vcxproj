@@ -252,6 +252,7 @@
     <ClCompile Include="src\pqc\mldsa.cpp" />
     <ClCompile Include="src\pqc\mlkem.cpp" />
     <ClCompile Include="src\pqc\slhdsa.cpp" />
+    <ClCompile Include="src\pqc\stateful.cpp" />
     <ClCompile Include="src\pqc\xwing.cpp" />
   </ItemGroup>
   <!-- Header Files -->
@@ -333,6 +334,7 @@
     <ClInclude Include="include\cryptopp\skipjack.h" />
     <ClInclude Include="include\cryptopp\slhdsa.h" />
     <ClInclude Include="include\cryptopp\smartptr.h" />
+    <ClInclude Include="include\cryptopp\stateful.h" />
     <ClInclude Include="include\cryptopp\stdcpp.h" />
     <ClInclude Include="include\cryptopp\strciphr.h" />
     <ClInclude Include="include\cryptopp\trap.h" />
