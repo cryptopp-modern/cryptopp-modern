@@ -9,6 +9,7 @@
 #include <cryptopp/secblock.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/hex.h>
+#include <cryptopp/filters.h>
 
 #include <cryptopp/mlkem.h>
 #include <cryptopp/mldsa.h>
@@ -946,6 +947,115 @@ static bool TestLMSStoreContract()
 	}
 }
 
+// ******************** NIST ACVP Known-Answer Tests ************************* //
+
+static bool HexDecode(const char *hexStr, byte *out, size_t outLen)
+{
+	std::string decoded;
+	StringSource ss(hexStr, true, new HexDecoder(new StringSink(decoded)));
+	if (decoded.size() != outLen)
+		return false;
+	std::memcpy(out, decoded.data(), outLen);
+	return true;
+}
+
+static bool TestLMSKeyGenKAT()
+{
+	const char *name = "LMS ACVP keyGen KAT";
+
+	// NIST ACVP test vectors: LMS_SHA256_M32_H5 + LMOTS_SHA256_N32_W8
+	// Source: https://github.com/usnistgov/ACVP-Server (tgId=24, tcId 76-80)
+	struct KeyGenVector {
+		const char *seed;
+		const char *identifier;
+		const char *expectedPubKey;
+	};
+
+	static const KeyGenVector vectors[] = {
+		{  // tcId 76
+			"A2800F6DEA71A09BAA024F2EB15B34C3E8F42D15BF9818B6D3F8D74C40F5A99D",
+			"DC4C502EF70640EBA7D9F611FC66E5A9",
+			"0000000500000004DC4C502EF70640EBA7D9F611FC66E5A9"
+			"335A168B6EA2683E86A8CC2C1173A7A5E120505DE4BAB2E2F0D1B889C486D47F"
+		},
+		{  // tcId 77
+			"473B07B6DF33B2C6F5FC46E5FF60543CBCDAACAD4888F9C2A607C7CF3A469281",
+			"CA82E320FC0B289A18B563AA923F6C7D",
+			"0000000500000004CA82E320FC0B289A18B563AA923F6C7D"
+			"F732C8C157411BA98467FEB47A84D82B60AB43B5E3DB0C295B90FF014C412C47"
+		},
+		{  // tcId 78
+			"FE58EFFD83E9BC5015CDBD1340820C60FE783C3C9E73906FB61074D76549702D",
+			"353FE1F380D61D2DCB55489CA4359B90",
+			"0000000500000004353FE1F380D61D2DCB55489CA4359B90"
+			"BFF9E93AC19537665468D95EA174E97D32FD5EFC7BFB826964427B7A8790C063"
+		},
+		{  // tcId 79
+			"5783FF509B34BAD7D6B9ED9BC4180BB77C5E7563302919ECBEB521EB73CAEC21",
+			"9E731302EEA25A573A902D6AD6A350F3",
+			"00000005000000049E731302EEA25A573A902D6AD6A350F3"
+			"52F3530C0BA3B0BE86FE96C51A60944D111154C3184E9B6D9BDC96D2F6C5E89B"
+		},
+		{  // tcId 80
+			"1BF23A824BBEFEB15E685DCCEE01104B8C3A91AC3E7EFED5FDE8D85482EE97AB",
+			"69C9BAC6295EA92792BEC9E07BAC8E56",
+			"000000050000000469C9BAC6295EA92792BEC9E07BAC8E56"
+			"C64E36A5477133811AC931C33D7BFE0643B8C07DA99A66B36EC429BDADC46642"
+		}
+	};
+
+	try {
+		AutoSeededRandomPool rng;
+		unsigned int passed = 0;
+
+		typedef LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> PubKeyType;
+		const size_t pkSize = PubKeyType::PUBLIC_KEY_SIZE;
+
+		for (size_t t = 0; t < 5; t++)
+		{
+			byte seed[32], ident[16];
+			SecByteBlock expectedPK(pkSize);
+
+			if (!HexDecode(vectors[t].seed, seed, 32) ||
+				!HexDecode(vectors[t].identifier, ident, 16) ||
+				!HexDecode(vectors[t].expectedPubKey, expectedPK, pkSize))
+			{
+				std::cout << "FAILED:  " << name << " tcId " << (76 + t) << " hex decode error" << std::endl;
+				return false;
+			}
+
+			LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> privKey;
+			privKey.SetPrivateKey(seed, 32, ident, 16);
+
+			PubKeyType pubKey;
+			privKey.MakePublicKey(pubKey);
+
+			if (pubKey.GetPublicKeyByteLength() != pkSize ||
+				!VerifyBufsEqual(pubKey.GetPublicKeyBytePtr(), expectedPK, pkSize))
+			{
+				std::cout << "FAILED:  " << name << " tcId " << (76 + t) << " public key mismatch" << std::endl;
+
+				// Print expected vs actual for debugging
+				std::string actualHex;
+				HexEncoder encoder(new StringSink(actualHex), false);
+				encoder.Put(pubKey.GetPublicKeyBytePtr(), pkSize);
+				encoder.MessageEnd();
+				std::cout << "  expected: " << vectors[t].expectedPubKey << std::endl;
+				std::cout << "  actual:   " << actualHex << std::endl;
+				return false;
+			}
+			passed++;
+		}
+
+		std::cout << "passed:  " << name << " (" << passed << "/5 vectors)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateLMS()
 {
 	std::cout << "\nLMS (SP 800-208) validation suite running...\n\n";
@@ -954,7 +1064,10 @@ bool ValidateLMS()
 	// Store contract tests
 	pass = TestLMSStoreContract() && pass;
 
-	// LMS-SHA256-M32-H5 / LMOTS-SHA256-N32-W8
+	// NIST ACVP known-answer tests
+	pass = TestLMSKeyGenKAT() && pass;
+
+	// Functional tests: LMS-SHA256-M32-H5 / LMOTS-SHA256-N32-W8
 	pass = TestLMSKeyGen<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
