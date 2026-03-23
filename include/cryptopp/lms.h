@@ -26,6 +26,7 @@
 #include <cryptopp/misc.h>
 #include <cryptopp/allocate.h>
 
+#include <cstring>
 #include <vector>
 
 NAMESPACE_BEGIN(CryptoPP)
@@ -142,6 +143,7 @@ struct LMS_MessageAccumulator : public PK_MessageAccumulator
 
     /// \brief Reset the accumulator
     void Restart() {
+        m_msg.clear();
         m_msg.reserve(RESERVE_SIZE);
         m_msg.resize(SIGNATURE_LENGTH);
     }
@@ -402,7 +404,6 @@ private:
     PrivateKeyType m_key;
     SignerStateStore *m_store;  // non-owning, caller manages lifetime
     SecByteBlock m_tree;        // precomputed Merkle tree (Stage 1)
-    bool m_treeComputed;
 };
 
 // ******************** LMS Scheme ************************* //

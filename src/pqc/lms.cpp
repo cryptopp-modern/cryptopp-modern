@@ -261,8 +261,8 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
 /// \brief Compute LMS leaf node hash
 /// \details leaf = H(I || u32str(r) || u16str(D_LEAF) || K)
 ///  where r = node number = 2^h + q, K = OTS public key for leaf q
-static void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
-                          const byte *K, unsigned int m)
+void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
+                   const byte *K, unsigned int m)
 {
     SHA256 hash;
     byte buf4[4], buf2[2];
@@ -278,9 +278,9 @@ static void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
 
 /// \brief Compute LMS internal node hash
 /// \details node = H(I || u32str(r) || u16str(D_INTR) || left || right)
-static void lms_interior_hash(byte *out, const byte *I, uint32_t r,
-                              const byte *left, const byte *right,
-                              unsigned int m)
+void lms_interior_hash(byte *out, const byte *I, uint32_t r,
+                       const byte *left, const byte *right,
+                       unsigned int m)
 {
     SHA256 hash;
     byte buf4[4], buf2[2];
@@ -418,7 +418,20 @@ bool LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::Validate(RandomNumberGenerator &rng, 
 {
     CRYPTOPP_UNUSED(rng);
     CRYPTOPP_UNUSED(level);
-    return m_pk.size() == PUBLIC_KEY_SIZE;
+    if (m_pk.size() != PUBLIC_KEY_SIZE)
+        return false;
+
+    // Verify embedded type IDs match the parameter set
+    using namespace LMS_Internal;
+    uint32_t lmsType = (static_cast<uint32_t>(m_pk[0]) << 24) |
+                       (static_cast<uint32_t>(m_pk[1]) << 16) |
+                       (static_cast<uint32_t>(m_pk[2]) << 8) |
+                       (static_cast<uint32_t>(m_pk[3]));
+    uint32_t otsType = (static_cast<uint32_t>(m_pk[4]) << 24) |
+                       (static_cast<uint32_t>(m_pk[5]) << 16) |
+                       (static_cast<uint32_t>(m_pk[6]) << 8) |
+                       (static_cast<uint32_t>(m_pk[7]));
+    return lmsType == LMS_PARAMS::TYPE_ID && otsType == OTS_PARAMS::TYPE_ID;
 }
 
 template <class LMS_PARAMS, class OTS_PARAMS>
@@ -481,13 +494,14 @@ void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::MakePublicKey(
     lms_compute_full_tree(tree, m_I, m_seed, lmsP, otsP);
 
     // Build public key: LMS type(4) + OTS type(4) + I(16) + T[1](m)
-    byte pkBuf[4 + 4 + 16 + 32];  // m=32 for SHA-256
+    const size_t pkLen = 4 + 4 + 16 + m;
+    SecByteBlock pkBuf(pkLen);
     u32str(pkBuf, LMS_PARAMS::TYPE_ID);
     u32str(pkBuf + 4, OTS_PARAMS::TYPE_ID);
     std::memcpy(pkBuf + 8, m_I, 16);
     std::memcpy(pkBuf + 24, tree + m, m);  // tree[1] = root
 
-    pub.SetPublicKey(pkBuf, sizeof(pkBuf));
+    pub.SetPublicKey(pkBuf, pkLen);
 
     SecureWipeBuffer(tree, tree.size());
 }
@@ -622,7 +636,7 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
 template <class LMS_PARAMS, class OTS_PARAMS>
 LMSSigner<LMS_PARAMS, OTS_PARAMS>::LMSSigner(
     const PrivateKeyType &key, SignerStateStore &store)
-    : m_key(key), m_store(&store), m_treeComputed(false)
+    : m_key(key), m_store(&store)
 {
     // Precompute the Merkle tree on first construction.
     // Stage 1 simplification: full tree stored in memory.
@@ -640,7 +654,6 @@ LMSSigner<LMS_PARAMS, OTS_PARAMS>::LMSSigner(
     m_tree.resize(static_cast<size_t>(numNodes) * m);
     lms_compute_full_tree(m_tree, key.GetIdentifierBytePtr(),
                           key.GetSeedBytePtr(), lmsP, otsP);
-    m_treeComputed = true;
 }
 
 template <class LMS_PARAMS, class OTS_PARAMS>
@@ -649,6 +662,11 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
     const byte *message, size_t messageLen,
     byte *signature)
 {
+    if (!signature)
+        throw InvalidArgument(AlgorithmName() + ": signature buffer is null");
+    if (!message && messageLen > 0)
+        throw InvalidArgument(AlgorithmName() + ": message is null with non-zero length");
+
     using namespace LMS_Internal;
 
     const OTSParams otsP = OTSParams{
@@ -689,7 +707,7 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
         byte *authPathPos = signature + 4 + otsSigLen + 4;
         lms_extract_auth_path(authPathPos, m_tree, q, lmsP);
 
-        SecureWipeBuffer(C, n);
+        // C is a SecByteBlock - cleaned up by destructor on all paths.
 
         // Commit
         m_store->CommitReservation(reservation);
