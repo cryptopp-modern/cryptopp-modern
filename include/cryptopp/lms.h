@@ -56,6 +56,19 @@ namespace LMS_Internal {
                          const LMSParams &lmsParams);
     void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
                        const byte *K, unsigned int m);
+
+    /// \brief Build internal OTSParams from a public parameter set
+    template <class OTS_PARAMS>
+    inline OTSParams MakeOTSParams() {
+        return OTSParams{OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+                         OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::U};
+    }
+
+    /// \brief Build internal LMSParams from a public parameter set
+    template <class LMS_PARAMS>
+    inline LMSParams MakeLMSParams() {
+        return LMSParams{LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    }
 }
 
 // ******************** LM-OTS Parameter Sets ************************* //
@@ -71,6 +84,7 @@ struct LMOTS_SHA256_N32_W8
     CRYPTOPP_CONSTANT(N = 32);
     CRYPTOPP_CONSTANT(W = 8);
     CRYPTOPP_CONSTANT(P = 34);
+    CRYPTOPP_CONSTANT(U = 32);    // ceil(8*N/W) = message coefficients
     CRYPTOPP_CONSTANT(LS = 0);
     CRYPTOPP_CONSTANT(SIG_LEN = 4 + 32 + 34 * 32);  // 1124
 
@@ -177,6 +191,7 @@ struct LMSPublicKey : public PublicKey
     // Public key: LMS type(4) + OTS type(4) + I(16) + T[1](m)
     CRYPTOPP_CONSTANT(PUBLIC_KEY_SIZE = 4 + 4 + 16 + LMS_PARAMS::M);
 
+    LMSPublicKey() : m_pk(PUBLIC_KEY_SIZE) { std::memset(m_pk, 0, PUBLIC_KEY_SIZE); }
     virtual ~LMSPublicKey() = default;
 
     /// \brief Check this object for errors
@@ -225,6 +240,7 @@ struct LMSPrivateKey : public PrivateKey
     CRYPTOPP_CONSTANT(SEED_SIZE = OTS_PARAMS::N);
     CRYPTOPP_CONSTANT(I_SIZE = 16);
 
+    LMSPrivateKey() : m_seed(SEED_SIZE), m_I(I_SIZE) {}
     virtual ~LMSPrivateKey() = default;
 
     /// \brief Check this object for errors

@@ -323,7 +323,7 @@ void lms_compute_full_tree(byte *tree, const byte *I, const byte *SEED,
     SecureWipeBuffer(K, m);
 
     // Compute interior nodes bottom-up
-    for (uint32_t r = numLeaves - 1; r >= 1; r--)
+    for (uint32_t r = numLeaves; r-- > 1; )
     {
         lms_interior_hash(tree + static_cast<size_t>(r) * m, I, r,
                           tree + static_cast<size_t>(2 * r) * m,
@@ -480,11 +480,8 @@ void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::MakePublicKey(
 {
     using namespace LMS_Internal;
 
-    const OTSParams otsP = OTSParams{
-        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
-        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
-    const LMSParams lmsP = LMSParams{
-        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
+    const LMSParams lmsP = MakeLMSParams<LMS_PARAMS>();
 
     const unsigned int m = LMS_PARAMS::M;
     const uint32_t numNodes = 2u * (1u << LMS_PARAMS::H);
@@ -551,11 +548,8 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
     const unsigned int m = LMS_PARAMS::M;
     const unsigned int h = LMS_PARAMS::H;
 
-    const OTSParams otsP = OTSParams{
-        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
-        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
-    const LMSParams lmsP = LMSParams{
-        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
+    const LMSParams lmsP = MakeLMSParams<LMS_PARAMS>();
 
     // Parse LMS signature: q(4) + OTS sig(ots_sig_len) + LMS type(4) + auth path(h*m)
     const size_t otsSigLen = otsP.SigLen();
@@ -642,11 +636,8 @@ LMSSigner<LMS_PARAMS, OTS_PARAMS>::LMSSigner(
     // Stage 1 simplification: full tree stored in memory.
     using namespace LMS_Internal;
 
-    const OTSParams otsP = OTSParams{
-        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
-        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
-    const LMSParams lmsP = LMSParams{
-        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
+    const LMSParams lmsP = MakeLMSParams<LMS_PARAMS>();
 
     const unsigned int m = LMS_PARAMS::M;
     const uint32_t numNodes = 2u * (1u << LMS_PARAMS::H);
@@ -669,11 +660,8 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
 
     using namespace LMS_Internal;
 
-    const OTSParams otsP = OTSParams{
-        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
-        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
-    const LMSParams lmsP = LMSParams{
-        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
+    const LMSParams lmsP = MakeLMSParams<LMS_PARAMS>();
 
     const unsigned int n = OTS_PARAMS::N;
     const unsigned int m = LMS_PARAMS::M;
@@ -682,6 +670,8 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
     // Reserve (authoritative safety boundary)
     StateReservation reservation = m_store->ReserveNext();
     uint32_t q = static_cast<uint32_t>(reservation.LeafIndex());
+
+    CRYPTOPP_ASSERT(q < (1u << LMS_PARAMS::H));
 
     try
     {
