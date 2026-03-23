@@ -118,7 +118,7 @@ void lmots_compute_public_key(byte *K, const byte *I, uint32_t q,
     }
     final_hash.TruncatedFinal(K, n);
 
-    SecureWipeBuffer(tmp, n);
+    SecureWipeBuffer(tmp.data(), tmp.size());
 }
 
 // ==================== LM-OTS Signing ====================
@@ -180,9 +180,9 @@ void lmots_sign(byte *sig, const byte *message, size_t messageLen,
         std::memcpy(sig_y + static_cast<size_t>(i) * n, tmp, n);
     }
 
-    SecureWipeBuffer(tmp, n);
-    SecureWipeBuffer(Q, n);
-    SecureWipeBuffer(Q_cksm, Q_cksm.size());
+    SecureWipeBuffer(tmp.data(), tmp.size());
+    SecureWipeBuffer(Q.data(), Q.size());
+    SecureWipeBuffer(Q_cksm.data(), Q_cksm.size());
 }
 
 // ==================== LM-OTS Candidate Key from Signature ====================
@@ -251,9 +251,9 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
     }
     final_hash.TruncatedFinal(Kc, n);
 
-    SecureWipeBuffer(tmp, n);
-    SecureWipeBuffer(Q, n);
-    SecureWipeBuffer(Q_cksm, Q_cksm.size());
+    SecureWipeBuffer(tmp.data(), tmp.size());
+    SecureWipeBuffer(Q.data(), Q.size());
+    SecureWipeBuffer(Q_cksm.data(), Q_cksm.size());
 }
 
 // ==================== LMS Merkle Tree ====================
@@ -320,7 +320,7 @@ void lms_compute_full_tree(byte *tree, const byte *I, const byte *SEED,
         lms_leaf_hash(tree + static_cast<size_t>(numLeaves + q) * m,
                       I, numLeaves + q, K, m);
     }
-    SecureWipeBuffer(K, m);
+    SecureWipeBuffer(K.data(), K.size());
 
     // Compute interior nodes bottom-up
     for (uint32_t r = numLeaves; r-- > 1; )
@@ -397,11 +397,27 @@ bool lms_verify_path(const byte *candidateLeaf, const byte *path,
 }
 
 NAMESPACE_END  // LMS_Internal
+NAMESPACE_END  // CryptoPP
 
 // ==================== Template Implementations ====================
 // These require the public header for template class definitions.
 
 #include <cryptopp/lms.h>
+
+NAMESPACE_BEGIN(CryptoPP)
+
+namespace LMS_Internal {
+    template <class OTS_PARAMS>
+    inline OTSParams MakeOTSParams() {
+        return OTSParams{OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+                         OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::U};
+    }
+
+    template <class LMS_PARAMS>
+    inline LMSParams MakeLMSParams() {
+        return LMSParams{LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+    }
+}
 
 // ******************** LMSPublicKey ************************* //
 
@@ -500,7 +516,7 @@ void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::MakePublicKey(
 
     pub.SetPublicKey(pkBuf, pkLen);
 
-    SecureWipeBuffer(tree, tree.size());
+    SecureWipeBuffer(tree.data(), tree.size());
 }
 
 template <class LMS_PARAMS, class OTS_PARAMS>
@@ -618,8 +634,8 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
     bool result = lms_verify_path(candidateLeaf, authPath, q,
                                   m_key.GetRoot(), m_key.GetI(), lmsP);
 
-    SecureWipeBuffer(Kc, m);
-    SecureWipeBuffer(candidateLeaf, m);
+    SecureWipeBuffer(Kc.data(), Kc.size());
+    SecureWipeBuffer(candidateLeaf.data(), candidateLeaf.size());
 
     accum.Restart();
     return result;

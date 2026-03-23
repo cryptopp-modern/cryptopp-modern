@@ -56,19 +56,6 @@ namespace LMS_Internal {
                          const LMSParams &lmsParams);
     void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
                        const byte *K, unsigned int m);
-
-    /// \brief Build internal OTSParams from a public parameter set
-    template <class OTS_PARAMS>
-    inline OTSParams MakeOTSParams() {
-        return OTSParams{OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
-                         OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::U};
-    }
-
-    /// \brief Build internal LMSParams from a public parameter set
-    template <class LMS_PARAMS>
-    inline LMSParams MakeLMSParams() {
-        return LMSParams{LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
-    }
 }
 
 // ******************** LM-OTS Parameter Sets ************************* //
@@ -379,8 +366,9 @@ struct LMSSigner : public PK_StatefulSigner
     typedef OTS_PARAMS OTSParameters;
     typedef LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> PrivateKeyType;
 
-    CRYPTOPP_CONSTANT(SIGNATURE_LENGTH =
-        LMS_MessageAccumulator<LMS_PARAMS, OTS_PARAMS>::SIGNATURE_LENGTH);
+    static const size_t SIGNATURE_LENGTH =
+        4 + OTS_PARAMS::SIG_LEN + 4 +
+        static_cast<size_t>(LMS_PARAMS::H) * static_cast<size_t>(LMS_PARAMS::M);
 
     virtual ~LMSSigner() = default;
 
