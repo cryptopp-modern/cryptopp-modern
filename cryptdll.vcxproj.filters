@@ -203,6 +203,9 @@
     <ClCompile Include="src\pqc\mldsa.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pqc\lms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\pqc\mlkem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

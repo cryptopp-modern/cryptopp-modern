@@ -363,6 +363,7 @@
     <ClCompile Include="src\encoding\zdeflate.cpp" />
     <ClCompile Include="src\encoding\zinflate.cpp" />
     <ClCompile Include="src\encoding\zlib.cpp" />
+    <ClCompile Include="src\pqc\lms.cpp" />
     <ClCompile Include="src\pqc\mldsa.cpp" />
     <ClCompile Include="src\pqc\mlkem.cpp" />
     <ClCompile Include="src\pqc\slhdsa.cpp" />
@@ -520,6 +521,7 @@
     <ClInclude Include="include\cryptopp\mdc.h" />
     <ClInclude Include="include\cryptopp\mldsa.h" />
     <ClInclude Include="include\cryptopp\mlkem.h" />
+    <ClInclude Include="src\pqc\lms_params.h" />
     <ClInclude Include="src\pqc\mldsa_params.h" />
     <ClInclude Include="src\pqc\mldsa_poly.h" />
     <ClInclude Include="src\pqc\mlkem_params.h" />

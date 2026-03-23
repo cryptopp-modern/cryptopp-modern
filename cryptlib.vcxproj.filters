@@ -545,6 +545,9 @@
     <ClCompile Include="zlib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pqc\lms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\pqc\mldsa.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1123,6 +1126,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cryptopp\xwing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pqc\lms_params.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pqc\mldsa_params.h">

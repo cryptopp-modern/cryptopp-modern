@@ -249,6 +249,7 @@
     <ClCompile Include="src\symmetric\skipjack.cpp" />
     <ClCompile Include="src\core\sse_simd.cpp" />
     <ClCompile Include="src\core\strciphr.cpp" />
+    <ClCompile Include="src\pqc\lms.cpp" />
     <ClCompile Include="src\pqc\mldsa.cpp" />
     <ClCompile Include="src\pqc\mlkem.cpp" />
     <ClCompile Include="src\pqc\slhdsa.cpp" />

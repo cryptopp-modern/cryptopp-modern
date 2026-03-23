@@ -232,6 +232,7 @@ set(cryptopp_SOURCES_UTIL
 
 # ***** Post-quantum cryptography sources *****
 set(cryptopp_SOURCES_PQC
+    src/pqc/lms.cpp
     src/pqc/mldsa.cpp
     src/pqc/mlkem.cpp
     src/pqc/slhdsa.cpp
