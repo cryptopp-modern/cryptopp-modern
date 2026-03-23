@@ -214,6 +214,7 @@ bool ValidateAll(bool thorough)
 	pass=ValidateMLDSA() && pass;
 	pass=ValidateSLHDSA() && pass;
 	pass=ValidateXWing() && pass;
+	pass=ValidateLMS() && pass;
 
 	if (pass)
 		std::cout << "\nAll tests passed!\n";

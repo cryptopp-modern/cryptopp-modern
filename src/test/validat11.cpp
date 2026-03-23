@@ -14,6 +14,7 @@
 #include <cryptopp/mldsa.h>
 #include <cryptopp/slhdsa.h>
 #include <cryptopp/xwing.h>
+#include <cryptopp/lms.h>
 
 #include <iostream>
 #include <iomanip>
@@ -627,6 +628,342 @@ bool ValidateXWing()
 	pass = TestXWingKeyGen() && pass;
 	pass = TestXWingEncapsDecaps() && pass;
 	pass = TestXWingMultipleRounds() && pass;
+
+	return pass;
+}
+
+// ******************** LMS Validation (SP 800-208) ************************* //
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSKeyGen(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		if (!privKey.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " private key validation" << std::endl;
+			return false;
+		}
+
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		if (!pubKey.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " public key validation" << std::endl;
+			return false;
+		}
+
+		if (pubKey.GetPublicKeyByteLength() !=
+			static_cast<size_t>(LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::PUBLIC_KEY_SIZE)) {
+			std::cout << "FAILED:  " << name << " public key size mismatch" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " key generation" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " key generation - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSSignVerify(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		// Generate key pair
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		// Create signer with test-only state store
+		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey, store);
+
+		// Create verifier
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Sign a message
+		std::string message = "Test message for LMS signature validation";
+		SecByteBlock signature(signer.SignatureLength());
+
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		// Verify the signature
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid signature rejected" << std::endl;
+			return false;
+		}
+
+		// Test with modified message (should fail)
+		std::string modifiedMessage = "Modified message for LMS signature";
+		bool invalidAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(modifiedMessage.data()), modifiedMessage.size(),
+			signature.begin(), signature.size());
+
+		if (invalidAccepted) {
+			std::cout << "FAILED:  " << name << " modified message incorrectly verified" << std::endl;
+			return false;
+		}
+
+		// Test with mutated signature (flip one byte)
+		SecByteBlock mutatedSig(signature);
+		mutatedSig[mutatedSig.size() / 2] ^= 0x01;
+
+		bool mutatedAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			mutatedSig.begin(), mutatedSig.size());
+
+		if (mutatedAccepted) {
+			std::cout << "FAILED:  " << name << " mutated signature incorrectly verified" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " sign/verify" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " sign/verify - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSMultipleSignatures(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey, store);
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Sign and verify multiple messages
+		const unsigned int count = 5;
+		for (unsigned int i = 0; i < count; i++)
+		{
+			std::string message = "Message number " + std::to_string(i);
+			SecByteBlock signature(signer.SignatureLength());
+
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " signature " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		// Verify remaining count
+		if (store.RemainingSignatures() != LMS_PARAMS::TOTAL_LEAVES - count) {
+			std::cout << "FAILED:  " << name << " remaining signatures mismatch" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " multiple signatures (" << count << ")" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " multiple signatures - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSExhaustion()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(LMS_SHA256_M32_H5::TOTAL_LEAVES);  // 32
+		LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> signer(privKey, store);
+		LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		std::string message = "Exhaustion test message";
+		SecByteBlock signature(signer.SignatureLength());
+
+		// Sign all 32 messages
+		for (unsigned int i = 0; i < 32; i++)
+		{
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " signature " << i << " rejected during exhaustion test" << std::endl;
+				return false;
+			}
+		}
+
+		// Verify exhausted
+		if (!signer.IsExhausted()) {
+			std::cout << "FAILED:  " << name << " not exhausted after 32 signatures" << std::endl;
+			return false;
+		}
+
+		if (signer.RemainingSignatures() != 0) {
+			std::cout << "FAILED:  " << name << " remaining signatures not zero" << std::endl;
+			return false;
+		}
+
+		// 33rd signature should throw SignerExhausted
+		bool threw = false;
+		try {
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				signature.begin());
+		}
+		catch (const SignerExhausted&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " did not throw SignerExhausted on 33rd signature" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " exhaustion (32 sigs, 33rd throws)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " exhaustion - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSStoreContract()
+{
+	const char* name = "InsecureMemoryStateStore";
+
+	try {
+		InsecureMemoryStateStore store(4);
+
+		// Reserve returns monotonically increasing indices
+		StateReservation r0 = store.ReserveNext();
+		StateReservation r1 = store.ReserveNext();
+		StateReservation r2 = store.ReserveNext();
+
+		if (r0.LeafIndex() != 0 || r1.LeafIndex() != 1 || r2.LeafIndex() != 2) {
+			std::cout << "FAILED:  " << name << " non-monotonic indices" << std::endl;
+			return false;
+		}
+
+		// RemainingSignatures never overcounts
+		if (store.RemainingSignatures() != 1) {
+			std::cout << "FAILED:  " << name << " remaining signatures incorrect" << std::endl;
+			return false;
+		}
+
+		// Commit idempotency (double commit succeeds)
+		store.CommitReservation(r0);
+		store.CommitReservation(r0);  // second commit - should not throw
+
+		// Abort burns index (does not affect remaining count since already advanced)
+		store.AbortReservation(r1);
+
+		// IsHealthy
+		if (!store.IsHealthy()) {
+			std::cout << "FAILED:  " << name << " reports unhealthy" << std::endl;
+			return false;
+		}
+
+		// Reserve last index
+		StateReservation r3 = store.ReserveNext();
+		if (r3.LeafIndex() != 3) {
+			std::cout << "FAILED:  " << name << " wrong last index" << std::endl;
+			return false;
+		}
+
+		// Exhaustion
+		if (!store.IsExhausted()) {
+			std::cout << "FAILED:  " << name << " not exhausted" << std::endl;
+			return false;
+		}
+
+		if (store.RemainingSignatures() != 0) {
+			std::cout << "FAILED:  " << name << " remaining not zero when exhausted" << std::endl;
+			return false;
+		}
+
+		// Next reserve should throw
+		bool threw = false;
+		try {
+			store.ReserveNext();
+		}
+		catch (const SignerExhausted&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " did not throw on exhaustion" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " contract tests" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " contract - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+bool ValidateLMS()
+{
+	std::cout << "\nLMS (SP 800-208) validation suite running...\n\n";
+	bool pass = true;
+
+	// Store contract tests
+	pass = TestLMSStoreContract() && pass;
+
+	// LMS-SHA256-M32-H5 / LMOTS-SHA256-N32-W8
+	pass = TestLMSKeyGen<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSMultipleSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+
+	// Exhaustion test (H5 = 32 signatures)
+	pass = TestLMSExhaustion() && pass;
 
 	return pass;
 }

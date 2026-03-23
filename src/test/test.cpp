@@ -1057,6 +1057,7 @@ bool Validate(int alg, bool thorough)
 	case 131: result = ValidateMLDSA(); break;
 	case 132: result = ValidateSLHDSA(); break;
 	case 133: result = ValidateXWing(); break;
+	case 134: result = ValidateLMS(); break;
 
 #if defined(CRYPTOPP_EXTENDED_VALIDATION)
 	// http://github.com/weidai11/cryptopp/issues/92
