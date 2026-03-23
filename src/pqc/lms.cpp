@@ -397,4 +397,323 @@ bool lms_verify_path(const byte *candidateLeaf, const byte *path,
 }
 
 NAMESPACE_END  // LMS_Internal
+
+// ==================== Template Implementations ====================
+// These require the public header for template class definitions.
+
+#include <cryptopp/lms.h>
+
+// ******************** LMSPublicKey ************************* //
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::SetPublicKey(const byte *pk, size_t len)
+{
+    if (!pk || len != PUBLIC_KEY_SIZE)
+        throw InvalidArgument("LMSPublicKey: invalid public key length");
+    m_pk.Assign(pk, len);
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+bool LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::Validate(RandomNumberGenerator &rng, unsigned int level) const
+{
+    CRYPTOPP_UNUSED(rng);
+    CRYPTOPP_UNUSED(level);
+    return m_pk.size() == PUBLIC_KEY_SIZE;
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+bool LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::GetVoidValue(
+    const char *name, const std::type_info &valueType, void *pValue) const
+{
+    CRYPTOPP_UNUSED(name); CRYPTOPP_UNUSED(valueType); CRYPTOPP_UNUSED(pValue);
+    return false;
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::AssignFrom(const NameValuePairs &source)
+{
+    CRYPTOPP_UNUSED(source);
+}
+
+// ******************** LMSPrivateKey ************************* //
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::SetPrivateKey(
+    const byte *seed, size_t seedLen,
+    const byte *identifier, size_t idLen)
+{
+    if (!seed || seedLen != SEED_SIZE)
+        throw InvalidArgument("LMSPrivateKey: invalid seed length");
+    if (!identifier || idLen != I_SIZE)
+        throw InvalidArgument("LMSPrivateKey: invalid identifier length");
+    m_seed.Assign(seed, seedLen);
+    m_I.Assign(identifier, idLen);
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::GenerateRandom(
+    RandomNumberGenerator &rng, const NameValuePairs &params)
+{
+    CRYPTOPP_UNUSED(params);
+    m_seed.resize(SEED_SIZE);
+    m_I.resize(I_SIZE);
+    rng.GenerateBlock(m_seed, SEED_SIZE);
+    rng.GenerateBlock(m_I, I_SIZE);
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::MakePublicKey(
+    LMSPublicKey<LMS_PARAMS, OTS_PARAMS> &pub) const
+{
+    using namespace LMS_Internal;
+
+    const OTSParams otsP = OTSParams{
+        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
+    const LMSParams lmsP = LMSParams{
+        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+
+    const unsigned int m = LMS_PARAMS::M;
+    const uint32_t numNodes = 2u * (1u << LMS_PARAMS::H);
+
+    // Compute full tree
+    SecByteBlock tree(static_cast<size_t>(numNodes) * m);
+    lms_compute_full_tree(tree, m_I, m_seed, lmsP, otsP);
+
+    // Build public key: LMS type(4) + OTS type(4) + I(16) + T[1](m)
+    byte pkBuf[4 + 4 + 16 + 32];  // m=32 for SHA-256
+    u32str(pkBuf, LMS_PARAMS::TYPE_ID);
+    u32str(pkBuf + 4, OTS_PARAMS::TYPE_ID);
+    std::memcpy(pkBuf + 8, m_I, 16);
+    std::memcpy(pkBuf + 24, tree + m, m);  // tree[1] = root
+
+    pub.SetPublicKey(pkBuf, sizeof(pkBuf));
+
+    SecureWipeBuffer(tree, tree.size());
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+bool LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::Validate(
+    RandomNumberGenerator &rng, unsigned int level) const
+{
+    CRYPTOPP_UNUSED(rng);
+    CRYPTOPP_UNUSED(level);
+    return m_seed.size() == SEED_SIZE && m_I.size() == I_SIZE;
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+bool LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::GetVoidValue(
+    const char *name, const std::type_info &valueType, void *pValue) const
+{
+    CRYPTOPP_UNUSED(name); CRYPTOPP_UNUSED(valueType); CRYPTOPP_UNUSED(pValue);
+    return false;
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::AssignFrom(const NameValuePairs &source)
+{
+    CRYPTOPP_UNUSED(source);
+}
+
+// ******************** LMSVerifier ************************* //
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+LMSVerifier<LMS_PARAMS, OTS_PARAMS>::LMSVerifier(const byte *publicKey, size_t len)
+{
+    m_key.SetPublicKey(publicKey, len);
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
+    PK_MessageAccumulator &messageAccumulator) const
+{
+    using namespace LMS_Internal;
+
+    MessageAccumulatorType &accum = static_cast<MessageAccumulatorType&>(messageAccumulator);
+
+    const byte *sig = accum.signature();
+    const byte *message = accum.data();
+    const size_t messageLen = accum.size();
+    const unsigned int m = LMS_PARAMS::M;
+    const unsigned int h = LMS_PARAMS::H;
+
+    const OTSParams otsP = OTSParams{
+        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
+    const LMSParams lmsP = LMSParams{
+        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+
+    // Parse LMS signature: q(4) + OTS sig(ots_sig_len) + LMS type(4) + auth path(h*m)
+    const size_t otsSigLen = otsP.SigLen();
+    const size_t expectedSigLen = 4 + otsSigLen + 4 + static_cast<size_t>(h) * m;
+
+    if (expectedSigLen != SIGNATURE_LENGTH)
+    {
+        accum.Restart();
+        return false;
+    }
+
+    // Extract q
+    const byte *sig_q = sig;
+    uint32_t q = (static_cast<uint32_t>(sig_q[0]) << 24) |
+                 (static_cast<uint32_t>(sig_q[1]) << 16) |
+                 (static_cast<uint32_t>(sig_q[2]) << 8) |
+                 (static_cast<uint32_t>(sig_q[3]));
+
+    // Validate q is in range
+    if (q >= static_cast<uint32_t>(1u << h))
+    {
+        accum.Restart();
+        return false;
+    }
+
+    // Extract OTS signature, LMS type, auth path
+    const byte *otsSig = sig + 4;
+    const byte *sig_lmsType = sig + 4 + otsSigLen;
+    const byte *authPath = sig + 4 + otsSigLen + 4;
+
+    // Verify LMS type matches
+    uint32_t sigLmsType = (static_cast<uint32_t>(sig_lmsType[0]) << 24) |
+                          (static_cast<uint32_t>(sig_lmsType[1]) << 16) |
+                          (static_cast<uint32_t>(sig_lmsType[2]) << 8) |
+                          (static_cast<uint32_t>(sig_lmsType[3]));
+
+    if (sigLmsType != LMS_PARAMS::TYPE_ID)
+    {
+        accum.Restart();
+        return false;
+    }
+
+    // Verify OTS type in signature matches
+    uint32_t sigOtsType = (static_cast<uint32_t>(otsSig[0]) << 24) |
+                          (static_cast<uint32_t>(otsSig[1]) << 16) |
+                          (static_cast<uint32_t>(otsSig[2]) << 8) |
+                          (static_cast<uint32_t>(otsSig[3]));
+
+    if (sigOtsType != OTS_PARAMS::TYPE_ID)
+    {
+        accum.Restart();
+        return false;
+    }
+
+    // Compute candidate OTS public key from signature
+    SecByteBlock Kc(m);
+    lmots_compute_candidate_key(Kc, otsSig, message, messageLen,
+                                m_key.GetI(), q, otsP);
+
+    // Compute candidate leaf hash
+    const uint32_t numLeaves = 1u << h;
+    SecByteBlock candidateLeaf(m);
+    lms_leaf_hash(candidateLeaf, m_key.GetI(), numLeaves + q, Kc, m);
+
+    // Verify auth path against stored root
+    bool result = lms_verify_path(candidateLeaf, authPath, q,
+                                  m_key.GetRoot(), m_key.GetI(), lmsP);
+
+    SecureWipeBuffer(Kc, m);
+    SecureWipeBuffer(candidateLeaf, m);
+
+    accum.Restart();
+    return result;
+}
+
+// ******************** LMSSigner ************************* //
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+LMSSigner<LMS_PARAMS, OTS_PARAMS>::LMSSigner(
+    const PrivateKeyType &key, SignerStateStore &store)
+    : m_key(key), m_store(&store), m_treeComputed(false)
+{
+    // Precompute the Merkle tree on first construction.
+    // Stage 1 simplification: full tree stored in memory.
+    using namespace LMS_Internal;
+
+    const OTSParams otsP = OTSParams{
+        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
+    const LMSParams lmsP = LMSParams{
+        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+
+    const unsigned int m = LMS_PARAMS::M;
+    const uint32_t numNodes = 2u * (1u << LMS_PARAMS::H);
+
+    m_tree.resize(static_cast<size_t>(numNodes) * m);
+    lms_compute_full_tree(m_tree, key.GetIdentifierBytePtr(),
+                          key.GetSeedBytePtr(), lmsP, otsP);
+    m_treeComputed = true;
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
+    RandomNumberGenerator &rng,
+    const byte *message, size_t messageLen,
+    byte *signature)
+{
+    using namespace LMS_Internal;
+
+    const OTSParams otsP = OTSParams{
+        OTS_PARAMS::TYPE_ID, OTS_PARAMS::N, OTS_PARAMS::W,
+        OTS_PARAMS::P, OTS_PARAMS::LS, OTS_PARAMS::P - 2};
+    const LMSParams lmsP = LMSParams{
+        LMS_PARAMS::TYPE_ID, LMS_PARAMS::M, LMS_PARAMS::H};
+
+    const unsigned int n = OTS_PARAMS::N;
+    const unsigned int m = LMS_PARAMS::M;
+    const unsigned int h = LMS_PARAMS::H;
+
+    // Reserve (authoritative safety boundary)
+    StateReservation reservation = m_store->ReserveNext();
+    uint32_t q = static_cast<uint32_t>(reservation.LeafIndex());
+
+    try
+    {
+        // Generate randomiser C
+        SecByteBlock C(n);
+        rng.GenerateBlock(C, n);
+
+        // Build LMS signature: q(4) + OTS_sig + LMS_type(4) + auth_path(h*m)
+        // Step 1: q
+        u32str(signature, q);
+
+        // Step 2: OTS signature at offset 4
+        byte *otsSigPos = signature + 4;
+        lmots_sign(otsSigPos, message, messageLen,
+                   m_key.GetIdentifierBytePtr(), q,
+                   m_key.GetSeedBytePtr(), C, otsP);
+
+        // Step 3: LMS type at offset 4 + otsSigLen
+        const size_t otsSigLen = otsP.SigLen();
+        u32str(signature + 4 + otsSigLen, LMS_PARAMS::TYPE_ID);
+
+        // Step 4: Auth path at offset 4 + otsSigLen + 4
+        byte *authPathPos = signature + 4 + otsSigLen + 4;
+        lms_extract_auth_path(authPathPos, m_tree, q, lmsP);
+
+        SecureWipeBuffer(C, n);
+
+        // Commit
+        m_store->CommitReservation(reservation);
+    }
+    catch (...)
+    {
+        // Abort burns the index
+        m_store->AbortReservation(reservation);
+        throw;
+    }
+}
+
+// ******************** Explicit Template Instantiations ************************* //
+
+template struct LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>;
+template struct LMSPublicKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
+
+template struct LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>;
+template struct LMSPrivateKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
+
+template struct LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>;
+template struct LMSVerifier<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
+
+template struct LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>;
+template struct LMSSigner<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
+
 NAMESPACE_END  // CryptoPP

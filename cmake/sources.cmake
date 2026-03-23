@@ -381,6 +381,7 @@ set(cryptopp_HEADERS
     include/cryptopp/kalyna.h
     include/cryptopp/keccak.h
     include/cryptopp/lea.h
+    include/cryptopp/lms.h
     include/cryptopp/lsh.h
     include/cryptopp/lubyrack.h
     include/cryptopp/luc.h
