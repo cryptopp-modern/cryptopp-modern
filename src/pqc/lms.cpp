@@ -586,8 +586,6 @@ void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::DEREncode(BufferedTransformation &bt
     // Library PKCS#8 wrapping with LMS OID.
     // Private key payload is SEED || I (concatenated, no leaf index).
     // This is not an RFC-defined private key format.
-    const size_t privKeyLen = SEED_SIZE + I_SIZE;
-
     DERSequenceEncoder privateKeyInfo(bt);
         DEREncodeUnsigned<word32>(privateKeyInfo, 0);  // version 0 only
 

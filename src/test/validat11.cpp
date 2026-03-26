@@ -1407,6 +1407,412 @@ static bool TestLMSSigVerKAT()
 	}
 }
 
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSMalformedSignatures(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		// Generate key pair and one valid signature
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey, store);
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		std::string message = "Malformed signature test message";
+		SecByteBlock validSig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin());
+
+		// Confirm valid signature works
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin(), validSig.size());
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid signature rejected (setup)" << std::endl;
+			return false;
+		}
+
+		// Test 1: Truncated signature (too short)
+		bool truncatedAccepted = false;
+		try {
+			truncatedAccepted = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				validSig.begin(), validSig.size() - 1);
+		}
+		catch (const Exception&) {
+			// Exception on malformed input is also acceptable
+			truncatedAccepted = false;
+		}
+		if (truncatedAccepted) {
+			std::cout << "FAILED:  " << name << " truncated signature accepted" << std::endl;
+			return false;
+		}
+
+		// Test 2: Wrong LMS type ID in signature
+		SecByteBlock wrongLmsType(validSig);
+		// LMS type is at offset 4 + OTS_sig_len
+		size_t lmsTypeOffset = 4 + OTS_PARAMS::SIG_LEN;
+		wrongLmsType[lmsTypeOffset] ^= 0x01;
+		bool wrongLmsAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			wrongLmsType.begin(), wrongLmsType.size());
+		if (wrongLmsAccepted) {
+			std::cout << "FAILED:  " << name << " wrong LMS type accepted" << std::endl;
+			return false;
+		}
+
+		// Test 3: Wrong OTS type ID in signature
+		SecByteBlock wrongOtsType(validSig);
+		// OTS type is at offset 4 (first 4 bytes of OTS sig)
+		wrongOtsType[4] ^= 0x01;
+		bool wrongOtsAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			wrongOtsType.begin(), wrongOtsType.size());
+		if (wrongOtsAccepted) {
+			std::cout << "FAILED:  " << name << " wrong OTS type accepted" << std::endl;
+			return false;
+		}
+
+		// Test 4: Out-of-range q (>= 2^h)
+		SecByteBlock outOfRangeQ(validSig);
+		// q is first 4 bytes, set to 0xFF for all bytes (way out of range)
+		outOfRangeQ[0] = 0xFF;
+		outOfRangeQ[1] = 0xFF;
+		outOfRangeQ[2] = 0xFF;
+		outOfRangeQ[3] = 0xFF;
+		bool outOfRangeAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			outOfRangeQ.begin(), outOfRangeQ.size());
+		if (outOfRangeAccepted) {
+			std::cout << "FAILED:  " << name << " out-of-range q accepted" << std::endl;
+			return false;
+		}
+
+		// Test 5: Corrupted auth path (last byte)
+		SecByteBlock corruptedPath(validSig);
+		corruptedPath[corruptedPath.size() - 1] ^= 0x01;
+		bool corruptedAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			corruptedPath.begin(), corruptedPath.size());
+		if (corruptedAccepted) {
+			std::cout << "FAILED:  " << name << " corrupted auth path accepted" << std::endl;
+			return false;
+		}
+
+		// Test 6: Corrupted OTS y value (middle of signature)
+		SecByteBlock corruptedY(validSig);
+		size_t yOffset = 4 + 4 + 32 + 16 * 32;  // middle of y array
+		corruptedY[yOffset] ^= 0x01;
+		bool corruptedYAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			corruptedY.begin(), corruptedY.size());
+		if (corruptedYAccepted) {
+			std::cout << "FAILED:  " << name << " corrupted OTS y value accepted" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " malformed signature rejection (6 cases)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " malformed signatures - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSSigGenKAT()
+{
+	const char *name = "LMS ACVP sigGen KAT";
+
+	// Deterministic signing test using ACVP C derivation convention.
+	// C = H(I || u32str(q) || u16str(0xFFFD) || u8str(0xFF) || SEED)
+	// This is the Appendix A formula with reserved index i=65533.
+	// Uses keyGen vector tcId=76 (known seed + I + expected public key).
+
+	try {
+		const char *seedHex = "A2800F6DEA71A09BAA024F2EB15B34C3E8F42D15BF9818B6D3F8D74C40F5A99D";
+		const char *identHex = "DC4C502EF70640EBA7D9F611FC66E5A9";
+		const char *expectedPubKeyHex =
+			"0000000500000004DC4C502EF70640EBA7D9F611FC66E5A9"
+			"335A168B6EA2683E86A8CC2C1173A7A5E120505DE4BAB2E2F0D1B889C486D47F";
+
+		byte seed[32], ident[16];
+		typedef LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> PubKeyType;
+		const size_t pkSize = PubKeyType::PUBLIC_KEY_SIZE;
+		SecByteBlock expectedPK(pkSize);
+
+		if (!HexDecode(seedHex, seed, 32) ||
+			!HexDecode(identHex, ident, 16) ||
+			!HexDecode(expectedPubKeyHex, expectedPK, pkSize))
+		{
+			std::cout << "FAILED:  " << name << " hex decode error" << std::endl;
+			return false;
+		}
+
+		// Set up key pair
+		LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> privKey;
+		privKey.SetPrivateKey(seed, 32, ident, 16);
+
+		PubKeyType pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		// Verify public key matches expected (sanity check)
+		if (!VerifyBufsEqual(pubKey.GetPublicKeyBytePtr(), expectedPK, pkSize))
+		{
+			std::cout << "FAILED:  " << name << " public key mismatch" << std::endl;
+			return false;
+		}
+
+		// Derive C deterministically for q=0 using ACVP convention:
+		// C = H(I || u32str(q) || u16str(0xFFFD) || u8str(0xFF) || SEED)
+		byte C[32];
+		{
+			SHA256 hash;
+			byte buf4[4], buf2[2], buf1[1];
+			hash.Update(ident, 16);
+			buf4[0] = 0; buf4[1] = 0; buf4[2] = 0; buf4[3] = 0;  // q=0
+			hash.Update(buf4, 4);
+			buf2[0] = 0xFF; buf2[1] = 0xFD;  // i=65533 = 0xFFFD
+			hash.Update(buf2, 2);
+			buf1[0] = 0xFF;
+			hash.Update(buf1, 1);
+			hash.Update(seed, 32);
+			hash.TruncatedFinal(C, 32);
+		}
+
+		// Sign using FixedRNG that returns the deterministic C
+		std::string message = "ACVP sigGen deterministic test";
+
+		InsecureMemoryStateStore store1(32);
+		LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> signer1(privKey, store1);
+
+		StringSource cSource1(C, 32, true);
+		FixedRNG rng1(cSource1);
+
+		SecByteBlock sig1(signer1.SignatureLength());
+		signer1.SignMessage(rng1,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			sig1.begin());
+
+		// Verify the signature
+		LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			sig1.begin(), sig1.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " deterministic signature rejected" << std::endl;
+			return false;
+		}
+
+		// Sign again with fresh signer and same C - must be bit-exact
+		InsecureMemoryStateStore store2(32);
+		LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> signer2(privKey, store2);
+
+		StringSource cSource2(C, 32, true);
+		FixedRNG rng2(cSource2);
+
+		SecByteBlock sig2(signer2.SignatureLength());
+		signer2.SignMessage(rng2,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			sig2.begin());
+
+		if (!VerifyBufsEqual(sig1, sig2, sig1.size()))
+		{
+			std::cout << "FAILED:  " << name << " deterministic signing not reproducible" << std::endl;
+			return false;
+		}
+
+		// Verify C appears in the signature at the expected offset
+		// Signature layout: q(4) + OTS_type(4) + C(32) + y[0..33](34*32) + ...
+		if (!VerifyBufsEqual(sig1.begin() + 8, C, 32))
+		{
+			std::cout << "FAILED:  " << name << " C not at expected signature offset" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " (deterministic signing, reproducible, C verified)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSSigGenVerifyACVP()
+{
+	const char *name = "LMS ACVP sigGen verification";
+
+	// Verify signatures from ACVP sigGen vectors (tgId=24, tcId 231-233).
+	// These prove our verifier accepts NIST reference implementation signatures.
+	const char *publicKeyHex =
+		"0000000500000004A6BCD9E759E4E69708B0463046635752"
+		"67DAF41F97B8A2F733ADEE5238DE5D7FD60529475A0A44A21D4C9BEFC9E5B13E";
+
+	struct SigGenVector {
+		unsigned int tcId;
+		const char *message;
+		const char *signature;
+	};
+
+	static const SigGenVector vectors[] = {
+		{ 231,
+			"B897E0D73EE67BEB33267501744470714AE8A2EB075EE19E0765E3BE12AC21EA"
+			"7E05F28A5F0BFB688E630A99038377C3F2DA84918FF066AB2140E3394F094E3E"
+			"C07984EB07634BCF7A31DC6E0903DEEB9F33C861EAE16403F0FAEDABDA76996B"
+			"D2149DE26E17F6BA3C6E73F3F456A50FEBBEB0E87521525D5BF302FE1D873DED",
+			"0000000600000004F0DF4DDE6ED3BBF46047D02849CCCEC742D31D5415267DE4"
+			"F325DFEDABC35A1637113049BC0DA1FF71630841FADDBA4D7D49F32F4099B718"
+			"E8BE229CC6858383C8F379691E2C5F11DCF525BFA4F80EA63F3D33941D5CD94A"
+			"E620F40EE17A5B1CC3888441A8C2C7E359AD35D968D5BE9C9EDA32834F21E943"
+			"7ED64D1615042F745AE15AC05CE8D459BAA2F7CA44AD0BAE7F43D98607D61AA3"
+			"A06997F3D6639717522EA4ABFFE7CC5DF74100A58A2DE3413F2E9348C3B6D466"
+			"43A95D588C7A94A42F2BAEB45F1F184CC0F36026A48E164B42B86BD624B4BDC1"
+			"64F02D6D4D0465141C23270B38AD42BE94F7DDDA078D34D174FBD043CC1D7F64"
+			"0700184DE9E52A8C398C006A55A8A0144D6B272383A3ED0841CF4DA2BE67BE66"
+			"DD5CBB9E23AB738C718A8E2082DCE5568785F7F99B9785464452BB07F25E0F1B"
+			"CB2938E0B7C2A9E8D3E1AF018089248CB96420CC62753C3FFA568232FF71FBB9"
+			"0BCBA9BF0A260C8CA5039168995DD9225EABDC4FF4B1D7F7BDD649A9781BF9FD"
+			"3F456AFCD9A7EA03A38DFD38DCCAD850AD3BC64F8378465A42707591827FF9D1"
+			"A36F1143C4F930A725CA0505E48B4AF2F71B0F7ADA1931C28617163C586E3823"
+			"3EA5BC1FE2783B0B27261298E7378542B473ABACE366784177BD0537D23B25CE"
+			"01744F226F6AF8BF382A670B2B92B79691AFC6EEC4FA52F352A331BD1B0EB6D4"
+			"33DAAB72FFC426B6BBA18680F344A181315A6E3175F97D9C366C59CC306D110D"
+			"B08943D19AE0B9073310AAF3788F70B5BB50F0A4E58D248EC6D4C859E725960F"
+			"4106A5D32759AD89B33B602E663CA31F6F5647C38F4666ED877794CF600ED7BD"
+			"0E8062376F856BD18242125AED64312826E2CE787448F08CDD3BF6030795C28B"
+			"27FF4130EF8EF673054093381298AED21BFDCD35F41553DAF9B977F29081C9EA"
+			"10DBF7F345B26442E9BB7B718C1C1AFFCADBC5F2C8BA6249540EA4457E5EB7AA"
+			"DFD757EECF692CBF7069F2096700A0071B8C59C456A944ECAB428AB2CFFD27FC"
+			"6ED8166C96678F970046AF5044F5B2A30D997307C87208E272DB35909B612AF3"
+			"CAF0C0D2495511008BF7AE91066395D9E3D39FD97DEA4792885E90F8F3F6F0C7"
+			"D1FC3B1F020E37665CC4C0FFADE1F3F4876A0D2C698859F9DE432915AB45A87C"
+			"A5C4045797BB2C8C594CA4F5B89B957817A67CB6A1B0CC353E954DE0A939CC2A"
+			"A3159154C1427958F5266270A908969A4C52E92A125B6FCE2C8876B3EF098416"
+			"225B7109D89041D4D2B72D3A43CAD90CD2E705ADC1C2D71ECF88478C9031624E"
+			"DF134987F43450412AAB57A2A7F6C9DE642372DD676734BFA092476024647596"
+			"F23A6ED805B6D6145B0682A367E73F648285B9A74332F3DB704D3F51E23B8780"
+			"AE014C24BC11229410526212D390546F7DB0A8B1A7EFECFF55B060CCE1EF5455"
+			"C0962F8E2D38C532B9E7CC8EB3FC498D6010B7F83F24B64F775FE4DBDFB72FB2"
+			"013702474C77EE49B873C6D3FDAC4ECE4F543A18DD038B6F4010E5DCCC2BBA2F"
+			"6F0799E2A4EF8C589C750FBD6C4A466B1C7EEBCAFDE8ACB01BFE15C657093F8"
+			"831BEE7403C3D98FF00000005E74BA94580AC8C3D8C0A4CB9BFF0DFDF388D220"
+			"61BBB3FA39A50B5C083D6E07C9D50A0B501D282A4702E341A1FE12A86CA48B66"
+			"F7865C5203DC6A3DDC1F6DFA959A5AF7FCDFD259757A4443A983BDBC2B9CD9FB"
+			"4E0A760A4574CD114CA973173679108730660329F2CDB48AA2945D9F26DB1E44"
+			"42F5D4FFB7682523FE1E42758C73A9CE5F00334086D8716C7CF9DC3B54CD53CF"
+			"006958D3C4558FA13B5AC1C72"
+		},
+		{ 233,
+			"51CFF9A18DFE10905202F49C81F040546E159B89FF45DB92D49EAA0E1B041DC6"
+			"80E08AF25D23CA6D4A3BD87ABF93FAE5EF6F09DD452890DBC156C4586B5ACB2B"
+			"7DB4307BD530C477F3E1B28F219DE999F71669E62F9A7AB05C5F23219BBE4EFC"
+			"CBF917A82CF2FB59563978BFD9ED3BE4786017B9579625945D5C6ED08A1AB16B",
+			"00000000000000042F43F4B5C48BF8770CE5B7E66D203DED1567AC30769DB4EB"
+			"F96C4831246BBD96F63C1F55F492D4D31C5FAD6E9705092F73553394500F453F"
+			"87F0636A157363629793925B4A01C26D8430D866982B354509F6FA026A8D5BD2"
+			"E2BD61FA38076DB60F6E018AE3F1FAC6D3126E49FF9109FED098298C5DCF3D08"
+			"BA10DFFE7E9885BEB9B4777D5B83965078E7C15019CB4848C2032AB089396AB1"
+			"33D98E3AABFE4E3476C31853E0988F2071D36B72B764788A614550C0D724264"
+			"8D27D600DE404F2289632B5E4BEEF478FD861CB61597A4D8DF2D525BC4A1B3D0"
+			"641C0F03B1969B3C8396F8AD3D08544BED6BB226251A58898110D780E1F3F6BA"
+			"367AC57AF6B43CB9854E48FEED35A4525AD34C2FECC6F12A803BD847A971101C"
+			"61E30E244DA1532532D1AED540A5FC314B5437D4599602D1AA441237F434B28E"
+			"B92D9890A888736C2555C607ACB7E53CE14E1D42CAD9C73148E3E746B8D358FE"
+			"356959832E4F083D64411D05EE143E128301249D2A980CC0689B330E48D5961F"
+			"138F2A3DED8B3C135CE49E7E6A0FC94FC95F7D33A43BBEB2C70BF0A90C4B1F8"
+			"5F227FC2345DD8F2F989993604E81ABDABC5CFE90BF45E08A57493BCB927F0B1"
+			"CD572093F6A0B60ABFEAEF22FA0CA61644304C0DA487709A1DB5C254C3C773E6"
+			"87E8CC84D156CEEB37904F2367BFD59199C4BD5641C2F82B5846F41DA615E686"
+			"DB37BD1A7F789263AF0D405DF14C03372DEECD40BC3B3B2407340B008ACCE7D3"
+			"CA6F806E9EEB6E50FB97BE94427E255B4BBEA359F9C02FD416DF019FA6475145"
+			"4EE2CD09176EF1775883F4BC462DC67AD57AAB48749DB5E5DBD019ADE3212626"
+			"C0F8AB1FF970E0E829C52B49C4EC41D2D2D4919882084AA9960C5C88EAD0BEF1"
+			"8BC7D60AD9611D03264FA74AF27F6481D0BFA3BA14073A570D636A4BF21CDCA2"
+			"B14409BC6427CCD9CE070AEE6CFAE561EA5AECC08AB6F19436CDC74E28C9F337"
+			"5916780843C6D303E4D4FFAE4EC1E0861F5B7D4E9E4E574459A7726E62A68FA"
+			"7FCADA999DB67E3260A6780FDE1D59C3F7DCDD0AFAA7A9A87C7A37A6975B7117"
+			"1342C89ABC67626841491D030D9E3AA7A02B8FEF222A561325B9AAC4AA6A65CA"
+			"7635DE2770A2BDE32F9A24D6C31C298921313D75512A9E31835201A9C7F45CAF"
+			"6B89653C1686D25AA53FF81D7EC04DBC150D82B8ABF152354785C0E6FC00BA85"
+			"4EEC09D9F052F2C5C7DEF8FB34DD3FEC94F6D1A63333577C2F8863852632E669"
+			"50D19591EDC891F1C34892DB72835E821EE98E17B05E35AAD21FDD5A9A899974"
+			"17DB347B91BCE3B478D95F481A3EDF640EEF1E48192C72731D3065F20B25850F"
+			"4722F11E19F7E8F43470581DB4809EB937F3807B4478048EE89CAB500BBF56ED"
+			"616CFC3E0238EF40F48D965D2396CF5571D3A1D64B3B9482F3FA5DCC01648E18"
+			"7F720431221F30CEFE7F88F01A00FA72FC81F028749E1EAED32D93AFEAC6F2A9"
+			"DF435960EA67C663FCC4240EB91BB0EF6952EEA20CDA49C5B0DF18AAC6161280"
+			"C7711B7A7AE13BAD45A8D6BD506745EEAA48BF70803ED35CB92FED61D9B2829E"
+			"F03FFBF4FFC1B1EF9A700000005C352B0C3A2333F0FD9903C97D5D0F049BB623"
+			"488ADA9263E6795A1F06ED6C5F501B620C35C6BCB2BAA5B400839F73E3536D25"
+			"D338AFD7BDC1D72D5DAB2A37EB44D3AD7C4A7C8C3A1B174CC1B53F5BA3F3092"
+			"9C5B1A9F89AFFB708487F2BB1FFB679108730660329F2CDB48AA2945D9F26DB1"
+			"E4442F5D4FFB7682523FE1E42758C73A9CE5F00334086D8716C7CF9DC3B54CD5"
+			"3CF006958D3C4558FA13B5AC1C72"
+		}
+	};
+
+	try {
+		typedef LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> PubKeyType;
+		const size_t pkSize = PubKeyType::PUBLIC_KEY_SIZE;
+		const size_t sigSize = 1292;
+		const size_t msgSize = 128;
+
+		byte pkBytes[56];
+		if (!HexDecode(publicKeyHex, pkBytes, pkSize))
+		{
+			std::cout << "FAILED:  " << name << " public key hex decode error" << std::endl;
+			return false;
+		}
+
+		LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> verifier(pkBytes, pkSize);
+		unsigned int passed = 0;
+
+		for (size_t t = 0; t < 2; t++)
+		{
+			SecByteBlock msgBytes(msgSize);
+			SecByteBlock sigBytes(sigSize);
+
+			if (!HexDecode(vectors[t].message, msgBytes, msgSize) ||
+				!HexDecode(vectors[t].signature, sigBytes, sigSize))
+			{
+				std::cout << "FAILED:  " << name << " tcId " << vectors[t].tcId
+					<< " hex decode error" << std::endl;
+				return false;
+			}
+
+			bool result = verifier.VerifyMessage(
+				msgBytes, msgSize, sigBytes, sigSize);
+
+			if (!result)
+			{
+				std::cout << "FAILED:  " << name << " tcId " << vectors[t].tcId
+					<< " valid signature rejected" << std::endl;
+				return false;
+			}
+			passed++;
+		}
+
+		std::cout << "passed:  " << name << " (" << passed << "/2 vectors)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateLMS()
 {
 	std::cout << "\nLMS (SP 800-208) validation suite running...\n\n";
@@ -1418,6 +1824,8 @@ bool ValidateLMS()
 	// NIST ACVP known-answer tests
 	pass = TestLMSKeyGenKAT() && pass;
 	pass = TestLMSSigVerKAT() && pass;
+	pass = TestLMSSigGenKAT() && pass;
+	pass = TestLMSSigGenVerifyACVP() && pass;
 
 	// Functional tests: LMS-SHA256-M32-H5 / LMOTS-SHA256-N32-W8
 	pass = TestLMSKeyGen<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
@@ -1428,6 +1836,16 @@ bool ValidateLMS()
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSSerialization<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+
+	// LMS-SHA256-M32-H10 / LMOTS-SHA256-N32-W8
+	pass = TestLMSKeyGen<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSSerialization<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
 
 	// Exhaustion test (H5 = 32 signatures)
 	pass = TestLMSExhaustion() && pass;
