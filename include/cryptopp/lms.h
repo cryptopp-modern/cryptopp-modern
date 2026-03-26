@@ -25,6 +25,8 @@
 #include <cryptopp/stateful.h>
 #include <cryptopp/misc.h>
 #include <cryptopp/allocate.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
 
 #include <cstring>
 #include <vector>
@@ -181,6 +183,10 @@ struct LMSPublicKey : public PublicKey
     LMSPublicKey() : m_pk(PUBLIC_KEY_SIZE) { std::memset(m_pk, 0, PUBLIC_KEY_SIZE); }
     virtual ~LMSPublicKey() = default;
 
+    /// \brief Get the algorithm OID
+    /// \details All LMS parameter sets share a single OID (RFC 8554, RFC 8708).
+    OID GetAlgorithmID() const { return ASN1::id_alg_hss_lms_hashsig(); }
+
     /// \brief Check this object for errors
     bool Validate(RandomNumberGenerator &rng, unsigned int level) const;
 
@@ -207,6 +213,23 @@ struct LMSPublicKey : public PublicKey
     /// \brief Get pointer to tree root T[1] (m bytes, offset 24 in public key)
     const byte* GetRoot() const { return m_pk.begin() + 24; }
 
+    /// \brief DER encode the public key (X.509 SubjectPublicKeyInfo format)
+    /// \param bt BufferedTransformation to write to
+    /// \details Per RFC 8708, the public key bytes are placed directly in
+    ///  the BIT STRING with no additional ASN.1 wrapping. Algorithm
+    ///  parameters MUST be absent (not NULL).
+    void DEREncode(BufferedTransformation &bt) const;
+
+    /// \brief BER decode the public key (X.509 SubjectPublicKeyInfo format)
+    /// \param bt BufferedTransformation to read from
+    void BERDecode(BufferedTransformation &bt);
+
+    /// \brief Save the key to a BufferedTransformation
+    void Save(BufferedTransformation &bt) const { DEREncode(bt); }
+
+    /// \brief Load the key from a BufferedTransformation
+    void Load(BufferedTransformation &bt) { BERDecode(bt); }
+
 private:
     SecByteBlock m_pk;
 };
@@ -229,6 +252,9 @@ struct LMSPrivateKey : public PrivateKey
 
     LMSPrivateKey() : m_seed(SEED_SIZE), m_I(I_SIZE) {}
     virtual ~LMSPrivateKey() = default;
+
+    /// \brief Get the algorithm OID
+    OID GetAlgorithmID() const { return ASN1::id_alg_hss_lms_hashsig(); }
 
     /// \brief Check this object for errors
     bool Validate(RandomNumberGenerator &rng, unsigned int level) const;
@@ -263,6 +289,25 @@ struct LMSPrivateKey : public PrivateKey
     /// \details This computes the full Merkle tree root from the seed.
     ///  It is an expensive operation proportional to 2^h hash evaluations.
     void MakePublicKey(LMSPublicKey<LMS_PARAMS, OTS_PARAMS> &pub) const;
+
+    /// \brief DER encode the private key (library PKCS#8 wrapping)
+    /// \param bt BufferedTransformation to write to
+    /// \details Uses a PKCS#8 wrapper with the LMS OID and an opaque
+    ///  inner OCTET STRING carrying SEED || I. This is a library-defined
+    ///  format, not an RFC-standardised private key encoding.
+    ///  The serialised form does NOT contain signing progress.
+    ///  Reconstructing a signer requires a valid state store.
+    void DEREncode(BufferedTransformation &bt) const;
+
+    /// \brief BER decode the private key (library PKCS#8 wrapping)
+    /// \param bt BufferedTransformation to read from
+    void BERDecode(BufferedTransformation &bt);
+
+    /// \brief Save the key to a BufferedTransformation
+    void Save(BufferedTransformation &bt) const { DEREncode(bt); }
+
+    /// \brief Load the key from a BufferedTransformation
+    void Load(BufferedTransformation &bt) { BERDecode(bt); }
 
 private:
     SecByteBlock m_seed;    // SEED (n bytes)

@@ -7,6 +7,8 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/misc.h>
 #include <cryptopp/secblock.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
 
 #include <cstring>
 
@@ -464,6 +466,42 @@ void LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::AssignFrom(const NameValuePairs &sour
     CRYPTOPP_UNUSED(source);
 }
 
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::DEREncode(BufferedTransformation &bt) const
+{
+    // X.509 SubjectPublicKeyInfo format (RFC 8708)
+    // AlgorithmIdentifier parameters MUST be absent (not NULL)
+    DERSequenceEncoder publicKeyInfo(bt);
+        DERSequenceEncoder algorithm(publicKeyInfo);
+            GetAlgorithmID().DEREncode(algorithm);
+        algorithm.MessageEnd();
+
+        // Public key bytes go directly in BIT STRING, no wrapping
+        DEREncodeBitString(publicKeyInfo, m_pk.begin(), PUBLIC_KEY_SIZE);
+    publicKeyInfo.MessageEnd();
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::BERDecode(BufferedTransformation &bt)
+{
+    // X.509 SubjectPublicKeyInfo format (RFC 8708)
+    BERSequenceDecoder publicKeyInfo(bt);
+        BERSequenceDecoder algorithm(publicKeyInfo);
+            OID oid(algorithm);
+            if (oid != GetAlgorithmID())
+                BERDecodeError();
+        algorithm.MessageEnd();
+
+        SecByteBlock subjectPublicKey;
+        unsigned int unusedBits;
+        BERDecodeBitString(publicKeyInfo, subjectPublicKey, unusedBits);
+        if (unusedBits != 0 || subjectPublicKey.size() != PUBLIC_KEY_SIZE)
+            BERDecodeError();
+        SetPublicKey(subjectPublicKey.begin(), PUBLIC_KEY_SIZE);
+
+    publicKeyInfo.MessageEnd();
+}
+
 // ******************** LMSPrivateKey ************************* //
 
 template <class LMS_PARAMS, class OTS_PARAMS>
@@ -540,6 +578,63 @@ template <class LMS_PARAMS, class OTS_PARAMS>
 void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::AssignFrom(const NameValuePairs &source)
 {
     CRYPTOPP_UNUSED(source);
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::DEREncode(BufferedTransformation &bt) const
+{
+    // Library PKCS#8 wrapping with LMS OID.
+    // Private key payload is SEED || I (concatenated, no leaf index).
+    // This is not an RFC-defined private key format.
+    const size_t privKeyLen = SEED_SIZE + I_SIZE;
+
+    DERSequenceEncoder privateKeyInfo(bt);
+        DEREncodeUnsigned<word32>(privateKeyInfo, 0);  // version 0 only
+
+        DERSequenceEncoder algorithm(privateKeyInfo);
+            GetAlgorithmID().DEREncode(algorithm);
+        algorithm.MessageEnd();
+
+        DERGeneralEncoder octetString(privateKeyInfo, OCTET_STRING);
+            DERGeneralEncoder privateKey(octetString, OCTET_STRING);
+                privateKey.Put(m_seed.begin(), SEED_SIZE);
+                privateKey.Put(m_I.begin(), I_SIZE);
+            privateKey.MessageEnd();
+        octetString.MessageEnd();
+
+    privateKeyInfo.MessageEnd();
+}
+
+template <class LMS_PARAMS, class OTS_PARAMS>
+void LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::BERDecode(BufferedTransformation &bt)
+{
+    // Library PKCS#8 wrapping with LMS OID. Version 0 only.
+    const size_t privKeyLen = SEED_SIZE + I_SIZE;
+
+    BERSequenceDecoder privateKeyInfo(bt);
+        word32 version;
+        BERDecodeUnsigned<word32>(privateKeyInfo, version, INTEGER, 0, 0);
+
+        BERSequenceDecoder algorithm(privateKeyInfo);
+            OID oid(algorithm);
+            if (oid != GetAlgorithmID())
+                BERDecodeError();
+        algorithm.MessageEnd();
+
+        BERGeneralDecoder octetString(privateKeyInfo, OCTET_STRING);
+            BERGeneralDecoder privateKey(octetString, OCTET_STRING);
+                if (!privateKey.IsDefiniteLength() ||
+                    privateKey.RemainingLength() != privKeyLen)
+                    BERDecodeError();
+                SecByteBlock seed(SEED_SIZE);
+                SecByteBlock identifier(I_SIZE);
+                privateKey.Get(seed.begin(), SEED_SIZE);
+                privateKey.Get(identifier.begin(), I_SIZE);
+                SetPrivateKey(seed.begin(), SEED_SIZE, identifier.begin(), I_SIZE);
+            privateKey.MessageEnd();
+        octetString.MessageEnd();
+
+    privateKeyInfo.MessageEnd();
 }
 
 // ******************** LMSVerifier ************************* //

@@ -947,6 +947,98 @@ static bool TestLMSStoreContract()
 	}
 }
 
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSSerialization(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		// Generate key pair
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		// DER encode private key
+		std::string privDer;
+		StringSink privSink(privDer);
+		privKey.DEREncode(privSink);
+
+		if (privDer.empty()) {
+			std::cout << "FAILED:  " << name << " private key DER encode produced empty output" << std::endl;
+			return false;
+		}
+
+		// BER decode private key
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey2;
+		StringSource privSource(privDer, true);
+		privKey2.BERDecode(privSource);
+
+		// Verify round-trip: seed and identifier match
+		if (!VerifyBufsEqual(privKey.GetSeedBytePtr(), privKey2.GetSeedBytePtr(),
+			LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::SEED_SIZE) ||
+			!VerifyBufsEqual(privKey.GetIdentifierBytePtr(), privKey2.GetIdentifierBytePtr(),
+			LMSPrivateKey<LMS_PARAMS, OTS_PARAMS>::I_SIZE))
+		{
+			std::cout << "FAILED:  " << name << " private key DER round-trip mismatch" << std::endl;
+			return false;
+		}
+
+		// DER encode public key
+		std::string pubDer;
+		StringSink pubSink(pubDer);
+		pubKey.DEREncode(pubSink);
+
+		if (pubDer.empty()) {
+			std::cout << "FAILED:  " << name << " public key DER encode produced empty output" << std::endl;
+			return false;
+		}
+
+		// BER decode public key
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey2;
+		StringSource pubSource(pubDer, true);
+		pubKey2.BERDecode(pubSource);
+
+		// Verify round-trip: public key bytes match
+		typedef LMSPublicKey<LMS_PARAMS, OTS_PARAMS> PubKeyType;
+		if (!VerifyBufsEqual(pubKey.GetPublicKeyBytePtr(), pubKey2.GetPublicKeyBytePtr(),
+			PubKeyType::PUBLIC_KEY_SIZE))
+		{
+			std::cout << "FAILED:  " << name << " public key DER round-trip mismatch" << std::endl;
+			return false;
+		}
+
+		// Verify decoded public key can still verify signatures
+		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey2, store);
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
+			pubKey2.GetPublicKeyBytePtr(), pubKey2.GetPublicKeyByteLength());
+
+		std::string message = "Serialization round-trip test message";
+		SecByteBlock signature(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " sign/verify after DER round-trip" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " serialization" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " serialization - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 // ******************** NIST ACVP Known-Answer Tests ************************* //
 
 static bool HexDecode(const char *hexStr, byte *out, size_t outLen)
@@ -1333,6 +1425,8 @@ bool ValidateLMS()
 	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSMultipleSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSSerialization<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
 	// Exhaustion test (H5 = 32 signatures)
