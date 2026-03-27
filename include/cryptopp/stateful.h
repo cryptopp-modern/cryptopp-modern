@@ -19,6 +19,9 @@
 
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/config_int.h>
+#include <cryptopp/secblock.h>
+
+#include <string>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -105,11 +108,8 @@ public:
     bool IsValid() const { return m_valid; }
 
 private:
-    // Only state stores can construct reservations.
-    // If subclasses need access, this can be widened to a
-    // protected factory method on SignerStateStore.
+    // All state store backends construct reservations through this friendship.
     friend class SignerStateStore;
-    friend class InsecureMemoryStateStore;
 
     explicit StateReservation(uint64_t leafIndex)
         : m_leafIndex(leafIndex), m_valid(true) {}
@@ -135,6 +135,17 @@ class SignerStateStore
 {
 public:
     virtual ~SignerStateStore() = default;
+
+protected:
+    /// \brief Factory method for constructing StateReservation objects
+    /// \details Only state store backends should construct reservations.
+    ///  This protected factory avoids friending every concrete backend.
+    static StateReservation MakeReservation(uint64_t leafIndex)
+    {
+        return StateReservation(leafIndex);
+    }
+
+public:
 
     /// \brief Reserve the next available signing index
     /// \return a move-only StateReservation by value
@@ -254,6 +265,123 @@ public:
 private:
     uint64_t m_nextIndex;
     uint64_t m_totalLeaves;
+};
+
+// ******************** File-Backed State Store ************************* //
+
+/// \brief File-backed durable state store for stateful signing schemes
+/// \details Provides crash-safe, corruption-detecting persistence for
+///  the signing index counter. Write-ahead model: the index advances
+///  on disk before the reservation is returned. On crash, at most one
+///  index is lost (burned). No index is ever reused.
+/// \details Single-writer only. Opening the same state file from more
+///  than one writer can cause catastrophic index reuse. This is a total
+///  security failure, not merely undefined behaviour.
+/// \details The state file does not contain key material. The HMAC
+///  integrity key is caller-provided and optional. Without a key, the
+///  store detects accidental corruption and format mismatches, but not
+///  intentional file rewriting. The HMAC does NOT provide durable
+///  anti-rollback across process restarts.
+/// \details Once any integrity verification fails, the store enters a
+///  permanently poisoned state and refuses all further operations.
+/// \details FileStateStore targets desktop and server platforms with
+///  POSIX or Win32 filesystem semantics and meaningful flush guarantees.
+///  Embedded targets (bare metal, RTOS, EEPROM, RPMB, TPM) should
+///  implement SignerStateStore directly against their storage hardware.
+/// \sa SignerStateStore, InsecureMemoryStateStore
+/// \since cryptopp-modern 2026.4.0
+class FileStateStore : public SignerStateStore
+{
+public:
+    /// \brief File format size in bytes
+    static const size_t FILE_SIZE = 64;
+
+    /// \brief Create a new state file
+    /// \param path filesystem path for the state file
+    /// \param totalLeaves total signing capacity
+    /// \param integrityKey optional HMAC key for corruption detection (may be null)
+    /// \param keyLen length of integrity key in bytes (0 if no key)
+    /// \details Throws if file already exists. Silent overwrite is not
+    ///  supported because it risks destroying valid signing state.
+    /// \throw Exception with IO_ERROR if file already exists or cannot be created
+    static FileStateStore Create(const std::string &path,
+                                  uint64_t totalLeaves,
+                                  const byte *integrityKey = NULLPTR,
+                                  size_t keyLen = 0);
+
+    /// \brief Open an existing state file
+    /// \param path filesystem path for the state file
+    /// \param expectedTotalLeaves expected signing capacity (must match file)
+    /// \param integrityKey optional HMAC key (must match key used at creation)
+    /// \param keyLen length of integrity key in bytes
+    /// \throw SignerStateIntegrityFailure on any verification failure
+    ///  (magic, HMAC, capacity mismatch, bounds violation, reserved non-zero)
+    static FileStateStore Open(const std::string &path,
+                                uint64_t expectedTotalLeaves,
+                                const byte *integrityKey = NULLPTR,
+                                size_t keyLen = 0);
+
+    ~FileStateStore();
+
+    // Non-copyable
+    FileStateStore(const FileStateStore &) = delete;
+    FileStateStore &operator=(const FileStateStore &) = delete;
+
+    /// \brief Move constructor (transfers file handle ownership)
+    /// \details Moving transfers the single-writer role. It does not
+    ///  make concurrent use safe.
+    FileStateStore(FileStateStore &&other) noexcept;
+    FileStateStore &operator=(FileStateStore &&other) noexcept;
+
+    /// \brief Reserve the next signing index (write-ahead)
+    /// \details Advances nextIndex on disk via a single positioned write
+    ///  of the mutable tail [16..64), then fsync, before returning.
+    ///  If the process crashes between the write and return, one index
+    ///  is lost. That is safe capacity loss, not index reuse.
+    /// \throw SignerExhausted if no indices remain
+    /// \throw SignerStateIntegrityFailure if the store is poisoned
+    StateReservation ReserveNext() override;
+
+    /// \brief No-op. State was already advanced on reserve.
+    /// \details Exists to satisfy the SignerStateStore interface.
+    ///  For write-ahead stores, commit does not control durability.
+    void CommitReservation(const StateReservation &reservation) override;
+
+    /// \brief No-op. State was already advanced on reserve. Index is burned.
+    /// \details Exists to satisfy the SignerStateStore interface.
+    ///  For write-ahead stores, abort does not roll back state.
+    void AbortReservation(const StateReservation &reservation) override;
+
+    bool IsExhausted() const override;
+
+    /// \brief Re-read from disk and verify integrity
+    /// \details This is NOT a passive health probe. It re-reads the file,
+    ///  verifies all fields, and refreshes the in-memory cache from disk.
+    ///  If any check fails, the store is permanently poisoned.
+    /// \throw SignerStateIntegrityFailure on any verification failure
+    ///  or if the store is already poisoned
+    bool IsHealthy() const override;
+
+    uint64_t RemainingSignatures() const override;
+
+private:
+    FileStateStore();
+
+    void WriteState();
+    void ReadAndVerify() const;
+    void Poison(const std::string &reason) const;
+
+    std::string m_path;
+    uint64_t m_totalLeaves;
+    mutable uint64_t m_nextIndex;
+    SecByteBlock m_integrityKey;
+    mutable bool m_poisoned;
+
+#ifdef _WIN32
+    void *m_handle;
+#else
+    int m_fd;
+#endif
 };
 
 NAMESPACE_END

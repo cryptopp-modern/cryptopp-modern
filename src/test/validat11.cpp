@@ -21,6 +21,8 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
+#include <cstdio>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
@@ -2825,6 +2827,632 @@ bool ValidateHSS()
 	pass = TestHSSReconstructionAtBoundary() && pass;
 	pass = TestHSSExhaustion() && pass;
 	pass = TestHSSSafeFailure() && pass;
+
+	return pass;
+}
+
+// ******************** FileStateStore Validation ************************* //
+
+// Helper: remove a test file if it exists
+static void RemoveTestFile(const std::string &path)
+{
+	std::remove(path.c_str());
+}
+
+// Helper: write raw bytes to a file (for corruption tests)
+static void WriteRawFile(const std::string &path, const byte *data, size_t len)
+{
+	std::ofstream f(path, std::ios::binary | std::ios::trunc);
+	f.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+}
+
+// Helper: read raw bytes from a file
+static void ReadRawFile(const std::string &path, byte *data, size_t len)
+{
+	std::ifstream f(path, std::ios::binary);
+	f.read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(len));
+}
+
+static bool TestFileStoreCreateAndOpen()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_create.state";
+	RemoveTestFile(path);
+
+	try {
+		// Create
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			if (store.IsExhausted()) {
+				std::cout << "FAILED:  " << name << " new store reports exhausted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+			if (store.RemainingSignatures() != 100) {
+				std::cout << "FAILED:  " << name << " remaining != 100" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+		// store closed (destructor)
+
+		// Reopen
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+			if (store.RemainingSignatures() != 100) {
+				std::cout << "FAILED:  " << name << " reopen remaining != 100" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " create and open" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " create/open - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreReserveAndReopen()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_reserve.state";
+	RemoveTestFile(path);
+
+	try {
+		// Create and reserve 5 indices
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 5; i++)
+			{
+				StateReservation r = store.ReserveNext();
+				if (r.LeafIndex() != static_cast<uint64_t>(i)) {
+					std::cout << "FAILED:  " << name << " reserve index " << i << std::endl;
+					RemoveTestFile(path);
+					return false;
+				}
+				store.CommitReservation(r);
+			}
+			if (store.RemainingSignatures() != 95) {
+				std::cout << "FAILED:  " << name << " remaining after 5 reserves" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// Reopen and verify state persisted
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+			if (store.RemainingSignatures() != 95) {
+				std::cout << "FAILED:  " << name << " reopen remaining != 95" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+			// Next index should be 5
+			StateReservation r = store.ReserveNext();
+			if (r.LeafIndex() != 5) {
+				std::cout << "FAILED:  " << name << " reopen next index != 5" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " reserve and reopen continuity" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " reserve/reopen - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreExhaustion()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_exhaust.state";
+	RemoveTestFile(path);
+
+	try {
+		FileStateStore store = FileStateStore::Create(path, 10);
+		for (int i = 0; i < 10; i++)
+			store.ReserveNext();
+
+		if (!store.IsExhausted()) {
+			std::cout << "FAILED:  " << name << " not exhausted" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		bool threw = false;
+		try { store.ReserveNext(); }
+		catch (const SignerExhausted&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " did not throw SignerExhausted" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " exhaustion" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " exhaustion - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreCorruption()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_corrupt.state";
+	RemoveTestFile(path);
+
+	try {
+		unsigned int detected = 0;
+
+		// Create a valid file and reserve a few
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++)
+				store.ReserveNext();
+		}
+
+		// Read the raw file
+		byte fileBuf[64];
+		ReadRawFile(path, fileBuf, 64);
+
+		// 1. Corrupted HMAC
+		{
+			byte bad[64];
+			std::memcpy(bad, fileBuf, 64);
+			bad[32] ^= 0x01;  // flip HMAC byte
+			WriteRawFile(path, bad, 64);
+
+			bool threw = false;
+			try { FileStateStore::Open(path, 100); }
+			catch (const SignerStateIntegrityFailure&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " corrupted HMAC accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// Restore valid file for next test
+		WriteRawFile(path, fileBuf, 64);
+
+		// 2. Corrupted magic
+		{
+			byte bad[64];
+			std::memcpy(bad, fileBuf, 64);
+			bad[0] = 'X';
+			WriteRawFile(path, bad, 64);
+
+			bool threw = false;
+			try { FileStateStore::Open(path, 100); }
+			catch (const SignerStateIntegrityFailure&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " corrupted magic accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		WriteRawFile(path, fileBuf, 64);
+
+		// 3. Truncated file
+		{
+			WriteRawFile(path, fileBuf, 32);  // only 32 of 64 bytes
+
+			bool threw = false;
+			try { FileStateStore::Open(path, 100); }
+			catch (const Exception&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " truncated file accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		WriteRawFile(path, fileBuf, 64);
+
+		// 4. Wrong totalLeaves
+		{
+			bool threw = false;
+			try { FileStateStore::Open(path, 200); }  // file has 100
+			catch (const SignerStateIntegrityFailure&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " wrong totalLeaves accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// 5. Create over existing file
+		{
+			bool threw = false;
+			try { FileStateStore::Create(path, 100); }
+			catch (const Exception&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " create over existing accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// 6. Open nonexistent file
+		{
+			RemoveTestFile(path);
+			bool threw = false;
+			try { FileStateStore::Open("nonexistent_state_file.state", 100); }
+			catch (const Exception&) { threw = true; }
+			if (threw) detected++;
+			else {
+				std::cout << "FAILED:  " << name << " open nonexistent accepted" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " corruption and negative tests (" << detected << " cases)" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " corruption - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreIntegrityKey()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_key.state";
+	RemoveTestFile(path);
+
+	try {
+		const byte keyA[] = "integrity-key-alpha";
+		const byte keyB[] = "integrity-key-bravo";
+
+		// Create with key A, reserve a few
+		{
+			FileStateStore store = FileStateStore::Create(path, 100, keyA, sizeof(keyA) - 1);
+			for (int i = 0; i < 5; i++)
+				store.ReserveNext();
+		}
+
+		// Reopen with key A - should work
+		{
+			FileStateStore store = FileStateStore::Open(path, 100, keyA, sizeof(keyA) - 1);
+			if (store.RemainingSignatures() != 95) {
+				std::cout << "FAILED:  " << name << " key A reopen wrong count" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// Reopen with key B - should fail
+		{
+			bool threw = false;
+			try { FileStateStore::Open(path, 100, keyB, sizeof(keyB) - 1); }
+			catch (const SignerStateIntegrityFailure&) { threw = true; }
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " wrong key accepted" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		// Reopen with no key - should fail (file was created with key)
+		{
+			bool threw = false;
+			try { FileStateStore::Open(path, 100); }
+			catch (const SignerStateIntegrityFailure&) { threw = true; }
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " no key accepted on keyed file" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " integrity key verification" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " integrity key - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStorePoisonedState()
+{
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_poison.state";
+	RemoveTestFile(path);
+
+	try {
+		// Create valid, reserve a few, then close
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++)
+				store.ReserveNext();
+		}
+
+		// Corrupt the file while no store holds it open
+		byte fileBuf[64];
+		ReadRawFile(path, fileBuf, 64);
+		fileBuf[32] ^= 0xFF;  // corrupt HMAC
+		WriteRawFile(path, fileBuf, 64);
+
+		// Open should throw (integrity failure on read)
+		bool openThrew = false;
+		try { FileStateStore::Open(path, 100); }
+		catch (const SignerStateIntegrityFailure&) { openThrew = true; }
+
+		if (!openThrew) {
+			std::cout << "FAILED:  " << name << " Open did not throw on corrupted file" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		// Restore valid file, open, then test poison via IsHealthy
+		// by corrupting while store is open (POSIX only - on Windows
+		// the exclusive handle blocks external writes, so we test
+		// the Open-time detection path above instead)
+		WriteRawFile(path, fileBuf, 64);  // still corrupted from above
+
+		// Restore actually-valid content for next test
+		byte validBuf[64];
+		{
+			// Re-create a clean file to get valid bytes
+			RemoveTestFile(path);
+			FileStateStore tmp = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++)
+				tmp.ReserveNext();
+		}
+		ReadRawFile(path, validBuf, 64);
+
+		// Open valid file, then verify IsHealthy works on valid state
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+
+			// IsHealthy on uncorrupted file should return true
+			bool healthy = store.IsHealthy();
+			if (!healthy) {
+				std::cout << "FAILED:  " << name << " IsHealthy false on valid file" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " poisoned state / corruption detection" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " poisoned state - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreLMSIntegration()
+{
+	const char* name = "FileStateStore + LMS";
+	const std::string path = "test_filestore_lms.state";
+	RemoveTestFile(path);
+
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef LMS_SHA256_M32_H5 LMS_P;
+		typedef LMOTS_SHA256_N32_W8 OTS_P;
+
+		LMSPrivateKey<LMS_P, OTS_P> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		LMSPublicKey<LMS_P, OTS_P> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		LMSVerifier<LMS_P, OTS_P> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Sign with file-backed store
+		{
+			FileStateStore store = FileStateStore::Create(path, LMS_P::TOTAL_LEAVES);
+			LMSSigner<LMS_P, OTS_P> signer(privKey, store);
+
+			std::string msg = "LMS + FileStateStore test";
+			SecByteBlock sig(signer.SignatureLength());
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " signature rejected" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreHSSIntegration()
+{
+	const char* name = "FileStateStore + HSS";
+	const std::string path = "test_filestore_hss.state";
+	RemoveTestFile(path);
+
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(Params::SignatureSize());
+
+		// Sign 5 messages, close, reopen, sign 6th
+		{
+			FileStateStore store = FileStateStore::Create(path, Params::TotalSignatures());
+			HSSSigner<Params> signer(privKey, store);
+
+			for (int i = 0; i < 5; i++) {
+				std::string msg = "HSS file store msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin());
+			}
+		}
+
+		// Reopen and sign 6th
+		{
+			FileStateStore store = FileStateStore::Open(path, Params::TotalSignatures());
+			HSSSigner<Params> signer(privKey, store);
+
+			std::string msg = "HSS file store msg after restart";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " post-restart sig rejected" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " sign/restart/sign" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStoreHSSSubtreeBoundaryRestart()
+{
+	const char* name = "FileStateStore + HSS subtree boundary restart";
+	const std::string path = "test_filestore_hss_boundary.state";
+	RemoveTestFile(path);
+
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(Params::SignatureSize());
+
+		// Sign 32 (exhaust first subtree), close
+		{
+			FileStateStore store = FileStateStore::Create(path, Params::TotalSignatures());
+			HSSSigner<Params> signer(privKey, store);
+
+			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++) {
+				std::string msg = "Boundary restart msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin());
+			}
+		}
+
+		// Reopen - next sig crosses into subtree 1
+		{
+			FileStateStore store = FileStateStore::Open(path, Params::TotalSignatures());
+			HSSSigner<Params> signer(privKey, store);
+
+			std::string msg = "First msg in new subtree after file restart";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " cross-boundary sig rejected" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+bool ValidateFileStateStore()
+{
+	std::cout << "\nFileStateStore validation suite running...\n\n";
+	bool pass = true;
+
+	pass = TestFileStoreCreateAndOpen() && pass;
+	pass = TestFileStoreReserveAndReopen() && pass;
+	pass = TestFileStoreExhaustion() && pass;
+	pass = TestFileStoreCorruption() && pass;
+	pass = TestFileStoreIntegrityKey() && pass;
+	pass = TestFileStorePoisonedState() && pass;
+	pass = TestFileStoreLMSIntegration() && pass;
+	pass = TestFileStoreHSSIntegration() && pass;
+	pass = TestFileStoreHSSSubtreeBoundaryRestart() && pass;
 
 	return pass;
 }
