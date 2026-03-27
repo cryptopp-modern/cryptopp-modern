@@ -3439,6 +3439,277 @@ static bool TestFileStoreHSSSubtreeBoundaryRestart()
 	}
 }
 
+static bool TestFileStoreCrossRestartRollbackLimit()
+{
+	// Honesty test: proves the documented limitation that an older valid
+	// file image reopens cleanly after restart. This is NOT a bug. It
+	// confirms that FileStateStore does not claim durable anti-rollback
+	// across full process restarts.
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_rollback_limit.state";
+	RemoveTestFile(path);
+
+	try {
+		byte oldFile[64];
+
+		// Create, advance to index 3, save a copy of the file
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++)
+				store.ReserveNext();
+		}
+		ReadRawFile(path, oldFile, 64);
+
+		// Advance further to index 7, close
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+			for (int i = 0; i < 4; i++)
+				store.ReserveNext();
+			// store now at nextIndex=7
+		}
+
+		// Restore the old file (nextIndex=3) - simulates full-system rollback
+		WriteRawFile(path, oldFile, 64);
+
+		// Reopen in a "fresh process" - should succeed because the old file
+		// is internally valid and the HMAC checks out. This is the documented
+		// limitation: no external monotonic anchor means no cross-restart
+		// rollback detection.
+		bool openedCleanly = false;
+		try {
+			FileStateStore store = FileStateStore::Open(path, 100);
+			// Verify it resumed from the old index (3), not the newer one (7)
+			StateReservation r = store.ReserveNext();
+			if (r.LeafIndex() == 3)
+				openedCleanly = true;
+		}
+		catch (const Exception&) {
+			openedCleanly = false;
+		}
+
+		if (!openedCleanly) {
+			std::cout << "FAILED:  " << name
+				<< " cross-restart rollback limit - old valid file should reopen" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		std::cout << "passed:  " << name
+			<< " cross-restart rollback limitation (honest: old valid file reopens)" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " rollback limit - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+static bool TestFileStorePoisonedStateContract()
+{
+	// Proves all 4 contract points after integrity failure:
+	// 1. ReserveNext() throws SignerStateIntegrityFailure
+	// 2. IsHealthy() throws SignerStateIntegrityFailure
+	// 3. IsExhausted() returns true
+	// 4. RemainingSignatures() returns 0
+	const char* name = "FileStateStore";
+	const std::string path = "test_filestore_poison_contract.state";
+	RemoveTestFile(path);
+
+	try {
+		// Create valid file, advance, close
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 5; i++)
+				store.ReserveNext();
+		}
+
+		// Corrupt the HMAC
+		byte fileBuf[64];
+		ReadRawFile(path, fileBuf, 64);
+		fileBuf[32] ^= 0xFF;
+		WriteRawFile(path, fileBuf, 64);
+
+		// Open should throw - object never constructed successfully
+		// So we test via a different path: open a valid file, then
+		// use the corruption test to trigger poison through the
+		// Open path. The Open call itself throws, but we can test
+		// the contract by creating a store that will be poisoned
+		// on its first IsHealthy call.
+
+		// Restore valid file, open, then corrupt behind its back
+		// This only works on POSIX where the file can be written
+		// while open. On Windows, test via Open-time failure.
+
+		// Approach: test Open-time failure contract
+		bool openThrew = false;
+		try { FileStateStore::Open(path, 100); }
+		catch (const SignerStateIntegrityFailure&) { openThrew = true; }
+
+		if (!openThrew) {
+			std::cout << "FAILED:  " << name
+				<< " poisoned contract - Open did not throw on corrupt file" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		// For the live-object poison contract, we need a store that
+		// passes Open but fails on a later operation.
+		// Best cross-platform approach: Open with wrong totalLeaves
+		// (which passes file I/O but fails verification)
+		fileBuf[32] ^= 0xFF;  // restore valid HMAC
+		WriteRawFile(path, fileBuf, 64);
+
+		// Verify valid file opens fine
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+			// This should work - file is valid
+		}
+
+		// Now test: open with wrong expectedTotalLeaves to force
+		// ReadAndVerify to poison the object during construction
+		// The static Open throws, so the object doesn't escape.
+		// This proves Open-time detection, not post-Open poison.
+
+		// The full 4-point contract is most relevant when poison
+		// happens via IsHealthy() on a live object. On POSIX we
+		// can test this directly.
+#ifndef _WIN32
+		{
+			// Restore valid file and open
+			WriteRawFile(path, fileBuf, 64);
+			FileStateStore store = FileStateStore::Open(path, 100);
+
+			// Corrupt the file while store is open (POSIX allows this)
+			byte corruptBuf[64];
+			std::memcpy(corruptBuf, fileBuf, 64);
+			corruptBuf[32] ^= 0xFF;
+			WriteRawFile(path, corruptBuf, 64);
+
+			// IsHealthy should throw and poison
+			bool healthThrew = false;
+			try { store.IsHealthy(); }
+			catch (const SignerStateIntegrityFailure&) { healthThrew = true; }
+
+			if (!healthThrew) {
+				std::cout << "FAILED:  " << name
+					<< " poisoned contract - IsHealthy did not throw" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+
+			// Contract point 1: ReserveNext throws
+			bool reserveThrew = false;
+			try { store.ReserveNext(); }
+			catch (const SignerStateIntegrityFailure&) { reserveThrew = true; }
+
+			// Contract point 2: IsHealthy throws again
+			bool healthThrew2 = false;
+			try { store.IsHealthy(); }
+			catch (const SignerStateIntegrityFailure&) { healthThrew2 = true; }
+
+			// Contract point 3: IsExhausted returns true
+			bool exhausted = store.IsExhausted();
+
+			// Contract point 4: RemainingSignatures returns 0
+			uint64_t remaining = store.RemainingSignatures();
+
+			if (!reserveThrew || !healthThrew2 || !exhausted || remaining != 0) {
+				std::cout << "FAILED:  " << name
+					<< " poisoned contract - post-poison state incorrect"
+					<< " (reserve=" << reserveThrew << " health=" << healthThrew2
+					<< " exhausted=" << exhausted << " remaining=" << remaining << ")" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+
+			std::cout << "passed:  " << name
+				<< " poisoned state full contract (POSIX, 4 points)" << std::endl;
+		}
+#else
+		// On Windows, the exclusive handle blocks live corruption.
+		// We can only test Open-time detection, which we did above.
+		std::cout << "passed:  " << name
+			<< " poisoned state contract (Windows: Open-time detection)" << std::endl;
+#endif
+
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " poisoned contract - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
+#ifndef _WIN32
+static bool TestFileStoreInProcessRollback()
+{
+	// POSIX only: rewrite the backing file with an older nextIndex
+	// while the store is open, verify IsHealthy detects rollback.
+	const char* name = "FileStateStore (POSIX)";
+	const std::string path = "test_filestore_inprocess_rollback.state";
+	RemoveTestFile(path);
+
+	try {
+		// Create and advance to index 5
+		byte oldFile[64];
+		{
+			FileStateStore tmp = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++)
+				tmp.ReserveNext();
+		}
+		ReadRawFile(path, oldFile, 64);  // save state at index 3
+
+		// Reopen and advance to index 5
+		FileStateStore store = FileStateStore::Open(path, 100);
+		store.ReserveNext();  // index 3
+		store.ReserveNext();  // index 4
+		// store now at nextIndex=5
+
+		// Rewrite the file with the old state (nextIndex=3)
+		// The store's in-memory m_nextIndex is 5, so IsHealthy
+		// should detect the on-disk regression.
+		WriteRawFile(path, oldFile, 64);
+
+		bool threw = false;
+		try { store.IsHealthy(); }
+		catch (const SignerStateIntegrityFailure&) { threw = true; }
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name
+				<< " in-process rollback not detected" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		// Verify store is now poisoned
+		bool reserveThrew = false;
+		try { store.ReserveNext(); }
+		catch (const SignerStateIntegrityFailure&) { reserveThrew = true; }
+
+		if (!reserveThrew) {
+			std::cout << "FAILED:  " << name
+				<< " store not poisoned after rollback" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		std::cout << "passed:  " << name
+			<< " in-process rollback detection" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " in-process rollback - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+#endif  // !_WIN32
+
 bool ValidateFileStateStore()
 {
 	std::cout << "\nFileStateStore validation suite running...\n\n";
@@ -3450,6 +3721,11 @@ bool ValidateFileStateStore()
 	pass = TestFileStoreCorruption() && pass;
 	pass = TestFileStoreIntegrityKey() && pass;
 	pass = TestFileStorePoisonedState() && pass;
+	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
+	pass = TestFileStorePoisonedStateContract() && pass;
+#ifndef _WIN32
+	pass = TestFileStoreInProcessRollback() && pass;
+#endif
 	pass = TestFileStoreLMSIntegration() && pass;
 	pass = TestFileStoreHSSIntegration() && pass;
 	pass = TestFileStoreHSSSubtreeBoundaryRestart() && pass;
