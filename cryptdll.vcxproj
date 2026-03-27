@@ -307,6 +307,7 @@
     <ClInclude Include="include\cryptopp\iterhash.h" />
     <ClInclude Include="include\cryptopp\mdc.h" />
     <ClInclude Include="include\cryptopp\lms.h" />
+    <ClInclude Include="include\cryptopp\hss.h" />
     <ClInclude Include="include\cryptopp\mldsa.h" />
     <ClInclude Include="include\cryptopp\mlkem.h" />
     <ClInclude Include="include\cryptopp\misc.h" />

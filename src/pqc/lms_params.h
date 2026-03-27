@@ -79,6 +79,46 @@ inline uint16_t checksum(const byte *S, unsigned int w,
     return static_cast<uint16_t>(sum << ls);
 }
 
+// ==================== HSS Child Key Derivation ====================
+// ACVP / Cisco hash-sigs convention: reserved chain indices for child derivation.
+// Same Appendix A formula: H(I || u32str(q) || u16str(i) || u8str(0xFF) || SEED)
+// with i=65534 (0xFFFE) for child SEED and i=65535 (0xFFFF) for child I.
+//
+// cryptopp-modern also reserves i=65533 (0xFFFD) for deterministic intermediate-
+// signature randomiser C. This is NOT an RFC or ACVP convention. It is a library-
+// internal derivation that makes HSS signer reconstruction produce identical
+// intermediate parent-signs-child LMS signatures after restart. Without this,
+// reconstructing a signer from key + store would produce a valid but different
+// intermediate signature, violating the one-time property of the parent OTS leaf.
+// See BuildSubtreeChain in lms.cpp for usage.
+
+/// \brief Derive child SEED from parent key material (ACVP convention, i=65534)
+/// \param childSeed output buffer (n bytes)
+/// \param parentI the parent's 16-byte identifier
+/// \param parentLeaf the parent LMS leaf index that owns this child
+/// \param parentSeed the parent's secret seed (n bytes)
+/// \param n hash output length (bytes)
+void derive_child_seed(byte *childSeed, const byte *parentI,
+                       uint32_t parentLeaf, const byte *parentSeed,
+                       unsigned int n);
+
+/// \brief Derive child identifier from parent key material (ACVP convention, i=65535)
+/// \param childI output buffer (16 bytes)
+/// \param parentI the parent's 16-byte identifier
+/// \param parentLeaf the parent LMS leaf index that owns this child
+/// \param parentSeed the parent's secret seed (n bytes)
+/// \param n hash output length (bytes)
+/// \details The full hash output is n bytes; only the first 16 bytes are kept.
+void derive_child_identifier(byte *childI, const byte *parentI,
+                              uint32_t parentLeaf, const byte *parentSeed,
+                              unsigned int n);
+
+// ==================== LMS Public Key Byte Assembly ====================
+
+/// \brief Assemble LMS public key bytes: LMS_type(4) + OTS_type(4) + I(16) + T[1](m)
+void build_lms_public_key_bytes(byte *out, uint32_t lmsTypeId, uint32_t otsTypeId,
+                                const byte *I, const byte *root, unsigned int m);
+
 // ==================== LM-OTS Runtime Parameters ====================
 
 /// \brief Runtime parameter struct for LM-OTS operations

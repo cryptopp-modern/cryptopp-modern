@@ -1,4 +1,10 @@
 ####################################
+# Design work (local only)
+####################################
+DesignWork/
+build_test/
+
+####################################
 # C++ generic ignore
 # Allows you to use test.cxx and
 # avoid getting in the way of things

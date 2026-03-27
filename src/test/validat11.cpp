@@ -16,6 +16,7 @@
 #include <cryptopp/slhdsa.h>
 #include <cryptopp/xwing.h>
 #include <cryptopp/lms.h>
+#include <cryptopp/hss.h>
 
 #include <iostream>
 #include <iomanip>
@@ -1849,6 +1850,981 @@ bool ValidateLMS()
 
 	// Exhaustion test (H5 = 32 signatures)
 	pass = TestLMSExhaustion() && pass;
+
+	return pass;
+}
+
+// ******************** HSS Validation (SP 800-208, RFC 8554 Section 6) ************************* //
+
+template <class HSS_PARAMS>
+static bool TestHSSKeyGen(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		HSSPrivateKey<HSS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		if (!privKey.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " private key validation" << std::endl;
+			return false;
+		}
+
+		HSSPublicKey<HSS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		if (!pubKey.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " public key validation" << std::endl;
+			return false;
+		}
+
+		if (pubKey.GetL() != HSS_PARAMS::L) {
+			std::cout << "FAILED:  " << name << " L mismatch" << std::endl;
+			return false;
+		}
+
+		if (pubKey.GetPublicKeyByteLength() != HSS_PARAMS::PublicKeySize()) {
+			std::cout << "FAILED:  " << name << " public key size" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " key generation" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " key generation - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+template <class HSS_PARAMS>
+static bool TestHSSSignVerify(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		HSSPrivateKey<HSS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<HSS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(HSS_PARAMS::TotalSignatures());
+		HSSSigner<HSS_PARAMS> signer(privKey, store);
+
+		HSSVerifier<HSS_PARAMS> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Sign a message
+		std::string message = "Test message for HSS signature validation";
+		SecByteBlock signature(signer.SignatureLength());
+
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		// Verify
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid signature rejected" << std::endl;
+			return false;
+		}
+
+		// Modified message should fail
+		std::string modified = "Modified message for HSS signature";
+		bool invalidAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(modified.data()), modified.size(),
+			signature.begin(), signature.size());
+
+		if (invalidAccepted) {
+			std::cout << "FAILED:  " << name << " modified message incorrectly verified" << std::endl;
+			return false;
+		}
+
+		// Mutated signature should fail
+		SecByteBlock mutatedSig(signature);
+		mutatedSig[mutatedSig.size() / 2] ^= 0x01;
+
+		bool mutatedAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			mutatedSig.begin(), mutatedSig.size());
+
+		if (mutatedAccepted) {
+			std::cout << "FAILED:  " << name << " mutated signature incorrectly verified" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " sign/verify" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " sign/verify - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+template <class HSS_PARAMS>
+static bool TestHSSMultipleSignatures(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		HSSPrivateKey<HSS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<HSS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(HSS_PARAMS::TotalSignatures());
+		HSSSigner<HSS_PARAMS> signer(privKey, store);
+		HSSVerifier<HSS_PARAMS> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		const unsigned int count = 5;
+		SecByteBlock signature(signer.SignatureLength());
+
+		for (unsigned int i = 0; i < count; i++)
+		{
+			std::string msg = "HSS message number " + std::to_string(i);
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name << " signature " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		uint64_t remaining = signer.RemainingSignatures();
+		if (remaining != HSS_PARAMS::TotalSignatures() - count) {
+			std::cout << "FAILED:  " << name << " remaining count " << remaining
+				<< " != " << (HSS_PARAMS::TotalSignatures() - count) << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " multiple signatures (" << count << ")" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " multiple signatures - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSSubtreeBoundary()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(signer.SignatureLength());
+
+		// Sign 32 messages (exhausts bottom-level subtree 0)
+		for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+		{
+			std::string msg = "Subtree boundary test msg " + std::to_string(i);
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " subtree boundary - signature " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		// Signature 33 (index 32) crosses into subtree 1 - new child tree
+		std::string crossMsg = "First message in new subtree";
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(crossMsg.data()), crossMsg.size(),
+			signature.begin());
+
+		bool crossValid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(crossMsg.data()), crossMsg.size(),
+			signature.begin(), signature.size());
+
+		if (!crossValid) {
+			std::cout << "FAILED:  " << name
+				<< " subtree boundary - first-in-new-subtree rejected" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " subtree boundary (33 sigs across 2 subtrees)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " subtree boundary - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSSignerReconstruction()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(Params::SignatureSize());
+
+		// Sign 5 messages with first signer
+		{
+			HSSSigner<Params> signer1(privKey, store);
+			for (unsigned int i = 0; i < 5; i++)
+			{
+				std::string msg = "Reconstruction test msg " + std::to_string(i);
+				signer1.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin());
+			}
+		}
+		// signer1 is now destroyed
+
+		// Reconstruct a new signer from same key + store
+		{
+			HSSSigner<Params> signer2(privKey, store);
+			std::string msg = "Message after reconstruction";
+			signer2.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " reconstruction - post-restart signature rejected" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " signer reconstruction" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " reconstruction - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSReconstructionAtBoundary()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(Params::SignatureSize());
+
+		// Sign up to the subtree boundary (32 sigs = exhaust subtree 0)
+		{
+			HSSSigner<Params> signer1(privKey, store);
+			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+			{
+				std::string msg = "Boundary recon msg " + std::to_string(i);
+				signer1.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin());
+			}
+		}
+		// signer1 destroyed at subtree boundary
+
+		// Reconstruct - next signature crosses into subtree 1
+		{
+			HSSSigner<Params> signer2(privKey, store);
+			std::string msg = "First message after boundary reconstruction";
+			signer2.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " boundary reconstruction - cross-boundary signature rejected" << std::endl;
+				return false;
+			}
+
+			// One more in the new subtree
+			std::string msg2 = "Second message in new subtree after reconstruction";
+			signer2.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg2.data()), msg2.size(),
+				signature.begin());
+
+			valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg2.data()), msg2.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " boundary reconstruction - second post-boundary signature rejected" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " reconstruction at subtree boundary" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " boundary reconstruction - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSExhaustion()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+		const uint64_t total = Params::TotalSignatures();  // 1024
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(total);
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(signer.SignatureLength());
+
+		// Sign all 1024 messages, verify each
+		for (uint64_t i = 0; i < total; i++)
+		{
+			std::string msg = "Exhaustion msg " + std::to_string(i);
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " exhaustion - signature " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		if (!signer.IsExhausted()) {
+			std::cout << "FAILED:  " << name << " not exhausted after " << total << " sigs" << std::endl;
+			return false;
+		}
+
+		if (signer.RemainingSignatures() != 0) {
+			std::cout << "FAILED:  " << name << " remaining != 0" << std::endl;
+			return false;
+		}
+
+		// 1025th signature should throw
+		bool threw = false;
+		try {
+			std::string msg = "One too many";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+		}
+		catch (const SignerExhausted&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " did not throw SignerExhausted" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " exhaustion (" << total
+			<< " sigs, " << (total + 1) << "th throws)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " exhaustion - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+template <class HSS_PARAMS>
+static bool TestHSSSerialization(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		HSSPrivateKey<HSS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<HSS_PARAMS> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		// DER encode public key
+		std::string pubDer;
+		StringSink pubSink(pubDer);
+		pubKey.DEREncode(pubSink);
+
+		// BER decode public key
+		HSSPublicKey<HSS_PARAMS> decodedPub;
+		StringSource pubSource(pubDer, true);
+		decodedPub.BERDecode(pubSource);
+
+		if (!decodedPub.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " decoded public key validation" << std::endl;
+			return false;
+		}
+
+		// Verify decoded public key matches original
+		if (decodedPub.GetPublicKeyByteLength() != pubKey.GetPublicKeyByteLength() ||
+			!VerifyBufsEqual(decodedPub.GetPublicKeyBytePtr(),
+				pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength())) {
+			std::cout << "FAILED:  " << name << " public key round-trip mismatch" << std::endl;
+			return false;
+		}
+
+		// DER encode private key
+		std::string privDer;
+		StringSink privSink(privDer);
+		privKey.DEREncode(privSink);
+
+		// BER decode private key
+		HSSPrivateKey<HSS_PARAMS> decodedPriv;
+		StringSource privSource(privDer, true);
+		decodedPriv.BERDecode(privSource);
+
+		if (!decodedPriv.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " decoded private key validation" << std::endl;
+			return false;
+		}
+
+		// Sign with decoded key, verify with decoded public key
+		InsecureMemoryStateStore store(HSS_PARAMS::TotalSignatures());
+		HSSSigner<HSS_PARAMS> signer(decodedPriv, store);
+		HSSVerifier<HSS_PARAMS> verifier(
+			decodedPub.GetPublicKeyBytePtr(), decodedPub.GetPublicKeyByteLength());
+
+		std::string message = "Serialisation round-trip test";
+		SecByteBlock signature(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " post-deserialisation sign/verify" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " serialization" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " serialization - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSRFCAppendixFTC1()
+{
+	// RFC 8554 Appendix F, Test Case 1 (Cisco hash-sigs reference)
+	// L=2, LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8
+	const char* name = "HSS RFC 8554 Appendix F TC1";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		// Public key (60 bytes)
+		const char* pkHex =
+			"00000002000000050000000461a5d57d37f5e46bfb7520806b07a1b8"
+			"50650e3b31fe4a773ea29a07f09cf2ea30e579f0df58ef8e298da043"
+			"4cb2b878";
+
+		// Message: "The powers not delegated to the United States..."
+		const char* msgHex =
+			"54686520706f77657273206e6f742064656c65676174656420746f20"
+			"74686520556e69746564205374617465732062792074686520436f6e"
+			"737469747574696f6e2c206e6f722070726f68696269746564206279"
+			"20697420746f20746865205374617465732c20617265207265736572"
+			"76656420746f20746865205374617465732072657370656374697665"
+			"6c792c206f7220746f207468652070656f706c652e0a";
+
+		// Signature (2644 bytes) - only first and last fragments shown in source,
+		// full hex assembled from Cisco test_testvector.c
+		const char* sigHex =
+			"000000010000000500000004d32b56671d7eb98833c49b433c272586"
+			"bc4a1c8a8970528ffa04b966f9426eb9965a25bfd37f196b9073f3d4"
+			"a232feb69128ec45146f86292f9dff9610a7bf95a64c7f60f6261a62"
+			"043f86c70324b7707f5b4a8a6e19c114c7be866d488778a0e05fd5c6"
+			"509a6e61d559cf1a77a970de927d60c70d3de31a7fa0100994e162a2"
+			"582e8ff1b10cd99d4e8e413ef469559f7d7ed12c838342f9b9c96b83"
+			"a4943d1681d84b15357ff48ca579f19f5e71f18466f2bbef4bf660c2"
+			"518eb20de2f66e3b14784269d7d876f5d35d3fbfc7039a462c716bb9"
+			"f6891a7f41ad133e9e1f6d9560b960e7777c52f060492f2d7c660e14"
+			"71e07e72655562035abc9a701b473ecbc3943c6b9c4f2405a3cb8bf8"
+			"a691ca51d3f6ad2f428bab6f3a30f55dd9625563f0a75ee390e385e3"
+			"ae0b906961ecf41ae073a0590c2eb6204f44831c26dd768c35b167b2"
+			"8ce8dc988a3748255230cef99ebf14e730632f27414489808afab1d1"
+			"e783ed04516de012498682212b07810579b250365941bcc98142da13"
+			"609e9768aaf65de7620dabec29eb82a17fde35af15ad238c73f81bdb"
+			"8dec2fc0e7f932701099762b37f43c4a3c20010a3d72e2f606be108d"
+			"310e639f09ce7286800d9ef8a1a40281cc5a7ea98d2adc7c7400c2fe"
+			"5a101552df4e3cccfd0cbf2ddf5dc6779cbbc68fee0c3efe4ec22b83"
+			"a2caa3e48e0809a0a750b73ccdcf3c79e6580c154f8a58f7f24335ee"
+			"c5c5eb5e0cf01dcf4439424095fceb077f66ded5bec73b27c5b9f64a"
+			"2a9af2f07c05e99e5cf80f00252e39db32f6c19674f190c9fbc506d8"
+			"26857713afd2ca6bb85cd8c107347552f30575a5417816ab4db3f603"
+			"f2df56fbc413e7d0acd8bdd81352b2471fc1bc4f1ef296fea1220403"
+			"466b1afe78b94f7ecf7cc62fb92be14f18c2192384ebceaf8801afdf"
+			"947f698ce9c6ceb696ed70e9e87b0144417e8d7baf25eb5f70f09f01"
+			"6fc925b4db048ab8d8cb2a661ce3b57ada67571f5dd546fc22cb1f97"
+			"e0ebd1a65926b1234fd04f171cf469c76b884cf3115cce6f792cc84e"
+			"36da58960c5f1d760f32c12faef477e94c92eb75625b6a371efc72d6"
+			"0ca5e908b3a7dd69fef0249150e3eebdfed39cbdc3ce9704882a2072"
+			"c75e13527b7a581a556168783dc1e97545e31865ddc46b3c957835da"
+			"252bb7328d3ee2062445dfb85ef8c35f8e1f3371af34023cef626e0a"
+			"f1e0bc017351aae2ab8f5c612ead0b729a1d059d02bfe18efa971b73"
+			"00e882360a93b025ff97e9e0eec0f3f3f13039a17f88b0cf808f4884"
+			"31606cb13f9241f40f44e537d302c64a4f1f4ab949b9feefadcb71ab"
+			"50ef27d6d6ca8510f150c85fb525bf25703df7209b6066f09c37280d"
+			"59128d2f0f637c7d7d7fad4ed1c1ea04e628d221e3d8db77b7c878c9"
+			"411cafc5071a34a00f4cf07738912753dfce48f07576f0d4f94f42c6"
+			"d76f7ce973e9367095ba7e9a3649b7f461d9f9ac1332a4d1044c96ae"
+			"fee67676401b64457c54d65fef6500c59cdfb69af7b6dddfcb0f0862"
+			"78dd8ad0686078dfb0f3f79cd893d314168648499898fbc0ced5f95b"
+			"74e8ff14d735cdea968bee7400000005d8b8112f9200a5e50c4a2621"
+			"65bd342cd800b8496810bc716277435ac376728d129ac6eda839a6f3"
+			"57b5a04387c5ce97382a78f2a4372917eefcbf93f63bb59112f5dbe4"
+			"00bd49e4501e859f885bf0736e90a509b30a26bfac8c17b5991c157e"
+			"b5971115aa39efd8d564a6b90282c3168af2d30ef89d51bf14654510"
+			"a12b8a144cca1848cf7da59cc2b3d9d0692dd2a20ba3863480e25b1b"
+			"85ee860c62bf51360000000500000004d2f14ff6346af964569f7d6c"
+			"b880a1b66c5004917da6eafe4d9ef6c6407b3db0e5485b122d9ebe15"
+			"cda93cfec582d7ab0000000a000000040703c491e7558b35011ece35"
+			"92eaa5da4d918786771233e8353bc4f62323185c95cae05b899e35df"
+			"fd717054706209988ebfdf6e37960bb5c38d7657e8bffeef9bc042da"
+			"4b4525650485c66d0ce19b317587c6ba4bffcc428e25d08931e72dfb"
+			"6a120c5612344258b85efdb7db1db9e1865a73caf96557eb39ed3e3f"
+			"426933ac9eeddb03a1d2374af7bf77185577456237f9de2d60113c23"
+			"f846df26fa942008a698994c0827d90e86d43e0df7f4bfcdb09b86a3"
+			"73b98288b7094ad81a0185ac100e4f2c5fc38c003c1ab6fea479eb2f"
+			"5ebe48f584d7159b8ada03586e65ad9c969f6aecbfe44cf356888a7b"
+			"15a3ff074f771760b26f9c04884ee1faa329fbf4e61af23aee7fa5d4"
+			"d9a5dfcf43c4c26ce8aea2ce8a2990d7ba7b57108b47dabfbeadb2b2"
+			"5b3cacc1ac0cef346cbb90fb044beee4fac2603a442bdf7e507243b7"
+			"319c9944b1586e899d431c7f91bcccc8690dbf59b28386b2315f3d36"
+			"ef2eaa3cf30b2b51f48b71b003dfb08249484201043f65f5a3ef6bbd"
+			"61ddfee81aca9ce60081262a00000480dcbc9a3da6fbef5c1c0a55e4"
+			"8a0e729f9184fcb1407c31529db268f6fe50032a363c9801306837fa"
+			"fabdf957fd97eafc80dbd165e435d0e2dfd836a28b354023924b6fb7"
+			"e48bc0b3ed95eea64c2d402f4d734c8dc26f3ac591825daef01eae3c"
+			"38e3328d00a77dc657034f287ccb0f0e1c9a7cbdc828f627205e4737"
+			"b84b58376551d44c12c3c215c812a0970789c83de51d6ad787271963"
+			"327f0a5fbb6b5907dec02c9a90934af5a1c63b72c82653605d1dcce5"
+			"1596b3c2b45696689f2eb382007497557692caac4d57b5de9f5569bc"
+			"2ad0137fd47fb47e664fcb6db4971f5b3e07aceda9ac130e9f38182d"
+			"e994cff192ec0e82fd6d4cb7f3fe00812589b7a7ce515440456433016b84a59bec6619a1"
+			"c6c0b37dd1450ed4f2d8b584410ceda8025f5d2d8dd0d2176fc1cf2c"
+			"c06fa8c82bed4d944e71339ece780fd025bd41ec34ebff9d4270a322"
+			"4e019fcb444474d482fd2dbe75efb20389cc10cd600abb54c47ede93"
+			"e08c114edb04117d714dc1d525e11bed8756192f929d15462b939ff3"
+			"f52f2252da2ed64d8fae88818b1efa2c7b08c8794fb1b214aa233db3"
+			"162833141ea4383f1a6f120be1db82ce3630b342911446315"
+			"7a64e91234d475e2f79cbf05e4db6a9407d72c6bff7d1198b5c4d6aa"
+			"d2831db61274993715a0182c7dc8089e32c8531deed4f7431c07c021"
+			"95eba2ef91efb5613c37af7ae0c066babc69369700e1dd26eddc0d21"
+			"6c781d56e4ce47e3303fa73007ff7b949ef23be2aa4dbf25206fe45c"
+			"20dd888395b2526391a724996a44156beac808212858792bf8e74cba"
+			"49dee5e8812e019da87454bff9e847ed83db07af313743082f880a27"
+			"8f682c2bd0ad6887cb59f652e155987d61bbf6a88d36ee93b6072e66"
+			"56d9ccbaae3d655852e38deb3a2dcf8058dc9fb6f2ab3d3b3539eb77"
+			"b248a661091d05eb6e2f297774fe6053598457cc61908318de4b826f"
+			"0fc86d4bb117d33e865aa805009cc2918d9c2f840c4da43a703ad9f5"
+			"b5806163d7161696b5a0adc00000005d5c0d1bebb06048ed6fe2ef2"
+			"c6cef305b3ed633941ebc8b3bec9738754cddd60e1920ada52f43d05"
+			"5b5031cee6192520d6a5115514851ce7fd448d4a39fae2ab2335b525"
+			"f484e9b40d6a4a969394843bdcf6d14c48e8015e08ab92662c05c6e9"
+			"f90b65a7a6201689999f32bfd368e5e3ec9cb70ac7b8399003f175c4"
+			"0885081a09ab3034911fe125631051df0408b3946b0bde790911e897"
+			"8ba07dd56c73e7ee";
+
+		// Decode hex to bytes
+		std::string pkStr, msgStr, sigStr;
+		StringSource(pkHex, true, new HexDecoder(new StringSink(pkStr)));
+		StringSource(msgHex, true, new HexDecoder(new StringSink(msgStr)));
+		StringSource(sigHex, true, new HexDecoder(new StringSink(sigStr)));
+
+		if (pkStr.size() != Params::PublicKeySize()) {
+			std::cout << "FAILED:  " << name << " public key size " << pkStr.size()
+				<< " != " << Params::PublicKeySize() << std::endl;
+			return false;
+		}
+		if (sigStr.size() != Params::SignatureSize()) {
+			std::cout << "FAILED:  " << name << " signature size " << sigStr.size()
+				<< " != " << Params::SignatureSize() << std::endl;
+			return false;
+		}
+
+		HSSVerifier<Params> verifier(
+			reinterpret_cast<const byte*>(pkStr.data()), pkStr.size());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(msgStr.data()), msgStr.size(),
+			reinterpret_cast<const byte*>(sigStr.data()), sigStr.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " signature verification" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " verification" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSMalformedSignatures()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Produce a valid signature
+		std::string message = "Message for malformed signature tests";
+		SecByteBlock validSig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin());
+
+		// Sanity: valid signature verifies
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin(), validSig.size());
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid sig rejected (sanity)" << std::endl;
+			return false;
+		}
+
+		// HSS sig layout for L=2 H5 W8:
+		// [0..3]       Nspk (4 bytes, value = 1)
+		// [4..1295]    intermediate LMS sig (1292 bytes)
+		// [1296..1351] intermediate LMS pub key (56 bytes)
+		// [1352..2643] final LMS sig (1292 bytes)
+		const size_t lmsSigSize = Params::LMSSignatureSize();   // 1292
+		const size_t lmsPubSize = Params::LMSPublicKeySize();   // 56
+		unsigned int rejected = 0;
+
+		// 1. Wrong Nspk (set to 0 instead of 1)
+		{
+			SecByteBlock bad(validSig);
+			bad[0] = 0; bad[1] = 0; bad[2] = 0; bad[3] = 0;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " wrong Nspk accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 2. Wrong Nspk (set to 2 instead of 1)
+		{
+			SecByteBlock bad(validSig);
+			bad[0] = 0; bad[1] = 0; bad[2] = 0; bad[3] = 2;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " Nspk=2 accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 3. Corrupted intermediate LMS signature (flip byte in middle)
+		{
+			SecByteBlock bad(validSig);
+			bad[4 + lmsSigSize / 2] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " corrupted intermediate sig accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 4. Wrong intermediate public key LMS type ID
+		{
+			SecByteBlock bad(validSig);
+			size_t pubOffset = 4 + lmsSigSize;  // start of intermediate pub key
+			bad[pubOffset] ^= 0x01;  // corrupt LMS type byte
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " wrong intermediate LMS type accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 5. Wrong intermediate public key OTS type ID
+		{
+			SecByteBlock bad(validSig);
+			size_t pubOffset = 4 + lmsSigSize + 4;  // OTS type within intermediate pub key
+			bad[pubOffset] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " wrong intermediate OTS type accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 6. Corrupted intermediate public key root (T[1])
+		{
+			SecByteBlock bad(validSig);
+			size_t rootOffset = 4 + lmsSigSize + lmsPubSize - 1;  // last byte of intermediate pub key
+			bad[rootOffset] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " corrupted intermediate key accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 7. Corrupted final LMS signature (flip byte in middle)
+		{
+			SecByteBlock bad(validSig);
+			size_t finalOffset = 4 + lmsSigSize + lmsPubSize;  // start of final LMS sig
+			bad[finalOffset + lmsSigSize / 2] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " corrupted final sig accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 8. Out-of-range q in final LMS signature
+		{
+			SecByteBlock bad(validSig);
+			size_t finalOffset = 4 + lmsSigSize + lmsPubSize;  // q is first 4 bytes of final LMS sig
+			bad[finalOffset] = 0xFF;  // q = 0xFF?????? >= 2^5
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " out-of-range final q accepted" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " malformed signature rejection (" << rejected << " cases)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " malformed signatures - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSSafeFailure()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(Params::SignatureSize());
+
+		// Sign 3 messages normally
+		{
+			HSSSigner<Params> signer(privKey, store);
+			for (unsigned int i = 0; i < 3; i++)
+			{
+				std::string msg = "Safe failure pre-msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin());
+			}
+		}
+		// signer destroyed after 3 sigs. Remaining = 1024 - 3 = 1021
+
+		uint64_t remainingBefore = store.RemainingSignatures();
+		if (remainingBefore != Params::TotalSignatures() - 3) {
+			std::cout << "FAILED:  " << name << " safe failure - wrong count before abort" << std::endl;
+			return false;
+		}
+
+		// Simulate a failure after reservation: reserve then abort.
+		// This models what happens inside SignMessage when signing fails
+		// after ReserveNext() but before CommitReservation().
+		{
+			StateReservation reservation = store.ReserveNext();
+			store.AbortReservation(reservation);
+			// The burned index (3) must never be reissued.
+		}
+
+		uint64_t remainingAfter = store.RemainingSignatures();
+		if (remainingAfter != remainingBefore - 1) {
+			std::cout << "FAILED:  " << name
+				<< " safe failure - abort did not burn capability ("
+				<< remainingAfter << " vs expected " << (remainingBefore - 1) << ")" << std::endl;
+			return false;
+		}
+
+		// Next normal signature (index 4) must still work
+		{
+			HSSSigner<Params> signer2(privKey, store);
+			std::string msg = "Message after aborted reservation";
+			signer2.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin(), signature.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " safe failure - post-abort signature rejected" << std::endl;
+				return false;
+			}
+
+			// Remaining should be 1024 - 3 - 1(abort) - 1(sign) = 1019
+			if (signer2.RemainingSignatures() != Params::TotalSignatures() - 5) {
+				std::cout << "FAILED:  " << name
+					<< " safe failure - wrong remaining after abort+sign" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " safe failure (abort burns capability)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " safe failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+bool ValidateHSS()
+{
+	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
+	bool pass = true;
+
+	// Functional tests: HSS L=2 H5/W8
+	pass = TestHSSKeyGen<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestHSSSignVerify<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestHSSMultipleSignatures<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestHSSSerialization<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestHSSRFCAppendixFTC1() && pass;
+	pass = TestHSSMalformedSignatures() && pass;
+
+	// HSS-specific: subtree boundary, reconstruction, exhaustion
+	pass = TestHSSSubtreeBoundary() && pass;
+	pass = TestHSSSignerReconstruction() && pass;
+	pass = TestHSSReconstructionAtBoundary() && pass;
+	pass = TestHSSExhaustion() && pass;
+	pass = TestHSSSafeFailure() && pass;
 
 	return pass;
 }

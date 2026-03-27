@@ -163,6 +163,7 @@ bool ValidateMLDSA();
 bool ValidateSLHDSA();
 bool ValidateXWing();
 bool ValidateLMS();
+bool ValidateHSS();
 
 // If CRYPTOPP_DEBUG or CRYPTOPP_COVERAGE is in effect, then perform additional tests
 #if (defined(CRYPTOPP_DEBUG) || defined(CRYPTOPP_COVERAGE)) && !defined(CRYPTOPP_IMPORTS)

@@ -64,9 +64,12 @@ public:
 class StateReservation
 {
 public:
-    /// \brief Returns the leaf index this reservation claims
-    /// \details The signer uses this to select the correct one-time
-    ///  signing key. This is the only field the signer needs.
+    /// \brief Returns the reserved signing index
+    /// \details For single-tree schemes (LMS) this is a leaf index.
+    ///  For hierarchical schemes (HSS) this is a global signing index
+    ///  that the signer decomposes into per-level leaf indices.
+    ///  The signer should treat this as the sole source of truth for
+    ///  which signing capability was reserved.
     uint64_t LeafIndex() const { return m_leafIndex; }
 
     /// \brief Move constructor
