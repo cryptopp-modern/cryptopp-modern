@@ -1620,4 +1620,9 @@ template class HSSVerifier<HSS_SHA256_H10_W8_L2_Params>;
 template class HSSSigner<HSS_SHA256_H5_W8_L2_Params>;
 template class HSSSigner<HSS_SHA256_H10_W8_L2_Params>;
 
+template class HSSPublicKey<HSS_SHA256_H5_W8_L3_Params>;
+template class HSSPrivateKey<HSS_SHA256_H5_W8_L3_Params>;
+template class HSSVerifier<HSS_SHA256_H5_W8_L3_Params>;
+template class HSSSigner<HSS_SHA256_H5_W8_L3_Params>;
+
 NAMESPACE_END  // CryptoPP

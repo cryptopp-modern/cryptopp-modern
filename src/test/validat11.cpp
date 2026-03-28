@@ -2804,6 +2804,264 @@ static bool TestHSSSafeFailure()
 	}
 }
 
+// ******************** HSS L=3 Tests ************************* //
+
+static bool TestHSSL3SignVerify()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[3]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L3_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		if (!pubKey.Validate(NullRNG(), 0)) {
+			std::cout << "FAILED:  " << name << " public key validation" << std::endl;
+			return false;
+		}
+
+		if (pubKey.GetL() != 3) {
+			std::cout << "FAILED:  " << name << " L != 3" << std::endl;
+			return false;
+		}
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		// Sign and verify
+		std::string msg = "L=3 HSS test message";
+		SecByteBlock sig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(msg.data()), msg.size(),
+			sig.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(msg.data()), msg.size(),
+			sig.begin(), sig.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " signature rejected" << std::endl;
+			return false;
+		}
+
+		// Modified message rejected
+		std::string bad = "L=3 HSS test messagX";
+		bool badAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(bad.data()), bad.size(),
+			sig.begin(), sig.size());
+
+		if (badAccepted) {
+			std::cout << "FAILED:  " << name << " modified message accepted" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " sign/verify" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " sign/verify - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSL3SubtreeBoundary()
+{
+	// L=3 H5: bottom subtree boundary at 32 sigs.
+	// Sign 33 messages - the 33rd crosses into a new bottom subtree
+	// within the same mid-level subtree.
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[3]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L3_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(signer.SignatureLength());
+
+		// Sign 33 messages (crosses bottom subtree boundary)
+		for (unsigned int i = 0; i < 33; i++)
+		{
+			std::string msg = "L3 boundary msg " + std::to_string(i);
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " subtree boundary - sig " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " bottom subtree boundary (33 sigs)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " subtree boundary - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSL3Reconstruction()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[3]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L3_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(Params::SignatureSize());
+
+		// Sign 5 with first signer, then destroy it
+		{
+			HSSSigner<Params> signer1(privKey, store);
+			for (unsigned int i = 0; i < 5; i++)
+			{
+				std::string msg = "L3 recon pre " + std::to_string(i);
+				signer1.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin());
+			}
+		}
+
+		// Reconstruct and sign across bottom subtree boundary
+		// (sign 28 more to reach index 33, crossing the boundary at 32)
+		{
+			HSSSigner<Params> signer2(privKey, store);
+			for (unsigned int i = 5; i < 34; i++)
+			{
+				std::string msg = "L3 recon post " + std::to_string(i);
+				signer2.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin());
+
+				bool valid = verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin(), sig.size());
+
+				if (!valid) {
+					std::cout << "FAILED:  " << name
+						<< " reconstruction - sig " << i << " rejected" << std::endl;
+					return false;
+				}
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " reconstruction across bottom subtree boundary" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " reconstruction - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSL3SafeFailure()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[3]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L3_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(Params::SignatureSize());
+
+		// Sign 3 normally
+		{
+			HSSSigner<Params> signer(privKey, store);
+			for (unsigned int i = 0; i < 3; i++)
+			{
+				std::string msg = "L3 safe failure msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					sig.begin());
+			}
+		}
+
+		// Simulate failure: reserve + abort
+		uint64_t before = store.RemainingSignatures();
+		{
+			StateReservation r = store.ReserveNext();
+			store.AbortReservation(r);
+		}
+		uint64_t after = store.RemainingSignatures();
+
+		if (after != before - 1) {
+			std::cout << "FAILED:  " << name << " safe failure - abort did not burn" << std::endl;
+			return false;
+		}
+
+		// Next signature still works
+		{
+			HSSSigner<Params> signer(privKey, store);
+			std::string msg = "L3 after abort";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " safe failure - post-abort sig rejected" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name << " safe failure (abort burns capability)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " safe failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
@@ -2827,6 +3085,12 @@ bool ValidateHSS()
 	pass = TestHSSReconstructionAtBoundary() && pass;
 	pass = TestHSSExhaustion() && pass;
 	pass = TestHSSSafeFailure() && pass;
+
+	// HSS L=3 selective tests (non-exhaustive)
+	pass = TestHSSL3SignVerify() && pass;
+	pass = TestHSSL3SubtreeBoundary() && pass;
+	pass = TestHSSL3Reconstruction() && pass;
+	pass = TestHSSL3SafeFailure() && pass;
 
 	return pass;
 }
