@@ -1,6 +1,6 @@
 // lms.cpp - written and placed in the public domain by Colin Brown
 //           LMS/LM-OTS implementation (RFC 8554, NIST SP 800-208)
-//           Stage 1: SHA-256 only. The implementation hardcodes SHA256
+//           SHA-256 only. The implementation hardcodes SHA256
 //           for all hash operations, matching the SHA256_M32 parameter sets.
 
 #include <cryptopp/pch.h>
@@ -304,7 +304,7 @@ void lms_interior_hash(byte *out, const byte *I, uint32_t r,
 /// \param SEED the secret seed
 /// \param lmsParams LMS parameter set
 /// \param otsParams LM-OTS parameter set
-/// \details Stage 1 simplification: computes and stores the full tree.
+/// \details Computes and stores the full tree in memory.
 ///  This is acceptable for H5 (32 leaves) and H10 (1024 leaves) but
 ///  must be replaced with incremental traversal for larger heights.
 void lms_compute_full_tree(byte *tree, const byte *I, const byte *SEED,
@@ -797,7 +797,7 @@ LMSSigner<LMS_PARAMS, OTS_PARAMS>::LMSSigner(
     : m_key(key), m_store(&store)
 {
     // Precompute the Merkle tree on first construction.
-    // Stage 1 simplification: full tree stored in memory.
+    // Full tree stored in memory (suitable for H5/H10).
     using namespace LMS_Internal;
 
     const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
@@ -1517,11 +1517,7 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
         u32str(sig, parentLeaf);
 
         // Deterministic C for intermediate signing (i=0xFFFD, library-internal).
-        // This MUST be deterministic so that signer reconstruction from the
-        // same key + store position reproduces the exact same parent-signs-child
-        // LMS signature. Using random C here would produce a valid but different
-        // signature on each reconstruction, violating the parent OTS leaf's
-        // one-time property. See lms_params.h for the full convention.
+        // Must be deterministic for restart-safe reconstruction. See lms_params.h.
         SecByteBlock C(n);
         lmots_derive_chain_key(C, parent.identifier, parentLeaf,
                                static_cast<uint16_t>(0xFFFD), parent.seed, n);

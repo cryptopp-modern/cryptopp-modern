@@ -1,6 +1,5 @@
 // hss.h - written and placed in the public domain by Colin Brown
 //         HSS (Hierarchical Signature System) - RFC 8554 Section 6, NIST SP 800-208
-//         Stage 3: Uniform parameters, L=2/3/4, SHA-256 only
 
 /// \file hss.h
 /// \brief HSS hierarchical stateful hash-based signature scheme (RFC 8554)
@@ -39,13 +38,13 @@ NAMESPACE_BEGIN(CryptoPP)
 /// \tparam LMS_PARAMS LMS parameter set (used at every level)
 /// \tparam OTS_PARAMS LM-OTS parameter set (used at every level)
 /// \tparam LEVELS number of tree levels (must be >= 2)
-/// \details Stage 3 supports uniform parameters only (same LMS/OTS at
-///  all levels). Mixed parameter sets across levels can be added later.
+/// \details Uniform parameters only (same LMS/OTS at all levels).
+///  Mixed parameter sets across levels may be added in a future release.
 template <class LMS_PARAMS, class OTS_PARAMS, unsigned int LEVELS>
 struct HSS_Params
 {
     static_assert(LEVELS >= 2, "HSS requires at least 2 levels");
-    static_assert(LEVELS <= 4, "Stage 3 supports up to 4 levels");
+    static_assert(LEVELS <= 4, "HSS supports up to 4 levels");
 
     CRYPTOPP_CONSTANT(L = LEVELS);
     typedef LMS_PARAMS LMSParameters;
@@ -209,7 +208,7 @@ private:
 /// \tparam HSS_PARAMS HSS parameter set
 /// \details Contains only root immutable key material (seed + identifier).
 ///  Child keys are derived deterministically at runtime.
-///  Signing progress is NOT serialised - it lives in the SignerStateStore.
+///  Signing progress lives in the SignerStateStore, not in the key.
 ///  Serialising and deserialising a private key does not restore signing
 ///  capability; a valid state store is required.
 template <class HSS_PARAMS>
@@ -329,13 +328,10 @@ protected:
 
 /// \brief HSS stateful signature signer
 /// \tparam HSS_PARAMS HSS parameter set
-/// \details HSS signing is stateful. Each signature consumes one global
-///  signing index. The signer decomposes the global index into per-level
-///  LMS leaf indices and manages subtree chain regeneration internally.
-/// \details Constructor does NOT eagerly build caches. First SignMessage()
-///  reconciles state from the reserved global index.
-/// \details Not thread-safe. The caller must ensure the state store
-///  outlives the signer.
+/// \details Each signature consumes one global signing index. The signer
+///  decomposes it into per-level LMS leaf indices and manages subtree
+///  chain regeneration internally. Caches are built lazily on first
+///  SignMessage(). Not thread-safe.
 template <class HSS_PARAMS>
 class HSSSigner : public PK_StatefulSigner
 {
@@ -348,11 +344,8 @@ public:
     virtual ~HSSSigner() = default;
 
     /// \brief Construct signer bound to a private key and state store
-    /// \details Does not eagerly build caches. First SignMessage()
-    ///  reconciles state from the reserved global index.
-    /// \details The store's total capacity MUST equal
-    ///  HSS_PARAMS::TotalSignatures(). A mismatched store is a
-    ///  configuration error with undefined behaviour.
+    /// \details The store's total capacity must equal
+    ///  HSS_PARAMS::TotalSignatures(). Caches are built lazily.
     HSSSigner(const PrivateKeyType &key, SignerStateStore &store);
 
     // Non-copyable

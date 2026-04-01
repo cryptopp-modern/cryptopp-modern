@@ -1,6 +1,6 @@
 // lms.h - written and placed in the public domain by Colin Brown
 //         LMS (Leighton-Micali Signatures) - RFC 8554, NIST SP 800-208
-//         Stage 1: SHA-256 parameter sets only (H5, H10 with W8)
+//         SHA-256 parameter sets (H5, H10 with W8)
 
 /// \file lms.h
 /// \brief LMS stateful hash-based signature scheme (RFC 8554)
@@ -10,7 +10,7 @@
 /// \details The signer uses PK_StatefulSigner (not PK_Signer) to make
 ///  the stateful nature explicit. The verifier uses the conventional
 ///  PK_Verifier interface.
-/// \details Stage 1 supports SHA-256 parameter sets with tree heights
+/// \details Supports SHA-256 parameter sets with tree heights
 ///  H=5 (32 signatures) and H=10 (1024 signatures) using Winternitz
 ///  parameter W=8.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554">RFC 8554</A>,
@@ -240,10 +240,9 @@ private:
 /// \tparam LMS_PARAMS LMS parameter set (tree parameters)
 /// \tparam OTS_PARAMS LM-OTS parameter set (one-time signature parameters)
 /// \details The private key contains the secret seed and identifier I.
-///  It does NOT contain the leaf index - that lives exclusively in
-///  the SignerStateStore. Serialising and deserialising a private key
-///  does not restore signing capability; a valid state store is
-///  required before signing can proceed.
+///  The leaf index lives in the SignerStateStore, not in the key.
+///  Serialising and deserialising a private key does not restore
+///  signing capability; a valid state store is required.
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSPrivateKey : public PrivateKey
 {
@@ -295,8 +294,8 @@ struct LMSPrivateKey : public PrivateKey
     /// \details Uses a PKCS#8 wrapper with the LMS OID and an opaque
     ///  inner OCTET STRING carrying SEED || I. This is a library-defined
     ///  format, not an RFC-standardised private key encoding.
-    ///  The serialised form does NOT contain signing progress.
-    ///  Reconstructing a signer requires a valid state store.
+    ///  Does not contain signing progress; reconstructing a
+    ///  signer requires a valid state store.
     void DEREncode(BufferedTransformation &bt) const;
 
     /// \brief BER decode the private key (library PKCS#8 wrapping)
@@ -452,7 +451,7 @@ struct LMSSigner : public PK_StatefulSigner
 private:
     PrivateKeyType m_key;
     SignerStateStore *m_store;  // non-owning, caller manages lifetime
-    SecByteBlock m_tree;        // precomputed Merkle tree (Stage 1)
+    SecByteBlock m_tree;        // precomputed full Merkle tree
 };
 
 // ******************** LMS Scheme ************************* //

@@ -270,24 +270,12 @@ private:
 // ******************** File-Backed State Store ************************* //
 
 /// \brief File-backed durable state store for stateful signing schemes
-/// \details Provides crash-safe, corruption-detecting persistence for
-///  the signing index counter. Write-ahead model: the index advances
-///  on disk before the reservation is returned. On crash, at most one
-///  index is lost (burned). No index is ever reused.
-/// \details Single-writer only. Opening the same state file from more
-///  than one writer can cause catastrophic index reuse. This is a total
-///  security failure, not merely undefined behaviour.
-/// \details The state file does not contain key material. The HMAC
-///  integrity key is caller-provided and optional. Without a key, the
-///  store detects accidental corruption and format mismatches, but not
-///  intentional file rewriting. The HMAC does NOT provide durable
-///  anti-rollback across process restarts.
-/// \details Once any integrity verification fails, the store enters a
-///  permanently poisoned state and refuses all further operations.
-/// \details FileStateStore targets desktop and server platforms with
-///  POSIX or Win32 filesystem semantics and meaningful flush guarantees.
-///  Embedded targets (bare metal, RTOS, EEPROM, RPMB, TPM) should
-///  implement SignerStateStore directly against their storage hardware.
+/// \details Write-ahead persistence for the signing index counter.
+///  The index advances on disk before the reservation is returned.
+///  On crash, at most one index is lost. No index is ever reused.
+///  Single-writer only - concurrent writers cause index reuse.
+///  Targets desktop/server platforms with POSIX or Win32 filesystems.
+///  Embedded targets should implement SignerStateStore directly.
 /// \sa SignerStateStore, InsecureMemoryStateStore
 /// \since cryptopp-modern 2026.4.0
 class FileStateStore : public SignerStateStore
@@ -355,9 +343,8 @@ public:
     bool IsExhausted() const override;
 
     /// \brief Re-read from disk and verify integrity
-    /// \details This is NOT a passive health probe. It re-reads the file,
-    ///  verifies all fields, and refreshes the in-memory cache from disk.
-    ///  If any check fails, the store is permanently poisoned.
+    /// \details Re-reads the file, verifies all fields, and refreshes
+    ///  the in-memory cache. If any check fails, the store is poisoned.
     /// \throw SignerStateIntegrityFailure on any verification failure
     ///  or if the store is already poisoned
     bool IsHealthy() const override;

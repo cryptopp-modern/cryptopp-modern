@@ -82,15 +82,10 @@ inline uint16_t checksum(const byte *S, unsigned int w,
 // ==================== HSS Child Key Derivation ====================
 // ACVP / Cisco hash-sigs convention: reserved chain indices for child derivation.
 // Same Appendix A formula: H(I || u32str(q) || u16str(i) || u8str(0xFF) || SEED)
-// with i=65534 (0xFFFE) for child SEED and i=65535 (0xFFFF) for child I.
-//
-// cryptopp-modern also reserves i=65533 (0xFFFD) for deterministic intermediate-
-// signature randomiser C. This is NOT an RFC or ACVP convention. It is a library-
-// internal derivation that makes HSS signer reconstruction produce identical
-// intermediate parent-signs-child LMS signatures after restart. Without this,
-// reconstructing a signer from key + store would produce a valid but different
-// intermediate signature, violating the one-time property of the parent OTS leaf.
-// See BuildSubtreeChain in lms.cpp for usage.
+//   i=0xFFFE (65534): child SEED
+//   i=0xFFFF (65535): child I (first 16 bytes)
+//   i=0xFFFD (65533): deterministic intermediate-sig randomiser C (library-internal,
+//                      not RFC/ACVP - required for restart-safe signer reconstruction)
 
 /// \brief Derive child SEED from parent key material (ACVP convention, i=65534)
 /// \param childSeed output buffer (n bytes)
