@@ -1,0 +1,35 @@
+  name: Collect Traffic Stats
+  on:
+    schedule:
+      - cron: '50 23 * * *' 
+    workflow_dispatch: {}     
+  jobs:
+    collect:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Fetch traffic data
+          env:
+            GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+          run: |
+            DATE=$(date -u +%Y-%m-%d)
+            REPO="cryptopp-modern/cryptopp-modern"
+            DEST_REPO="cryptopp-modern/traffic-data"
+            FILE="traffic/${DATE}.json"
+            # Fetch all traffic endpoints
+            CLONES=$(gh api "repos/${REPO}/traffic/clones" 2>/dev/null || echo '{}')
+            VIEWS=$(gh api "repos/${REPO}/traffic/views" 2>/dev/null || echo '{}')
+            REFERRERS=$(gh api "repos/${REPO}/traffic/popular/referrers" 2>/dev/null || echo '[]')
+            PATHS=$(gh api "repos/${REPO}/traffic/popular/paths" 2>/dev/null || echo '[]')
+            # Combine into one JSON file
+            COMBINED=$(jq -n \
+              --arg date "$DATE" \
+              --argjson clones "$CLONES" \
+              --argjson views "$VIEWS" \
+              --argjson referrers "$REFERRERS" \
+              --argjson paths "$PATHS" \
+              '{date: $date, clones: $clones, views: $views, referrers: $referrers, paths: $paths}')
+            # Push to private repo
+            gh api "repos/${DEST_REPO}/contents/${FILE}" \
+              --method PUT \
+              -f message="Traffic data for ${DATE}" \
+              -f content="$(echo "$COMBINED" | base64 -w 0)"
