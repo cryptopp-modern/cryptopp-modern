@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.3.0 - March 2026
+Version 2026.4.0 - April 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -307,6 +307,12 @@ documentation is one of the highest returns on investment.
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
 
+2026.4.0 - April 2026
+      - security release
+      - fixed Ed25519 accepting non-canonical public keys (Issue #1348)
+        * Validate() and verifier now reject y >= p per RFC 8032
+        * covers both 32-bit and 64-bit Donna paths
+
 2026.3.0 - March 2026
       - major release, recompile of programs required
       - added post-quantum cryptography (PQC) implementations
@@ -337,7 +343,7 @@ for the record back to Crypto++ 1.0.
 2026.1.0 - January 2026
       - minor release
       - added BLAKE3 AVX-512 16-way parallel chunk hashing
-        * ~4000+ MiB/s on supported processors
+        * over 4000 MiB/s on supported processors
         * automatic runtime CPU detection with fallback
       - added XAES-256-GCM extended-nonce authenticated encryption
         * 256-bit (32-byte) nonces safe for random generation

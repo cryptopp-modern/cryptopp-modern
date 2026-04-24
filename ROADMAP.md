@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.3.0
+**Current Version:** 2026.4.0
 
 ---
 
@@ -114,7 +114,7 @@
   - Validation tests and test vectors on all platforms
 
 ### Planned (Future)
-- 📊 **Code Quality Enhancements**
+- **Code Quality Enhancements**
   - Memory Sanitizer (MSan)
   - Static analysis (clang-tidy, cppcheck)
   - Code coverage reporting
@@ -153,12 +153,12 @@
 
 We welcome contributions in these areas:
 
-- 🐛 **Bug Reports** - Find and report issues
-- ✨ **New Algorithms** - Implement modern crypto algorithms
-- 📚 **Documentation** - Improve docs and examples
-- 🧪 **Testing** - Add tests and test vectors
-- 🔧 **Build System** - Improve CMake and cross-platform support
-- 📦 **Packaging** - Help with package manager integration
+- **Bug Reports** - Find and report issues
+- **New Algorithms** - Implement modern crypto algorithms
+- **Documentation** - Improve docs and examples
+- **Testing** - Add tests and test vectors
+- **Build System** - Improve CMake and cross-platform support
+- **Packaging** - Help with package manager integration
 
 See [FORK.md](FORK.md) for project details and direction.
 
@@ -166,56 +166,60 @@ See [FORK.md](FORK.md) for project details and direction.
 
 ## Version History
 
+### 2026.4.0 (April 2026) - Security Fix
+- **Ed25519 Canonicality** - Fixed accepting non-canonical public keys (Issue #1348)
+- Regression test covering canonical and non-canonical y vectors
+
 ### 2026.3.0 (March 2026) - Post-Quantum Cryptography Release
-- 🔐 **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation (512/768/1024)
-- 🔐 **ML-DSA (FIPS 204)** - Module-Lattice Digital Signatures (44/65/87)
-- 🔐 **SLH-DSA (FIPS 205)** - Stateless Hash-Based Signatures (all 12 parameter sets)
-- 🔐 **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
-- 🔧 ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
-- 🧪 NIST ACVP test vectors for all PQC algorithms
-- 🔧 Updated build systems (GNUmakefile, nmake, Visual Studio)
+- **ML-KEM (FIPS 203)** - Module-Lattice Key Encapsulation (512/768/1024)
+- **ML-DSA (FIPS 204)** - Module-Lattice Digital Signatures (44/65/87)
+- **SLH-DSA (FIPS 205)** - Stateless Hash-Based Signatures (all 12 parameter sets)
+- **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
+- ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
+- NIST ACVP test vectors for all PQC algorithms
+- Updated build systems (GNUmakefile, nmake, Visual Studio)
 
 ### 2026.2.1 (February 2026) - Correctness Fix
-- 🔧 **DSA/ECDSA Fix** - Fixed invalid signature (r=0 or s=0) in release builds (Issue #1342)
+- **DSA/ECDSA Fix** - Fixed invalid signature (r=0 or s=0) in release builds (Issue #1342)
 
 ### 2026.2.0 (February 2026) - Security Release
-- 🔒 **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection
-- 🛡️ **No-Write-on-Failure** - Plaintext buffer untouched unless decryption succeeds
-- ✅ **Blinded Verification** - Detects faulted key-agreement computations before releasing plaintext
+- **CVE-2024-28285 Fix** - Hardened hybrid DL decryption (ElGamal, ECIES, DLIES) against fault injection
+- **No-Write-on-Failure** - Plaintext buffer untouched unless decryption succeeds
+- **Blinded Verification** - Detects faulted key-agreement computations before releasing plaintext
 
 ### 2026.1.0 (January 2026) - New Algorithms Release
-- ⚡ **BLAKE3 AVX-512** - 16-way parallel chunk hashing
-  - ~4000+ MiB/s on supported processors
+- **BLAKE3 AVX-512** - 16-way parallel chunk hashing
+  - over 4000 MiB/s on supported processors
   - Automatic runtime CPU detection with graceful fallback
-- ✨ **XAES-256-GCM** - Extended-nonce AES-GCM (C2SP specification)
+- **XAES-256-GCM** - Extended-nonce AES-GCM (C2SP specification)
   - 256-bit (32-byte) nonces safe for random generation
   - Solves nonce management problem for AES-GCM users
-- ✨ **AES-CTR-HMAC** - Encrypt-then-MAC authenticated encryption
+- **AES-CTR-HMAC** - Encrypt-then-MAC authenticated encryption
   - Template-based: works with any block cipher and hash function
   - HKDF key derivation for encryption and MAC keys
-- 🔒 Hardened XAES-256-GCM and AES-CTR-HMAC against misuse
-- 🔧 Improved exception safety and portability
-- 🔧 Dropped non-standard stdext namespace usage
+- Hardened XAES-256-GCM and AES-CTR-HMAC against misuse
+- Improved exception safety and portability
+- Dropped non-standard stdext namespace usage
 
 ### 2025.12.0 (December 2025) - Organization & CMake Release
-- 📁 Complete project reorganization (Phase 2)
-- 🏗️ Organized 204 source files into categorized `src/` directories
-- 📦 Maintained backward compatibility with flat include structure
-- 🔧 Modern CMake build system with presets and `find_package()` support (Phase 3)
-- ⚡ BLAKE3 SIMD parallel chunk processing
+- Complete project reorganization (Phase 2)
+- Organized 204 source files into categorized `src/` directories
+- Maintained backward compatibility with flat include structure
+- Modern CMake build system with presets and `find_package()` support (Phase 3)
+- BLAKE3 SIMD parallel chunk processing
   - SSE4.1 4-way and AVX2 8-way parallel hashing (~2500 MiB/s)
   - ARM NEON support with graceful fallback
-- ✅ Unified CI/CD workflow with 50+ build configurations (Phase 5)
-- 🔧 Updated build systems (GNUmakefile, MSVC, nmake, CMake)
-- 📚 Comprehensive documentation (CMAKE.md, GNUMAKEFILE.md, GETTING_STARTED.md)
-- 🧪 Comprehensive testing across all platforms
+- Unified CI/CD workflow with 50+ build configurations (Phase 5)
+- Updated build systems (GNUmakefile, MSVC, nmake, CMake)
+- Comprehensive documentation (CMAKE.md, GNUMAKEFILE.md, GETTING_STARTED.md)
+- Comprehensive testing across all platforms
 
 ### 2025.11.0 (November 2025) - Foundation Release
-- 🎉 First release with calendar versioning
-- ✨ Added BLAKE3 cryptographic hash
-- ✨ Added Argon2 password hashing (d/i/id variants)
-- 🔒 Fixed Marvin attack (CVE-2023-50979)
-- 🔒 Improved ESIGN static analyzer compatibility
+- First release with calendar versioning
+- Added BLAKE3 cryptographic hash
+- Added Argon2 password hashing (d/i/id variants)
+- Fixed Marvin attack (CVE-2023-50979)
+- Improved ESIGN static analyzer compatibility
 
 ---
 

@@ -2,15 +2,10 @@
 
 ## Supported Versions
 
-We support modern versions of cryptopp-modern. Modern versions include the main branch and the latest release.
+Currently supported:
+- 2026.4.0 (current release)
 
-Currently supported versions:
-- 2026.2.1
-- 2026.2.0
-- 2026.1.0
-- 2025.12.0
-
-We also incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
+Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
 ## Reporting a Vulnerability
 
@@ -27,6 +22,20 @@ If we receive a report of a security related bug then we will:
 All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
 
 ## Security Advisories
+
+### Ed25519 non-canonical public key acceptance (fixed in 2026.4.0)
+
+`ed25519PublicKey::Validate()` returned true unconditionally, and the Donna verifiers unpacked public keys without checking canonicality. Per RFC 8032, the encoded y coordinate must be less than p = 2^255 - 19. Without this check, y = p + 1 and similar aliases were accepted as the identity point.
+
+**Severity:** Low. Conformance issue, no forgery risk. Matters where raw pubkey bytes are authoritative: pinning, allowlists, dedup, audit trails, interop with stricter verifiers.
+
+**Affected versions:** All versions prior to 2026.4.0.
+
+**Fix:** `Validate()` and both Donna verifiers (32-bit and 64-bit) now reject y >= p. Regression test in `ValidateEd25519` covers canonical (y = 1, p-1) and non-canonical (p, p+1, 2^255-1) vectors.
+
+See [upstream issue #1348](https://github.com/weidai11/cryptopp/issues/1348).
+
+---
 
 ### Crypto++ Issue #1342: DSA/ECDSA Invalid Signature (Fixed in 2026.2.1)
 

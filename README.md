@@ -2,37 +2,31 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.3.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.4.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
 
 ## Overview
 
-🌐 **Website:** [cryptopp-modern.com](https://cryptopp-modern.com)
+**Website:** [cryptopp-modern.com](https://cryptopp-modern.com)
 
 **cryptopp-modern** is an actively maintained fork of [Crypto++ 8.9.0](https://github.com/weidai11/cryptopp) featuring:
 
-- ✨ **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing hybrid KEM
-- ✨ **BLAKE3** - Modern, fast cryptographic hash function
-- ✨ **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
-- 🔒 **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), ESIGN improvements
-- 📅 **Calendar Versioning** - Clear release dates (YEAR.MONTH.INCREMENT format)
-- 🔄 **Active Maintenance** - Regular updates and improvements
-- ✅ **Drop-in Compatible** - Uses same `CryptoPP` namespace
+- **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing hybrid KEM
+- **BLAKE3** - Modern, fast cryptographic hash function
+- **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
+- **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), ESIGN improvements
+- **Calendar Versioning** - Clear release dates (YEAR.MONTH.INCREMENT format)
+- **Active Maintenance** - Regular updates and improvements
+- **Drop-in Compatible** - Uses same `CryptoPP` namespace
 
 ---
 
 
-## What's New in 2026.3.0
+## What's New in 2026.4.0
 
-- ✨ **ML-KEM** - FIPS 203 key encapsulation (ML-KEM-512, ML-KEM-768, ML-KEM-1024)
-- ✨ **ML-DSA** - FIPS 204 digital signatures (ML-DSA-44, ML-DSA-65, ML-DSA-87)
-- ✨ **SLH-DSA** - FIPS 205 stateless hash-based signatures (all 12 parameter sets)
-- ✨ **X-Wing** - Hybrid KEM combining X25519 and ML-KEM-768
-- ✨ **XAES-256-GCM** - Extended-nonce AES-256-GCM (C2SP specification)
-- 🔧 **GNUmakefile BUILD flag** - Support for release, debug, and relwithdebinfo modes
-- 🔒 **Security hardening** - Constant-time operations, stack zeroization, input validation
+- **Ed25519 canonicality fix** - Rejects non-canonical public keys (y >= p) per RFC 8032 (Issue #1348)
 
 ---
 
@@ -127,12 +121,12 @@ See [Readme.txt](Readme.txt) for complete algorithm list.
 
 **Good news:** Most code works unchanged!
 
-### Compatible ✓
+### Compatible
 - All existing algorithms and APIs
 - Same `CryptoPP` namespace
 - Version checks: `#if CRYPTOPP_VERSION >= N`
 
-### Changed ⚠️
+### Changed
 - Version encoding: Now `YEAR*10000 + MONTH*100 + INCREMENT`
 - Version parsing: Use `/10000` for year, `(n/100)%100` for month
 
@@ -152,13 +146,13 @@ const int month = (CRYPTOPP_VERSION / 100) % 100;  // Gets 11
 
 Contributions are welcome! Areas where you can help:
 
-- 🐛 Bug reports and fixes
-- ✨ New algorithm implementations
-- 📚 Documentation improvements
-- 🧪 Tests and test vectors
-- 🔧 Build system enhancements
+- Bug reports and fixes
+- New algorithm implementations
+- Documentation improvements
+- Tests and test vectors
+- Build system enhancements
 
-If you're migrating from Crypto++ 8.9.0 and encounter any issues, please open an issue – migration feedback is especially valuable.
+If you're migrating from Crypto++ 8.9.0 and encounter any issues, please open an issue. Migration feedback is especially valuable.
 
 Please:
 1. Fork the repository

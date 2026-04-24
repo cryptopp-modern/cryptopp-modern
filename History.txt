@@ -4,6 +4,12 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2026.4.0 - April 2026
+      - security release
+      - fixed Ed25519 accepting non-canonical public keys (Issue #1348)
+        * Validate() and verifier now reject y >= p per RFC 8032
+        * covers both 32-bit and 64-bit Donna paths
+
 2026.3.0 - March 2026
       - major release, recompile of programs required
       - added post-quantum cryptography (PQC) implementations
@@ -42,7 +48,7 @@ last several releases.
       - minor release
       - added BLAKE3 AVX-512 16-way parallel chunk hashing
         * 16-way parallel processing using AVX-512F and AVX-512VL
-        * ~4000+ MiB/s on supported processors
+        * over 4000 MiB/s on supported processors
         * automatic runtime CPU detection with graceful fallback
       - added XAES-256-GCM extended-nonce authenticated encryption
         * 256-bit (32-byte) nonces safe for random generation
