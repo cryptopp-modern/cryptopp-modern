@@ -115,8 +115,8 @@ The GNUmakefile provides a straightforward Make-based build, suitable for classi
 
 ```bash
 # Download latest release
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.3.0/cryptopp-modern-2026.3.0.zip
-unzip cryptopp-modern-2026.3.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.4.0/cryptopp-modern-2026.4.0.zip
+unzip cryptopp-modern-2026.4.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -129,8 +129,8 @@ sudo ldconfig
 
 ```bash
 # Download and extract
-wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.3.0/cryptopp-modern-2026.3.0.zip
-unzip cryptopp-modern-2026.3.0.zip -d cryptopp-modern
+wget https://github.com/cryptopp-modern/cryptopp-modern/releases/download/2026.4.0/cryptopp-modern-2026.4.0.zip
+unzip cryptopp-modern-2026.4.0.zip -d cryptopp-modern
 cd cryptopp-modern
 
 # Build and install
@@ -141,7 +141,7 @@ sudo make install PREFIX=/usr/local
 #### Windows (MinGW)
 
 ```bash
-# Download and extract cryptopp-modern-2026.3.0.zip
+# Download and extract cryptopp-modern-2026.4.0.zip
 # Open MinGW terminal in extracted folder
 
 # Build
@@ -157,7 +157,7 @@ mingw32-make.exe -j10 BUILD=release
 
 Visual Studio provides native Windows development with full IDE support, debugging, and IntelliSense.
 
-1. Download and extract cryptopp-modern-2026.3.0.zip
+1. Download and extract cryptopp-modern-2026.4.0.zip
 2. Open `cryptest.sln` in Visual Studio
 3. Build → Build Solution (Ctrl+Shift+B)
 

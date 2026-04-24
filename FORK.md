@@ -1,6 +1,6 @@
 # FORK.md - Relationship to Upstream Crypto++
 
-**cryptopp-modern** is a friendly fork of [Crypto++](https://github.com/weidai11/cryptopp), maintained separately to add modern algorithms and improve the library structure.
+**cryptopp-modern** is a maintained fork of [Crypto++](https://github.com/weidai11/cryptopp), separated to add modern algorithms and improve the library structure.
 
 ---
 
@@ -26,13 +26,30 @@
 
 ### cryptopp-modern Releases
 
+**2026.4.0** (April 2026) - Security Fix
+- Fixed Crypto++ Issue #1348: Ed25519 verification accepts non-canonical public keys
+- Validate() and Donna verifiers now reject y >= p per RFC 8032
+
+**2026.3.0** (March 2026) - Post-Quantum Cryptography Release
+- Added ML-KEM (FIPS 203) key encapsulation (512/768/1024)
+- Added ML-DSA (FIPS 204) digital signatures (44/65/87)
+- Added SLH-DSA (FIPS 205) hash-based signatures (all 12 parameter sets)
+- Added X-Wing hybrid KEM (X25519 + ML-KEM-768, IETF draft)
+- ASN.1/DER key encoding for PQC algorithms (PKCS#8, X.509)
+- Added XAES-256-GCM extended-nonce authenticated encryption
+
+**2026.2.1** (February 2026) - Correctness Fix
+- Fixed Crypto++ Issue #1342: DSA/ECDSA invalid signature (r=0 or s=0) in release builds
+- Probabilistic signatures retry with fresh random k
+- Deterministic signatures (RFC 6979) abort with exception
+
 **2026.2.0** (February 2026) - Security Release
 - Fixed CVE-2024-28285: Hardened hybrid DL decryption against fault injection
 - No-write-on-failure guarantee for ElGamal, ECIES, DLIES decryption
 - Exponent blinding verification to detect faulted computations
 
 **2026.1.0** (January 2026) - Minor Release
-- Added BLAKE3 AVX-512 16-way parallel chunk hashing (~4000+ MiB/s)
+- Added BLAKE3 AVX-512 16-way parallel chunk hashing (over 4000 MiB/s)
 - Added XAES-256-GCM extended-nonce authenticated encryption (C2SP spec)
 - Added AES-CTR-HMAC authenticated encryption (encrypt-then-MAC)
 - Hardened XAES-256-GCM and AES-CTR-HMAC against misuse
@@ -91,7 +108,7 @@
 
 ## Upstream Relationship
 
-This is a friendly fork to:
+This is a maintained fork to:
 - Serve users who need modern algorithms and faster development
 - Provide an alternative for active maintenance
 - Experiment with improvements
@@ -107,11 +124,11 @@ This is a friendly fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.3.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.4.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | March 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.3.0) |
-| **BLAKE3** | ❌ | ✅ with AVX-512 (~4000+ MiB/s) |
+| **Last Release** | October 1, 2023 | April 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.4.0) |
+| **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
 | **AES-CTR-HMAC** | ❌ | ✅ Encrypt-then-MAC |
@@ -145,6 +162,6 @@ This is a friendly fork to:
 
 ---
 
-**Last Updated:** 2026-02-19
+**Last Updated:** 2026-04-24
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.3.0
+**Current Version:** 2026.4.0
