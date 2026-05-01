@@ -12,6 +12,7 @@
 
 #include <cryptopp/asn.h>
 #include <cryptopp/oids.h>
+#include <cryptopp/nbtheory.h>
 
 #include <cryptopp/luc.h>
 #include <cryptopp/rsa.h>
@@ -396,11 +397,51 @@ static bool TestRabinBERDecodePrimality()
 	return pass;
 }
 
+static bool TestModularSquareRootCap()
+{
+	std::cout << "\nModularSquareRoot iteration cap tests running...\n\n";
+	bool pass = true;
+
+	// p = 9 (non-prime perfect square). Jacobi(n, 9) = (n/3)^2 >= 0 for
+	// all n coprime to 9, so the non-residue search runs to the cap.
+	{
+		bool threw = false;
+		try
+		{
+			ModularSquareRoot(Integer(4), Integer(9));
+		}
+		catch (const InvalidArgument&)
+		{
+			threw = true;
+		}
+		std::cout << (threw ? "passed    " : "FAILED    ") << "p = 9 (non-prime) trips the cap\n";
+		pass = threw && pass;
+	}
+
+	// Regression with prime p where p%4 != 3, so the (p+1)/4 shortcut does
+	// not apply and the non-residue search and Tonelli-Shanks step both run.
+	{
+		const Integer p(17), a(4);
+		bool ok = false;
+		try
+		{
+			Integer x = ModularSquareRoot(a, p);
+			ok = (x.Squared() % p == a);
+		}
+		catch (const Exception&) {}
+		std::cout << (ok ? "passed    " : "FAILED    ") << "p = 17, sqrt(4) round-trips\n";
+		pass = ok && pass;
+	}
+
+	return pass;
+}
+
 bool ValidateRabin_Encrypt()
 {
 	bool pass = true, fail;
 
 	pass = TestRabinBERDecodePrimality() && pass;
+	pass = TestModularSquareRootCap() && pass;
 
 #if defined(CRYPTOPP_EXTENDED_VALIDATION)
 	{
