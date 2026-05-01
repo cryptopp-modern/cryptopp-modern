@@ -948,17 +948,26 @@ GF2NP * BERDecodeGF2NP(BufferedTransformation &bt)
 {
 	member_ptr<GF2NP> result;
 
+	// Cap m to prevent allocation DoS (GH #1249); 4096 fits B-571 and the standard binary curves.
+	const unsigned int MAX_GF2N_FIELD_DEGREE = 4096;
+
 	BERSequenceDecoder seq(bt);
 		if (OID(seq) != ASN1::characteristic_two_field())
 			BERDecodeError();
 		BERSequenceDecoder parameters(seq);
 			unsigned int m;
 			BERDecodeUnsigned(parameters, m);
+			if (m == 0 || m > MAX_GF2N_FIELD_DEGREE)
+				BERDecodeError();
 			OID oid(parameters);
 			if (oid == ASN1::tpBasis())
 			{
 				unsigned int t1;
 				BERDecodeUnsigned(parameters, t1);
+				// Tighter than PolynomialMod2::Trinomial, which is relaxed for ECIES<EC2N>.
+				// DER input must be well-formed (CVE-2023-50980).
+				if (t1 == 0 || t1 >= m)
+					BERDecodeError();
 				result.reset(new GF2NT(m, t1, 0));
 			}
 			else if (oid == ASN1::ppBasis())
@@ -969,6 +978,12 @@ GF2NP * BERDecodeGF2NP(BufferedTransformation &bt)
 				BERDecodeUnsigned(pentanomial, t2);
 				BERDecodeUnsigned(pentanomial, t1);
 				pentanomial.MessageEnd();
+				// Tighter than PolynomialMod2::Pentanomial, which is relaxed for ECIES<EC2N>.
+				// DER input must be well-formed (CVE-2023-50980). SEC1 wire order is
+				// ascending, so after decoding t3 holds the smallest middle exponent
+				// and t1 the largest.
+				if (t3 == 0 || t3 >= t2 || t2 >= t1 || t1 >= m)
+					BERDecodeError();
 				result.reset(new GF2NPP(m, t3, t2, t1, 0));
 			}
 			else

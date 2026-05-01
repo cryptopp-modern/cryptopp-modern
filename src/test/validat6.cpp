@@ -343,6 +343,124 @@ bool ValidateECP()
 	return ValidateECP_Agreement() && ValidateECP_Encrypt() && ValidateECP_NULLDigest_Encrypt() && ValidateECP_Sign() && pass;
 }
 
+// Helpers for TestBERDecodeGF2NPHardening (CVE-2023-50980, GH #1249).
+
+static void EncodeGF2NPTrinomial(ByteQueue& out, unsigned int m, unsigned int t1)
+{
+	DERSequenceEncoder seq(out);
+		ASN1::characteristic_two_field().DEREncode(seq);
+		DERSequenceEncoder parameters(seq);
+			DEREncodeUnsigned(parameters, m);
+			ASN1::tpBasis().DEREncode(parameters);
+			DEREncodeUnsigned(parameters, t1);
+		parameters.MessageEnd();
+	seq.MessageEnd();
+}
+
+static void EncodeGF2NPPentanomial(ByteQueue& out, unsigned int m,
+	unsigned int k1, unsigned int k2, unsigned int k3)
+{
+	// SEC1 pentanomial: 0 < k1 < k2 < k3 < m, encoded ascending in DER.
+	DERSequenceEncoder seq(out);
+		ASN1::characteristic_two_field().DEREncode(seq);
+		DERSequenceEncoder parameters(seq);
+			DEREncodeUnsigned(parameters, m);
+			ASN1::ppBasis().DEREncode(parameters);
+			DERSequenceEncoder pp(parameters);
+				DEREncodeUnsigned(pp, k1);
+				DEREncodeUnsigned(pp, k2);
+				DEREncodeUnsigned(pp, k3);
+			pp.MessageEnd();
+		parameters.MessageEnd();
+	seq.MessageEnd();
+}
+
+static bool ExpectGF2NPDecodeRejected(ByteQueue& q, const char *label)
+{
+	bool threw = false;
+	try
+	{
+		member_ptr<GF2NP> result(BERDecodeGF2NP(q));
+		(void)result;
+	}
+	catch (const Exception&)
+	{
+		threw = true;
+	}
+
+	std::cout << (threw ? "passed    " : "FAILED    ") << label << "\n";
+	return threw;
+}
+
+static bool ExpectGF2NPDecodeAccepted(ByteQueue& q, const char *label)
+{
+	bool ok = false;
+	try
+	{
+		member_ptr<GF2NP> field(BERDecodeGF2NP(q));
+		// Square x; non-zero confirms the field is usable.
+		PolynomialMod2 x((word)0, 3);
+		x.SetBit(1);
+		ok = !field->Square(x).IsZero();
+	}
+	catch (const Exception&) {}
+
+	std::cout << (ok ? "passed    " : "FAILED    ") << label << "\n";
+	return ok;
+}
+
+bool TestBERDecodeGF2NPHardening()
+{
+	std::cout << "\nBERDecodeGF2NP hardening tests running...\n\n";
+	bool pass = true;
+
+	// Invalid cases. BERDecodeGF2NP must reject.
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 0, 0);
+		pass = ExpectGF2NPDecodeRejected(q, "m = 0 (trinomial)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 4097, 27);
+		pass = ExpectGF2NPDecodeRejected(q, "m = 4097 (one over the cap)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 8192, 27);
+		pass = ExpectGF2NPDecodeRejected(q, "m = 8192 (over cap)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 233, 0);
+		pass = ExpectGF2NPDecodeRejected(q, "trinomial t1 = 0") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 233, 233);
+		pass = ExpectGF2NPDecodeRejected(q, "trinomial t1 = m (not strictly less)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPPentanomial(q, 233, 0, 6, 74);
+		pass = ExpectGF2NPDecodeRejected(q, "pentanomial k1 = 0") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPPentanomial(q, 233, 10, 200, 200);
+		pass = ExpectGF2NPDecodeRejected(q, "pentanomial k2 = k3 (not strictly ordered)") && pass;
+	}
+
+	// Valid cases. Must decode and the field must be usable.
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 233, 74);
+		pass = ExpectGF2NPDecodeAccepted(q, "m = 233, t1 = 74 (SECT233R1)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPTrinomial(q, 4096, 27);
+		pass = ExpectGF2NPDecodeAccepted(q, "m = 4096 (at the cap)") && pass;
+	}
+	{
+		ByteQueue q; EncodeGF2NPPentanomial(q, 163, 3, 6, 7);
+		pass = ExpectGF2NPDecodeAccepted(q, "m = 163, k1=3, k2=6, k3=7 (SECT163K1)") && pass;
+	}
+
+	return pass;
+}
+
 bool ValidateEC2N()
 {
 	// Remove word recommend. Binary curves may not be recommended depending
@@ -377,6 +495,7 @@ bool ValidateEC2N()
 #endif
 
 	std::cout << "\nEC2N validation suite running...\n\n";
+	pass = TestBERDecodeGF2NPHardening() && pass;
 	return ValidateEC2N_Agreement() && ValidateEC2N_Encrypt() && ValidateEC2N_Sign() && pass;
 }
 
