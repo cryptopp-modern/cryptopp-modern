@@ -312,9 +312,95 @@ bool ValidateLUC_DL_Encrypt()
 	return CryptoSystemValidate(privC, pubC);
 }
 
+static bool TestRabinBERDecodePrimality()
+{
+	std::cout << "\nRabin BERDecode primality tests running...\n\n";
+	bool pass = true;
+
+	// Non-prime m_p. BERDecode must reject.
+	{
+		ByteQueue q;
+		DERSequenceEncoder seq(q);
+			Integer(63).DEREncode(seq);  // m_n
+			Integer(2).DEREncode(seq);   // m_r
+			Integer(3).DEREncode(seq);   // m_s
+			Integer(9).DEREncode(seq);   // m_p, non-prime
+			Integer(7).DEREncode(seq);   // m_q, prime
+			Integer(1).DEREncode(seq);   // m_u
+		seq.MessageEnd();
+
+		bool threw = false;
+		try
+		{
+			InvertibleRabinFunction key;
+			key.BERDecode(q);
+		}
+		catch (const Exception&)
+		{
+			threw = true;
+		}
+
+		std::cout << (threw ? "passed    " : "FAILED    ") << "non-prime m_p rejected\n";
+		pass = threw && pass;
+	}
+
+	// Non-prime m_q. BERDecode must reject.
+	{
+		ByteQueue q;
+		DERSequenceEncoder seq(q);
+			Integer(63).DEREncode(seq);  // m_n
+			Integer(2).DEREncode(seq);   // m_r
+			Integer(3).DEREncode(seq);   // m_s
+			Integer(7).DEREncode(seq);   // m_p, prime
+			Integer(9).DEREncode(seq);   // m_q, non-prime
+			Integer(1).DEREncode(seq);   // m_u
+		seq.MessageEnd();
+
+		bool threw = false;
+		try
+		{
+			InvertibleRabinFunction key;
+			key.BERDecode(q);
+		}
+		catch (const Exception&)
+		{
+			threw = true;
+		}
+
+		std::cout << (threw ? "passed    " : "FAILED    ") << "non-prime m_q rejected\n";
+		pass = threw && pass;
+	}
+
+	// Valid round-trip: rabi1024.dat -> DEREncode -> BERDecode.
+	{
+		bool ok = false;
+		try
+		{
+			FileSource keys(DataDir("TestData/rabi1024.dat").c_str(), true, new HexDecoder);
+			InvertibleRabinFunction priv;
+			priv.BERDecode(keys);
+
+			ByteQueue q;
+			priv.DEREncode(q);
+
+			InvertibleRabinFunction priv2;
+			priv2.BERDecode(q);
+			ok = true;
+		}
+		catch (const Exception&) {}
+
+		std::cout << (ok ? "passed    " : "FAILED    ") << "valid Rabin key round-trip\n";
+		pass = ok && pass;
+	}
+
+	return pass;
+}
+
 bool ValidateRabin_Encrypt()
 {
 	bool pass = true, fail;
+
+	pass = TestRabinBERDecodePrimality() && pass;
 
 #if defined(CRYPTOPP_EXTENDED_VALIDATION)
 	{

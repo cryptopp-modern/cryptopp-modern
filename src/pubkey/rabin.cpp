@@ -132,8 +132,13 @@ void InvertibleRabinFunction::BERDecode(BufferedTransformation &bt)
 	m_u.BERDecode(seq);
 	seq.MessageEnd();
 
-	CRYPTOPP_ASSERT(IsPrime(m_p));
-	CRYPTOPP_ASSERT(IsPrime(m_q));
+	// Reject non-prime m_p/m_q at the boundary (CVE-2023-50981). They
+	// would otherwise loop forever in CalculateInverse / ModularSquareRoot.
+	// BERDecodeError, not InvalidArgument: the DER itself was fine.
+	if (!IsPrime(m_p))
+		BERDecodeError();
+	if (!IsPrime(m_q))
+		BERDecodeError();
 }
 
 void InvertibleRabinFunction::DEREncode(BufferedTransformation &bt) const
