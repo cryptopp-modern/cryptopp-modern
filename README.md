@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.4.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.5.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -16,7 +16,7 @@
 - **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing hybrid KEM
 - **BLAKE3** - Modern, fast cryptographic hash function
 - **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
-- **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), ESIGN improvements
+- **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), F(2^m) and Rabin/ModularSquareRoot hardening (CVE-2023-50980, CVE-2023-50981), ESIGN improvements
 - **Calendar Versioning** - Clear release dates (YEAR.MONTH.INCREMENT format)
 - **Active Maintenance** - Regular updates and improvements
 - **Drop-in Compatible** - Uses same `CryptoPP` namespace
@@ -24,9 +24,11 @@
 ---
 
 
-## What's New in 2026.4.0
+## What's New in 2026.5.0
 
-- **Ed25519 canonicality fix** - Rejects non-canonical public keys (y >= p) per RFC 8032 (Issue #1348)
+- **CVE-2023-50980 hardening** - Strict validation of F(2^m) curve parameters at the DER boundary, plus a 4096 cap on the field degree
+- **CVE-2023-50981 hardening** - Runtime `BERDecodeError` for non-prime Rabin moduli, plus an iteration cap on `ModularSquareRoot`
+- **Version metadata fix** - CMake and `cryptest.exe V` now report the correct release version (Issue #23)
 
 ---
 

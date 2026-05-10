@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.4.0
+**Current Version:** 2026.5.0
 
 ---
 
@@ -149,6 +149,19 @@
 
 ---
 
+## Phase 7: Stateful Hash Signatures (In Progress)
+
+**Goal:** NIST SP 800-208 stateful hash-based signatures, primarily for
+firmware and code-signing use cases where one-time signing keys are
+acceptable.
+
+### In Progress
+- **LMS / HSS** - Leighton-Micali Signatures and Hierarchical Signature
+  System per RFC 8554 / SP 800-208
+- **Signer state store** - File-backed durable state for one-time-key safety
+
+---
+
 ## Contributing
 
 We welcome contributions in these areas:
@@ -165,6 +178,11 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.5.0 (May 2026) - Security Hardening
+- **CVE-2023-50980 Hardening** - Strict trinomial/pentanomial ordering and 4096 field-degree cap in `BERDecodeGF2NP`
+- **CVE-2023-50981 Hardening** - Rabin private-key primality checks now throw `BERDecodeError`; `ModularSquareRoot` loops capped at 10000 iterations
+- **Version Metadata** - Fixed drift between in-tree constants and released version (Issue #23)
 
 ### 2026.4.0 (April 2026) - Security Fix
 - **Ed25519 Canonicality** - Fixed accepting non-canonical public keys (Issue #1348)
