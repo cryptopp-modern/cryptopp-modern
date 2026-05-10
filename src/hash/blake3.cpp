@@ -365,7 +365,7 @@ std::string BLAKE3::AlgorithmProvider() const
 // Constructors
 
 BLAKE3::BLAKE3(unsigned int digestSize)
-	: m_digestSize(digestSize), m_treeMode(false)
+	: m_digestSize(digestSize)
 {
 	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
 	m_state.Reset();
@@ -377,7 +377,7 @@ BLAKE3::BLAKE3(unsigned int digestSize)
 }
 
 BLAKE3::BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize)
-	: m_digestSize(digestSize), m_treeMode(false)
+	: m_digestSize(digestSize)
 {
 	CRYPTOPP_ASSERT(keyLength == 32);
 	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
@@ -398,7 +398,7 @@ BLAKE3::BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize)
 }
 
 BLAKE3::BLAKE3(const char* context, unsigned int digestSize)
-	: m_digestSize(digestSize), m_treeMode(false)
+	: m_digestSize(digestSize)
 {
 	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
 

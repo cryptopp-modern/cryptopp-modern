@@ -199,7 +199,6 @@ private:
 	State m_state;
 	AlignedSecByteBlock m_keyBytes;
 	word32 m_digestSize;
-	bool m_treeMode;
 };
 
 NAMESPACE_END
