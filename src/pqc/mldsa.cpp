@@ -18,11 +18,6 @@
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(MLDSA_Internal)
 
-// ==================== Constants ====================
-
-// SHAKE256 block size for challenge generation
-static constexpr unsigned int SHAKE256_BLOCKSIZE = 136;
-
 // ==================== NTT Zetas ====================
 
 // Precomputed powers of the primitive 512th root of unity in Montgomery form
@@ -771,8 +766,6 @@ template void poly_unpack_z<Params_87>(poly *r, const byte *a);
 // ==================== W1 Packing ====================
 
 // gamma2 values: (MLDSA_Q - 1) / 88 = 95232, (MLDSA_Q - 1) / 32 = 261888
-static const int32_t GAMMA2_DIV88 = (MLDSA_Q - 1) / 88;  // 95232
-static const int32_t GAMMA2_DIV32 = (MLDSA_Q - 1) / 32;  // 261888
 
 // Helper for gamma2-based W1 packing (6-bit vs 4-bit)
 template <int32_t GAMMA2>

@@ -24,8 +24,6 @@ template <class HASH_CTX, class PARAMS>
 void fors_sk_gen(byte *sk, const byte *sk_seed,
                         const byte *pub_seed, byte *addr, uint32_t idx)
 {
-    constexpr unsigned int N = PARAMS::n;
-
     // Set address for FORS PRF
     // Per FIPS 205 Algorithm 10: setTypeAndClear, then restore keypair
     byte sk_addr[ADDR_BYTES];

@@ -525,9 +525,7 @@ static void slh_sign(byte *sig, const byte *msg, size_t msg_len,
     constexpr unsigned int K = InternalParams::fors_trees;
     constexpr unsigned int A = InternalParams::fors_height;
     constexpr unsigned int H = InternalParams::h;
-    constexpr unsigned int D = InternalParams::d;
     constexpr unsigned int HP = InternalParams::hp;
-    constexpr unsigned int LEN = InternalParams::wots_len;
 
     // Parse secret key
     const byte *sk_seed = sk;
@@ -599,7 +597,6 @@ static bool slh_verify(const byte *msg, size_t msg_len,
     constexpr unsigned int K = InternalParams::fors_trees;
     constexpr unsigned int A = InternalParams::fors_height;
     constexpr unsigned int H = InternalParams::h;
-    constexpr unsigned int D = InternalParams::d;
     constexpr unsigned int HP = InternalParams::hp;
 
     // Parse public key
