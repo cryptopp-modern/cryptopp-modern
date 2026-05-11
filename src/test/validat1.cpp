@@ -1051,7 +1051,10 @@ bool TestHuffmanCodes()
             LowFirstBitReader reader(source);
             unsigned int val;
             for (unsigned int j=0; !source.AnyRetrievable(); ++j)
+            {
                 decoder.Decode(reader, val);
+                (void)j;
+            }
         }
         catch (const Exception&) {}
     }
