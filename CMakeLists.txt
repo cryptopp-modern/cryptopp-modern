@@ -1062,6 +1062,20 @@ if(NOT has_disable_asm EQUAL -1)
     list(PREPEND cryptopp_SOURCES "${cryptopp_SOURCE_DIR}/src/core/sse_simd.cpp")
 endif()
 
+# Adjust for Android: stage NDK cpu-features. Same shape as cryptopp-cmake/sources.cmake.
+if(ANDROID)
+    set(_cpufeatures_dir "${ANDROID_NDK}/sources/android/cpufeatures")
+    if(EXISTS "${_cpufeatures_dir}/cpu-features.h"
+       AND EXISTS "${_cpufeatures_dir}/cpu-features.c")
+        include_directories("${_cpufeatures_dir}")
+        list(APPEND cryptopp_SOURCES "${_cpufeatures_dir}/cpu-features.c")
+        message(STATUS "[cryptopp-modern] Staging NDK cpufeatures from ${_cpufeatures_dir}")
+    else()
+        message(WARNING "Android build but cpu-features not found at ${_cpufeatures_dir}. Set ANDROID_NDK or copy the files into the build manually.")
+    endif()
+    unset(_cpufeatures_dir)
+endif()
+
 # Apply compiler options to SIMD source files
 set_source_files_properties(
     ${cryptopp_SOURCE_DIR}/src/symmetric/aria.cpp
