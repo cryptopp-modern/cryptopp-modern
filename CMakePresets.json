@@ -103,6 +103,32 @@
       }
     },
     {
+      "name": "ci-android-arm64-v8a",
+      "displayName": "CI Android arm64-v8a",
+      "description": "Cross-compile for Android arm64-v8a via NDK toolchain",
+      "inherits": "default",
+      "toolchainFile": "$env{ANDROID_NDK_LATEST_HOME}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-24",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CRYPTOPP_BUILD_TESTING": "OFF"
+      }
+    },
+    {
+      "name": "ci-android-armeabi-v7a",
+      "displayName": "CI Android armeabi-v7a",
+      "description": "Cross-compile for Android armeabi-v7a via NDK toolchain",
+      "inherits": "default",
+      "toolchainFile": "$env{ANDROID_NDK_LATEST_HOME}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "ANDROID_ABI": "armeabi-v7a",
+        "ANDROID_PLATFORM": "android-24",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CRYPTOPP_BUILD_TESTING": "OFF"
+      }
+    },
+    {
       "name": "no-asm",
       "displayName": "No ASM",
       "description": "Build without assembly optimizations",
