@@ -1064,11 +1064,21 @@ inline uint32x4_t rot12_neon(uint32x4_t x) {
     return veorq_u32(vshrq_n_u32(x, 12), vshlq_n_u32(x, 20));
 }
 
-// Rotation by 8 bits
+// Rotation by 8 bits.
+// Three-branch form matches the BLAKE3 reference and avoids vqtbl1q_u8,
+// which is AArch64-only, so armv7 NEON builds compile.
 inline uint32x4_t rot8_neon(uint32x4_t x) {
-    return vreinterpretq_u32_u8(vqtbl1q_u8(
-        vreinterpretq_u8_u32(x),
-        (uint8x16_t){1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12}));
+#if defined(__clang__)
+    return vreinterpretq_u32_u8(__builtin_shufflevector(
+        vreinterpretq_u8_u32(x), vreinterpretq_u8_u32(x),
+        1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12));
+#elif defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 >= 40700)
+    static const uint8x16_t r8 = {1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12};
+    return vreinterpretq_u32_u8(__builtin_shuffle(
+        vreinterpretq_u8_u32(x), vreinterpretq_u8_u32(x), r8));
+#else
+    return vsriq_n_u32(vshlq_n_u32(x, 32 - 8), x, 8);
+#endif
 }
 
 // Rotation by 7 bits
