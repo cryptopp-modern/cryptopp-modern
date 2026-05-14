@@ -224,6 +224,42 @@ jobs:
         ./build/test-app
 
   # =============================================================================
+  # CMake Android Cross-compile (build-only, no emulator)
+  # =============================================================================
+
+  cmake-android-arm64-v8a:
+    name: CMake Android (arm64-v8a)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (Android arm64-v8a)
+      run: cmake --preset=ci-android-arm64-v8a
+
+    - name: Build cryptopp library
+      run: cmake --build build/ci-android-arm64-v8a --target cryptopp -j"$(nproc)"
+
+  cmake-android-armeabi-v7a:
+    name: CMake Android (armeabi-v7a)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (Android armeabi-v7a)
+      run: cmake --preset=ci-android-armeabi-v7a
+
+    - name: Build cryptopp library
+      run: cmake --build build/ci-android-armeabi-v7a --target cryptopp -j"$(nproc)"
+
+  # =============================================================================
   # Makefile Builds (Backward Compatibility)
   # =============================================================================
 
