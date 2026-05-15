@@ -120,6 +120,7 @@ bool ValidateAll(bool thorough)
 	pass=ValidateSM3() && pass;
 	pass=ValidateBLAKE2s() && pass;
 	pass=ValidateBLAKE2b() && pass;
+	pass=ValidateBLAKE3() && pass;
 	pass=ValidatePoly1305() && pass;
 	pass=ValidateSipHash() && pass;
 
