@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Ninja
       run: sudo apt-get update && sudo apt-get install -y ninja-build
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install GCC 14 and Ninja
       run: |
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Clang 19 and Ninja
       run: |
@@ -101,7 +101,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Ninja
       run: brew install ninja
@@ -123,7 +123,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Configure
       run: cmake --preset=ci-windows
@@ -142,7 +142,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Ninja
       run: sudo apt-get update && sudo apt-get install -y ninja-build
@@ -164,7 +164,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Ninja
       run: sudo apt-get update && sudo apt-get install -y ninja-build
@@ -230,7 +230,7 @@ jobs:
         cxx-standard: [14, 17, 20]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install GCC ${{ matrix.gcc-version }}
       run: |
@@ -251,6 +251,66 @@ jobs:
     - name: Run test vectors
       run: ./cryptest.exe tv all
 
+  makefile-linux-gcc-legacy:
+    name: Makefile Linux GCC ${{ matrix.gcc-version }} (Legacy)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version: [9, 10]
+        cxx-standard: [14, 17]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install GCC ${{ matrix.gcc-version }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=g++-${{ matrix.gcc-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-linux-clang-legacy:
+    name: Makefile Linux Clang ${{ matrix.clang-version }} (Legacy)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        clang-version: [13, 14]
+        cxx-standard: [14, 17]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Clang ${{ matrix.clang-version }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-${{ matrix.clang-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=clang++-${{ matrix.clang-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
   makefile-linux-clang-old:
     name: Makefile Linux Clang ${{ matrix.clang-version }}
     runs-on: ubuntu-22.04
@@ -261,7 +321,7 @@ jobs:
         cxx-standard: [14, 17, 20]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Clang ${{ matrix.clang-version }}
       run: |
@@ -293,7 +353,7 @@ jobs:
         cxx-standard: [14, 17, 20]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install Clang ${{ matrix.clang-version }}
       run: |
@@ -322,7 +382,7 @@ jobs:
         cxx-standard: [14, 17, 20]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Build library (C++${{ matrix.cxx-standard }})
       run: |
@@ -346,7 +406,7 @@ jobs:
         configuration: [Release]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
@@ -375,7 +435,7 @@ jobs:
         sanitizer: [ubsan, asan]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install GCC 13
       run: |
@@ -410,7 +470,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Check CPU features
       run: |
