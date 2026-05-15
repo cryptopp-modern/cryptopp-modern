@@ -78,11 +78,6 @@ extern size_t BLAKE3_HashMany_SSE41(const byte *input, size_t input_len,
                                      byte flags, byte *out);
 #endif
 
-#if CRYPTOPP_ARM_NEON_AVAILABLE
-extern void BLAKE3_Compress_NEON(word32 cv[8], const byte block[64],
-                                  byte block_len, word64 counter, byte flags);
-#endif
-
 ////////////////////////////// Helper Functions //////////////////////////////
 
 // 32-bit rotate right
@@ -201,15 +196,11 @@ void BLAKE3::Compress(word32 cv[8], const byte block[64], byte block_len,
 		return;
 	}
 #endif
-#if CRYPTOPP_ARM_NEON_AVAILABLE
-	if (HasNEON())
-	{
-		BLAKE3_Compress_NEON(cv, block, block_len, counter, flags);
-		return;
-	}
-#endif
 
-	// Fallback to C++ implementation
+	// Fallback to C++ implementation. The BLAKE3 reference does not provide a
+	// NEON single-block compress (its blake3_neon.c delegates to the portable
+	// path for single blocks); our earlier homegrown BLAKE3_Compress_NEON was
+	// removed in 2026.5 after KAT failures on aarch64.
 	word32 output[16];
 	compress_internal(cv, block, block_len, counter, flags, output);
 	std::memcpy(cv, output, 8 * sizeof(word32));
