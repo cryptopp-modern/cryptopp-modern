@@ -251,6 +251,66 @@ jobs:
     - name: Run test vectors
       run: ./cryptest.exe tv all
 
+  makefile-linux-gcc-legacy:
+    name: Makefile Linux GCC ${{ matrix.gcc-version }} (Legacy)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version: [9, 10]
+        cxx-standard: [14, 17]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install GCC ${{ matrix.gcc-version }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=g++-${{ matrix.gcc-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  makefile-linux-clang-legacy:
+    name: Makefile Linux Clang ${{ matrix.clang-version }} (Legacy)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        clang-version: [13, 14]
+        cxx-standard: [14, 17]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Clang ${{ matrix.clang-version }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-${{ matrix.clang-version }}
+
+    - name: Build library (C++${{ matrix.cxx-standard }})
+      run: |
+        export CXX=clang++-${{ matrix.clang-version }}
+        export CXXFLAGS="-DNDEBUG -g2 -O3 -std=c++${{ matrix.cxx-standard }}"
+        make clean
+        make -j"$(nproc)"
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
   makefile-linux-clang-old:
     name: Makefile Linux Clang ${{ matrix.clang-version }}
     runs-on: ubuntu-22.04
