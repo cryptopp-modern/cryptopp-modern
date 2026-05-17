@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.5.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.5.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,11 +24,11 @@
 ---
 
 
-## What's New in 2026.5.0
+## What's New in 2026.5.1
 
-- **CVE-2023-50980 hardening** - Strict validation of F(2^m) curve parameters at the DER boundary, plus a 4096 cap on the field degree
-- **CVE-2023-50981 hardening** - Runtime `BERDecodeError` for non-prime Rabin moduli, plus an iteration cap on `ModularSquareRoot`
-- **Version metadata fix** - CMake and `cryptest.exe V` now report the correct release version (Issue #23)
+- **BLAKE3 correctness fix on AArch64** - Removed the fork-local NEON single-block compress that produced incorrect digests on Apple Silicon, ARM64 Linux, and Android arm64-v8a. AArch64 builds now use the portable path, matching the BLAKE3 reference. Stored hashes from affected versions should be recomputed.
+- **Android build fixes** - Restored the CMake staging step for `cpu-features.h` and replaced an AArch64-only intrinsic in BLAKE3's NEON code so `armeabi-v7a` builds compile.
+- **CI coverage extended** - Android build-only jobs, legacy GCC 9/10 and Clang 13/14 jobs, and `actions/checkout` bumped to v5.
 
 ---
 
