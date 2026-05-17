@@ -26,6 +26,12 @@
 
 ### cryptopp-modern Releases
 
+**2026.5.0** (May 2026) - Security Hardening (Defence-in-depth)
+- Hardened CVE-2023-50980 path: `BERDecodeGF2NP` strict ordering + field degree cap (`MAX_GF2N_FIELD_DEGREE = 4096`)
+- Hardened CVE-2023-50981 path: Rabin `BERDecode` `IsPrime` runtime checks (no longer compiled out in release)
+- Hardened CVE-2023-50981 path: `ModularSquareRoot` iteration cap (`MAX_MODULAR_SQRT_ITERATIONS = 10000`)
+- Fixed Issue #23: version-metadata drift in CMake and `cryptest`
+
 **2026.4.0** (April 2026) - Security Fix
 - Fixed Crypto++ Issue #1348: Ed25519 verification accepts non-canonical public keys
 - Validate() and Donna verifiers now reject y >= p per RFC 8032

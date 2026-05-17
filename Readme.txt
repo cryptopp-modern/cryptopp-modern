@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.4.0 - April 2026
+Version 2026.5.0 - May 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -306,6 +306,18 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.5.0 - May 2026
+      - security release (defence-in-depth)
+      - hardened CVE-2023-50980 path: BERDecodeGF2NP
+        * strict ordering for trinomial and pentanomial exponents
+        * field degree capped at MAX_GF2N_FIELD_DEGREE = 4096
+      - hardened CVE-2023-50981 path: Rabin private-key BERDecode
+        * IsPrime checks now throw BERDecodeError at runtime
+      - hardened CVE-2023-50981 path: ModularSquareRoot iteration cap
+        * non-residue search and Tonelli-Shanks loop capped at 10000
+      - fixed Issue #23: version-metadata drift
+        * META_VERSION_* and CRYPTOPP_* now bumped automatically per release
 
 2026.4.0 - April 2026
       - security release

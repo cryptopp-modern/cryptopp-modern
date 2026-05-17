@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.4.0 (current release)
+- 2026.5.0 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -22,6 +22,27 @@ If we receive a report of a security related bug then we will:
 All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
 
 ## Security Advisories
+
+### CVE-2023-50980 and CVE-2023-50981 hardening (defence-in-depth, fixed in 2026.5.0)
+
+`BERDecodeGF2NP` accepted malformed F(2^m) parameters that could reach `PolynomialMod2` with relaxed runtime checks, and `InvertibleRabinFunction::BERDecode` checked primality with `CRYPTOPP_ASSERT` only (compiled out in release). Published PoCs for both CVEs were already blocked from 2025.11.0 onward via upstream patches; the 2026.5.0 release tightens the same paths at the DER boundary.
+
+**Severity:** Low. PoCs already failed before this release; this is defence-in-depth, not a new vulnerability surface.
+
+**Affected versions:** 2025.11.0 through 2026.4.0 (defence-in-depth gap). Earlier versions had the underlying CVEs.
+
+**Fix:**
+- `BERDecodeGF2NP`: strict ordering on trinomial/pentanomial exponents; field degree capped at `MAX_GF2N_FIELD_DEGREE = 4096`
+- `InvertibleRabinFunction::BERDecode`: `IsPrime` checks now throw `BERDecodeError` at runtime
+- `ModularSquareRoot`: non-residue search and Tonelli-Shanks loop both capped at `MAX_MODULAR_SQRT_ITERATIONS = 10000`
+
+**References:**
+- [NVD CVE-2023-50980](https://nvd.nist.gov/vuln/detail/CVE-2023-50980)
+- [NVD CVE-2023-50981](https://nvd.nist.gov/vuln/detail/CVE-2023-50981)
+- [GitHub Issue #21](https://github.com/cryptopp-modern/cryptopp-modern/issues/21)
+- [Pull Request #22](https://github.com/cryptopp-modern/cryptopp-modern/pull/22)
+
+---
 
 ### Ed25519 non-canonical public key acceptance (fixed in 2026.4.0)
 
