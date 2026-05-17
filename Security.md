@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.5.0 (current release)
+- 2026.5.1 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -22,6 +22,22 @@ If we receive a report of a security related bug then we will:
 All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
 
 ## Security Advisories
+
+### BLAKE3 incorrect hashes on AArch64 (fixed in 2026.5.1)
+
+`BLAKE3_Compress_NEON` was a fork-local single-block compress that diverged from the BLAKE3 reference and produced incorrect digests against the official BLAKE3 test vectors on AArch64 hosts (Apple Silicon macOS, ARM64 Linux, Android arm64-v8a). The bug shipped in 2026.1.0; CI did not catch it because `ValidateBLAKE3()` was not called from `ValidateAll()`.
+
+**Severity:** Correctness. BLAKE3 output on AArch64 differed from every other implementation. Anyone using BLAKE3 for content addressing, pinning, allowlists, deduplication, or audit trails on AArch64 should recompute and replace stored hashes.
+
+**Affected versions:** 2026.1.0 through 2026.5.0 on AArch64. x86 and other architectures were not affected.
+
+**Fix:** Removed the fork-local NEON single-block compress; AArch64 builds now use the portable `compress_internal`, matching the BLAKE3 reference architecture. `ValidateBLAKE3()` is now wired into `ValidateAll()` so CI catches regressions.
+
+**References:**
+- [Pull Request #30](https://github.com/cryptopp-modern/cryptopp-modern/pull/30)
+- [GitHub Issue #27](https://github.com/cryptopp-modern/cryptopp-modern/issues/27)
+
+---
 
 ### CVE-2023-50980 and CVE-2023-50981 hardening (defence-in-depth, fixed in 2026.5.0)
 

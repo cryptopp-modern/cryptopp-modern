@@ -26,6 +26,13 @@
 
 ### cryptopp-modern Releases
 
+**2026.5.1** (May 2026) - Correctness and Build Fixes
+- Fixed BLAKE3 incorrect hashes on AArch64 (removed fork-local NEON single-block compress; AArch64 uses portable path)
+- Restored Android CMake builds (auto-staging of NDK `cpu-features.h`)
+- Fixed armv7 NEON build failure in `rot8_neon`
+- Added Android build-only CI, legacy GCC 9/10 and Clang 13/14 CI, bumped `actions/checkout` to v5
+- `ValidateBLAKE3` now in default validation suite
+
 **2026.5.0** (May 2026) - Security Hardening (Defence-in-depth)
 - Hardened CVE-2023-50980 path: `BERDecodeGF2NP` strict ordering + field degree cap (`MAX_GF2N_FIELD_DEGREE = 4096`)
 - Hardened CVE-2023-50981 path: Rabin `BERDecode` `IsPrime` runtime checks (no longer compiled out in release)

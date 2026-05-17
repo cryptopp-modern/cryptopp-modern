@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.5.0
+**Current Version:** 2026.5.1
 
 ---
 
@@ -178,6 +178,13 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.5.1 (May 2026) - Correctness and Build Fixes
+- **BLAKE3 AArch64 Correctness** - Removed broken fork-local NEON single-block compress; AArch64 now uses the portable path, matching the BLAKE3 reference (Issue #27)
+- **Android CMake** - Restored automatic staging of `cpu-features.h` so CMake builds find the NDK header without manual setup (Issue #27)
+- **armv7 NEON Build** - Replaced AArch64-only intrinsic in `rot8_neon` with a portable form (Issue #27)
+- **CI Coverage** - Added Android build-only jobs and legacy GCC 9/10 / Clang 13/14 matrices; bumped `actions/checkout` to v5
+- **Test Coverage** - `ValidateBLAKE3` now part of the default validation suite
 
 ### 2026.5.0 (May 2026) - Security Hardening
 - **CVE-2023-50980 Hardening** - Strict trinomial/pentanomial ordering and 4096 field-degree cap in `BERDecodeGF2NP`

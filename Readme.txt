@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.5.0 - May 2026
+Version 2026.5.1 - May 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -306,6 +306,23 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.5.1 - May 2026
+      - patch release (correctness + build fixes)
+      - fixed BLAKE3 incorrect hashes on AArch64
+        * removed fork-local NEON single-block compress (Issue #27)
+        * AArch64 now uses portable compress_internal, matching BLAKE3 reference
+        * affected 2026.1.0 through 2026.5.0 on Apple Silicon, ARM64 Linux,
+          Android arm64-v8a
+      - fixed armv7 NEON build failure in rot8_neon
+        * AArch64-only intrinsic replaced with portable form
+        * armeabi-v7a Android builds compile again
+      - fixed Android CMake builds
+        * NDK cpu-features.h staged automatically when ANDROID is set
+      - added Android build-only CI jobs (arm64-v8a, armeabi-v7a)
+      - added legacy compiler CI (GCC 9/10, Clang 13/14)
+      - bumped actions/checkout from v4 to v5 (Node.js 24 prep)
+      - ValidateBLAKE3 now part of default validation suite
 
 2026.5.0 - May 2026
       - security release (defence-in-depth)
