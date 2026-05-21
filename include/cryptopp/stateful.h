@@ -12,7 +12,7 @@
 /// \details PK_StatefulSigner is intentionally NOT a subtype of PK_Signer.
 ///  Stateful signers must not be silently substitutable for stateless signers.
 /// \sa <A HREF="https://csrc.nist.gov/pubs/sp/800/208/final">NIST SP 800-208</A>
-/// \since cryptopp-modern 2026.4.0
+/// \since cryptopp-modern 2026.6.0
 
 #ifndef CRYPTOPP_STATEFUL_H
 #define CRYPTOPP_STATEFUL_H
@@ -277,7 +277,7 @@ private:
 ///  Targets desktop/server platforms with POSIX or Win32 filesystems.
 ///  Embedded targets should implement SignerStateStore directly.
 /// \sa SignerStateStore, InsecureMemoryStateStore
-/// \since cryptopp-modern 2026.4.0
+/// \since cryptopp-modern 2026.6.0
 class FileStateStore : public SignerStateStore
 {
 public:

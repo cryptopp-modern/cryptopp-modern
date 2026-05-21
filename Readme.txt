@@ -43,7 +43,8 @@ the following algorithms:
           public-key cryptography  Nyberg-Rueppel (NR), Rabin-Williams (RW), LUC,
                                    LUCELG, EC-based German Digital Signature (ECGDSA),
                                    DLIES (variants of DHAES), ESIGN,
-                                   ML-DSA (FIPS 204), SLH-DSA (FIPS 205)
+                                   ML-DSA (FIPS 204), SLH-DSA (FIPS 205),
+                                   LMS/HSS (SP 800-208, stateful)
 
    padding schemes for public-key  PKCS#1 v2.0, OAEP, PSS, PSSR, IEEE P1363
                           systems  EMSA2 and EMSA5
@@ -58,7 +59,8 @@ the following algorithms:
 
    post-quantum cryptography (PQC) ML-KEM (FIPS 203) key encapsulation,
                                    ML-DSA (FIPS 204) digital signatures,
-                                   SLH-DSA (FIPS 205) hash-based signatures,
+                                   SLH-DSA (FIPS 205) stateless hash-based signatures,
+                                   LMS/HSS (SP 800-208) stateful hash-based signatures,
                                    X-Wing hybrid KEM (X25519 + ML-KEM-768)
 
           insecure or obsolescent  MD2, MD4, MD5, Panama Hash, DES, ARC4, SEAL

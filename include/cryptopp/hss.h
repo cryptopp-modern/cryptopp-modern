@@ -13,7 +13,7 @@
 ///  signature counter; the signer decomposes it into per-level indices.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-6">RFC 8554 Section 6</A>,
 ///  <A HREF="https://csrc.nist.gov/pubs/sp/800/208/final">NIST SP 800-208</A>
-/// \since cryptopp-modern 2026.4.0
+/// \since cryptopp-modern 2026.6.0
 
 #ifndef CRYPTOPP_HSS_H
 #define CRYPTOPP_HSS_H
