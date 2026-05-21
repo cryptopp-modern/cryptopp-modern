@@ -167,6 +167,63 @@ static bool TestMLKEMSerialization(const char* name)
 	}
 }
 
+template <class PARAMS>
+static bool TestMLKEMSaveLoad(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		MLKEMDecapsulator<PARAMS> original(rng);
+
+		SecByteBlock origPk(PARAMS::PUBLIC_KEY_SIZE);
+		std::memcpy(origPk.begin(), original.GetKey().GetPublicKeyBytePtr(), PARAMS::PUBLIC_KEY_SIZE);
+
+		SecByteBlock origSk(PARAMS::SECRET_KEY_SIZE);
+		std::memcpy(origSk.begin(), original.GetKey().GetPrivateKeyBytePtr(), PARAMS::SECRET_KEY_SIZE);
+
+		// Public key Save/Load round-trip (X.509 SubjectPublicKeyInfo)
+		MLKEMPublicKey<PARAMS> pubKey;
+		pubKey.SetPublicKey(origPk.begin(), origPk.size());
+
+		std::string pubDer;
+		StringSink pubSink(pubDer);
+		pubKey.Save(pubSink);
+
+		MLKEMPublicKey<PARAMS> loadedPub;
+		StringSource pubSrc(reinterpret_cast<const byte*>(pubDer.data()), pubDer.size(), true);
+		loadedPub.Load(pubSrc);
+
+		if (std::memcmp(loadedPub.GetPublicKeyBytePtr(), origPk.begin(), origPk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " public key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		// Private key Save/Load round-trip (PKCS#8 OneAsymmetricKey)
+		MLKEMPrivateKey<PARAMS> privKey;
+		privKey.SetPrivateKey(origSk.begin(), origSk.size());
+
+		std::string privDer;
+		StringSink privSink(privDer);
+		privKey.Save(privSink);
+
+		MLKEMPrivateKey<PARAMS> loadedPriv;
+		StringSource privSrc(reinterpret_cast<const byte*>(privDer.data()), privDer.size(), true);
+		loadedPriv.Load(privSrc);
+
+		if (std::memcmp(loadedPriv.GetPrivateKeyBytePtr(), origSk.begin(), origSk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " private key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " Save/Load DER roundtrip" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " Save/Load - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateMLKEM()
 {
 	std::cout << "\nML-KEM (FIPS 203) validation suite running...\n\n";
@@ -176,16 +233,19 @@ bool ValidateMLKEM()
 	pass = TestMLKEMKeyGen<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestMLKEMEncapsDecaps<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestMLKEMSerialization<MLKEM_512>("ML-KEM-512") && pass;
+	pass = TestMLKEMSaveLoad<MLKEM_512>("ML-KEM-512") && pass;
 
 	// ML-KEM-768
 	pass = TestMLKEMKeyGen<MLKEM_768>("ML-KEM-768") && pass;
 	pass = TestMLKEMEncapsDecaps<MLKEM_768>("ML-KEM-768") && pass;
 	pass = TestMLKEMSerialization<MLKEM_768>("ML-KEM-768") && pass;
+	pass = TestMLKEMSaveLoad<MLKEM_768>("ML-KEM-768") && pass;
 
 	// ML-KEM-1024
 	pass = TestMLKEMKeyGen<MLKEM_1024>("ML-KEM-1024") && pass;
 	pass = TestMLKEMEncapsDecaps<MLKEM_1024>("ML-KEM-1024") && pass;
 	pass = TestMLKEMSerialization<MLKEM_1024>("ML-KEM-1024") && pass;
+	pass = TestMLKEMSaveLoad<MLKEM_1024>("ML-KEM-1024") && pass;
 
 	return pass;
 }
@@ -323,6 +383,63 @@ static bool TestMLDSASerialization(const char* name)
 	}
 }
 
+template <class PARAMS>
+static bool TestMLDSASaveLoad(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		MLDSASigner<PARAMS> original(rng);
+
+		SecByteBlock origPk(PARAMS::PUBLIC_KEY_SIZE);
+		std::memcpy(origPk.begin(), original.GetKey().GetPublicKeyBytePtr(), PARAMS::PUBLIC_KEY_SIZE);
+
+		SecByteBlock origSk(PARAMS::SECRET_KEY_SIZE);
+		std::memcpy(origSk.begin(), original.GetKey().GetPrivateKeyBytePtr(), PARAMS::SECRET_KEY_SIZE);
+
+		// Public key Save/Load round-trip (X.509 SubjectPublicKeyInfo)
+		MLDSAPublicKey<PARAMS> pubKey;
+		pubKey.SetPublicKey(origPk.begin(), origPk.size());
+
+		std::string pubDer;
+		StringSink pubSink(pubDer);
+		pubKey.Save(pubSink);
+
+		MLDSAPublicKey<PARAMS> loadedPub;
+		StringSource pubSrc(reinterpret_cast<const byte*>(pubDer.data()), pubDer.size(), true);
+		loadedPub.Load(pubSrc);
+
+		if (std::memcmp(loadedPub.GetPublicKeyBytePtr(), origPk.begin(), origPk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " public key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		// Private key Save/Load round-trip (PKCS#8 OneAsymmetricKey)
+		MLDSAPrivateKey<PARAMS> privKey;
+		privKey.SetPrivateKey(origSk.begin(), origSk.size());
+
+		std::string privDer;
+		StringSink privSink(privDer);
+		privKey.Save(privSink);
+
+		MLDSAPrivateKey<PARAMS> loadedPriv;
+		StringSource privSrc(reinterpret_cast<const byte*>(privDer.data()), privDer.size(), true);
+		loadedPriv.Load(privSrc);
+
+		if (std::memcmp(loadedPriv.GetPrivateKeyBytePtr(), origSk.begin(), origSk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " private key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " Save/Load DER roundtrip" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " Save/Load - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateMLDSA()
 {
 	std::cout << "\nML-DSA (FIPS 204) validation suite running...\n\n";
@@ -332,16 +449,19 @@ bool ValidateMLDSA()
 	pass = TestMLDSAKeyGen<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASignVerify<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASerialization<MLDSA_44>("ML-DSA-44") && pass;
+	pass = TestMLDSASaveLoad<MLDSA_44>("ML-DSA-44") && pass;
 
 	// ML-DSA-65
 	pass = TestMLDSAKeyGen<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASignVerify<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASerialization<MLDSA_65>("ML-DSA-65") && pass;
+	pass = TestMLDSASaveLoad<MLDSA_65>("ML-DSA-65") && pass;
 
 	// ML-DSA-87
 	pass = TestMLDSAKeyGen<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASignVerify<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASerialization<MLDSA_87>("ML-DSA-87") && pass;
+	pass = TestMLDSASaveLoad<MLDSA_87>("ML-DSA-87") && pass;
 
 	return pass;
 }
@@ -478,6 +598,63 @@ static bool TestSLHDSASerialization(const char* name)
 	}
 }
 
+template <class PARAMS>
+static bool TestSLHDSASaveLoad(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		SLHDSASigner<PARAMS> original(rng);
+
+		SecByteBlock origPk(PARAMS::PUBLIC_KEY_SIZE);
+		std::memcpy(origPk.begin(), original.GetKey().GetPublicKeyBytePtr(), PARAMS::PUBLIC_KEY_SIZE);
+
+		SecByteBlock origSk(PARAMS::SECRET_KEY_SIZE);
+		std::memcpy(origSk.begin(), original.GetKey().GetPrivateKeyBytePtr(), PARAMS::SECRET_KEY_SIZE);
+
+		// Public key Save/Load round-trip (X.509 SubjectPublicKeyInfo)
+		SLHDSAPublicKey<PARAMS> pubKey;
+		pubKey.SetPublicKey(origPk.begin(), origPk.size());
+
+		std::string pubDer;
+		StringSink pubSink(pubDer);
+		pubKey.Save(pubSink);
+
+		SLHDSAPublicKey<PARAMS> loadedPub;
+		StringSource pubSrc(reinterpret_cast<const byte*>(pubDer.data()), pubDer.size(), true);
+		loadedPub.Load(pubSrc);
+
+		if (std::memcmp(loadedPub.GetPublicKeyBytePtr(), origPk.begin(), origPk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " public key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		// Private key Save/Load round-trip (PKCS#8 OneAsymmetricKey)
+		SLHDSAPrivateKey<PARAMS> privKey;
+		privKey.SetPrivateKey(origSk.begin(), origSk.size());
+
+		std::string privDer;
+		StringSink privSink(privDer);
+		privKey.Save(privSink);
+
+		SLHDSAPrivateKey<PARAMS> loadedPriv;
+		StringSource privSrc(reinterpret_cast<const byte*>(privDer.data()), privDer.size(), true);
+		loadedPriv.Load(privSrc);
+
+		if (std::memcmp(loadedPriv.GetPrivateKeyBytePtr(), origSk.begin(), origSk.size()) != 0) {
+			std::cout << "FAILED:  " << name << " private key Save/Load roundtrip" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " Save/Load DER roundtrip" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " Save/Load - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateSLHDSA()
 {
 	std::cout << "\nSLH-DSA (FIPS 205) validation suite running...\n\n";
@@ -488,11 +665,13 @@ bool ValidateSLHDSA()
 	pass = TestSLHDSAKeyGen<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 	pass = TestSLHDSASignVerify<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 	pass = TestSLHDSASerialization<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
+	pass = TestSLHDSASaveLoad<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 
 	// SHAKE variants
 	pass = TestSLHDSAKeyGen<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 	pass = TestSLHDSASignVerify<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 	pass = TestSLHDSASerialization<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
+	pass = TestSLHDSASaveLoad<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 
 	// Test one small variant for thoroughness
 	pass = TestSLHDSAKeyGen<SLHDSA_SHA2_128s>("SLH-DSA-SHA2-128s") && pass;
