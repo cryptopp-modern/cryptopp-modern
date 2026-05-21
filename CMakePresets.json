@@ -129,6 +129,32 @@
       }
     },
     {
+      "name": "ci-android-x86_64",
+      "displayName": "CI Android x86_64",
+      "description": "Cross-compile for Android x86_64 via NDK toolchain",
+      "inherits": "default",
+      "toolchainFile": "$env{ANDROID_NDK_LATEST_HOME}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "ANDROID_ABI": "x86_64",
+        "ANDROID_PLATFORM": "android-24",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CRYPTOPP_BUILD_TESTING": "OFF"
+      }
+    },
+    {
+      "name": "ci-android-x86",
+      "displayName": "CI Android x86",
+      "description": "Cross-compile for Android x86 via NDK toolchain",
+      "inherits": "default",
+      "toolchainFile": "$env{ANDROID_NDK_LATEST_HOME}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "ANDROID_ABI": "x86",
+        "ANDROID_PLATFORM": "android-24",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CRYPTOPP_BUILD_TESTING": "OFF"
+      }
+    },
+    {
       "name": "no-asm",
       "displayName": "No ASM",
       "description": "Build without assembly optimizations",
