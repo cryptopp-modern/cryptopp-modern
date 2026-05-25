@@ -1607,6 +1607,44 @@ bool TestASN1Functions()
     }
 
     {
+        // Issue weidai11/cryptopp#1353. 32 levels accept, 33 first throw,
+        // 10000 confirms no crash past the cap.
+        const unsigned int probes[] = {8, 32, 33, 10000};
+        const bool expectThrow[] = {false, false, true, true};
+        unsigned int failed = 0;
+
+        for (size_t i = 0; i < COUNTOF(probes); ++i)
+        {
+            std::string payload;
+            payload.reserve(static_cast<size_t>(probes[i]) * 4);
+            for (unsigned int d = 0; d < probes[i]; ++d) {
+                payload.push_back('\x30');
+                payload.push_back('\x80');
+            }
+            for (unsigned int d = 0; d < probes[i]; ++d) {
+                payload.push_back('\x00');
+                payload.push_back('\x00');
+            }
+
+            ByteQueue src, dst;
+            src.Put(ConstBytePtr(payload), BytePtrSize(payload));
+
+            bool threw = false;
+            try { DERReencode(src, dst); }
+            catch (const Exception&) { threw = true; }
+
+            if (threw != expectThrow[i]) ++failed;
+        }
+
+        failed ? fail = true : fail = false;
+        pass = pass && !fail;
+        CRYPTOPP_ASSERT(!fail);
+
+        std::cout << (fail ? "FAILED" : "passed") << "  ";
+        std::cout << "DERReencode depth cap (Issue 1353)" << "\n";
+    }
+
+    {
         const byte date[] = "Sun, 21 Mar 2021 01:00:00 +0000";
         SecByteBlock message; message.Assign(date, sizeof(date)-1);
         const byte asnDateTypes[] = {UTC_TIME, GENERALIZED_TIME};
