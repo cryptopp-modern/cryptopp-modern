@@ -698,6 +698,132 @@ bool TestEd25519()
 	std::cout << (fail ? "FAILED" : "passed") << "  ";
 	std::cout << "RFC 5208 and 5958 key loads" << std::endl;
 
+	// Issue weidai11/cryptopp#1352. Verifier must reject S >= L per RFC 8032.
+	// Smoking gun is the S' + L mutation; boundary scalars guard the predicate.
+	static const byte L[32] = {
+		0xed,0xd3,0xf5,0x5c,0x1a,0x63,0x12,0x58,
+		0xd6,0x9c,0xf7,0xa2,0xde,0xf9,0xde,0x14,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10
+	};
+
+	try {
+		ed25519Signer signer(GlobalRNG());
+		ed25519Verifier verifier(signer);
+
+		const byte msg[] = {'t','e','s','t'};
+		byte original[64];
+		signer.SignMessage(GlobalRNG(), msg, sizeof(msg), original);
+
+		// Control: original signature must verify.
+		bool control = verifier.VerifyMessage(msg, sizeof(msg),
+			original, sizeof(original));
+
+		// Reporter's PoC: replace S with original_S + L.
+		byte plusL[64];
+		std::memcpy(plusL, original, 64);
+		{
+			unsigned int carry = 0;
+			for (int i = 0; i < 32; ++i) {
+				unsigned int v = plusL[32 + i] + L[i] + carry;
+				plusL[32 + i] = static_cast<byte>(v);
+				carry = v >> 8;
+			}
+		}
+		bool s_plus_l = verifier.VerifyMessage(msg, sizeof(msg),
+			plusL, sizeof(plusL));
+
+		// Boundary scalars. R stays valid; only S is mutated.
+		const byte scalars[5][32] = {
+			// S = L
+			{ 0xed,0xd3,0xf5,0x5c,0x1a,0x63,0x12,0x58,
+			  0xd6,0x9c,0xf7,0xa2,0xde,0xf9,0xde,0x14,
+			  0,0,0,0, 0,0,0,0,
+			  0,0,0,0, 0,0,0,0x10 },
+			// S = L + 1
+			{ 0xee,0xd3,0xf5,0x5c,0x1a,0x63,0x12,0x58,
+			  0xd6,0x9c,0xf7,0xa2,0xde,0xf9,0xde,0x14,
+			  0,0,0,0, 0,0,0,0,
+			  0,0,0,0, 0,0,0,0x10 },
+			// S = 2^253 - 1
+			{ 0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0x1f },
+			// S = 2^253
+			{ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+			  0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0x20 },
+			// S = 2^256 - 1
+			{ 0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff,
+			  0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff }
+		};
+
+		unsigned int accepted = 0;
+		for (size_t i = 0; i < COUNTOF(scalars); ++i) {
+			byte boundary[64];
+			std::memcpy(boundary, original, 32);
+			std::memcpy(boundary + 32, scalars[i], 32);
+			if (verifier.VerifyMessage(msg, sizeof(msg),
+					boundary, sizeof(boundary)))
+				++accepted;
+		}
+
+		fail = !control || s_plus_l || accepted != 0;
+	}
+	catch (const Exception&) {
+		fail = true;
+	}
+
+	pass = pass && !fail;
+
+	std::cout << (fail ? "FAILED" : "passed") << "  ";
+	std::cout << "Ed25519 scalar canonicality (Issue 1352)" << std::endl;
+
+	// Issue weidai11/cryptopp#1352 (NaCl path). S' + L mutation must reject.
+#ifndef CRYPTOPP_DISABLE_NACL
+	try {
+		byte pk[NaCl::crypto_sign_PUBLICKEYBYTES];
+		byte sk[NaCl::crypto_sign_SECRETKEYBYTES];
+		(void)NaCl::crypto_sign_keypair(pk, sk);
+
+		const byte msg[] = {'t','e','s','t'};
+		byte sm[64 + sizeof(msg)];
+		word64 smlen = sizeof(sm);
+		int ret1 = NaCl::crypto_sign(sm, &smlen, msg, sizeof(msg), sk);
+
+		// Control: signed message must verify.
+		byte recovered[64 + sizeof(msg)];
+		word64 mlen = sizeof(recovered);
+		int ret2 = NaCl::crypto_sign_open(recovered, &mlen, sm, smlen, pk);
+
+		// Mutate S in place: sm[0..32]=R, sm[32..64]=S, sm[64..]=msg.
+		{
+			unsigned int carry = 0;
+			for (int i = 0; i < 32; ++i) {
+				unsigned int v = sm[32 + i] + L[i] + carry;
+				sm[32 + i] = static_cast<byte>(v);
+				carry = v >> 8;
+			}
+		}
+
+		// Mutated signature: must reject.
+		mlen = sizeof(recovered);
+		int ret3 = NaCl::crypto_sign_open(recovered, &mlen, sm, smlen, pk);
+
+		fail = (ret1 != 0) || (ret2 != 0) || (ret3 == 0);
+	}
+	catch (const Exception&) {
+		fail = true;
+	}
+
+	pass = pass && !fail;
+
+	std::cout << (fail ? "FAILED" : "passed") << "  ";
+	std::cout << "Ed25519 scalar canonicality, NaCl path (Issue 1352)" << std::endl;
+#endif
+
 	return pass;
 }
 
