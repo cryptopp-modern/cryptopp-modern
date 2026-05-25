@@ -781,6 +781,49 @@ bool TestEd25519()
 	std::cout << (fail ? "FAILED" : "passed") << "  ";
 	std::cout << "Ed25519 scalar canonicality (Issue 1352)" << std::endl;
 
+	// Issue weidai11/cryptopp#1352 (NaCl path). S' + L mutation must reject.
+#ifndef CRYPTOPP_DISABLE_NACL
+	try {
+		byte pk[NaCl::crypto_sign_PUBLICKEYBYTES];
+		byte sk[NaCl::crypto_sign_SECRETKEYBYTES];
+		(void)NaCl::crypto_sign_keypair(pk, sk);
+
+		const byte msg[] = {'t','e','s','t'};
+		byte sm[64 + sizeof(msg)];
+		word64 smlen = sizeof(sm);
+		int ret1 = NaCl::crypto_sign(sm, &smlen, msg, sizeof(msg), sk);
+
+		// Control: signed message must verify.
+		byte recovered[64 + sizeof(msg)];
+		word64 mlen = sizeof(recovered);
+		int ret2 = NaCl::crypto_sign_open(recovered, &mlen, sm, smlen, pk);
+
+		// Mutate S in place: sm[0..32]=R, sm[32..64]=S, sm[64..]=msg.
+		{
+			unsigned int carry = 0;
+			for (int i = 0; i < 32; ++i) {
+				unsigned int v = sm[32 + i] + L[i] + carry;
+				sm[32 + i] = static_cast<byte>(v);
+				carry = v >> 8;
+			}
+		}
+
+		// Mutated signature: must reject.
+		mlen = sizeof(recovered);
+		int ret3 = NaCl::crypto_sign_open(recovered, &mlen, sm, smlen, pk);
+
+		fail = (ret1 != 0) || (ret2 != 0) || (ret3 == 0);
+	}
+	catch (const Exception&) {
+		fail = true;
+	}
+
+	pass = pass && !fail;
+
+	std::cout << (fail ? "FAILED" : "passed") << "  ";
+	std::cout << "Ed25519 scalar canonicality, NaCl path (Issue 1352)" << std::endl;
+#endif
+
 	return pass;
 }
 
