@@ -752,11 +752,13 @@ bool ValidateEd25519()
 		ed25519PublicKey k_pplus1; k_pplus1.SetPublicElement(pk_pplus1);
 		ed25519PublicKey k_top; k_top.SetPublicElement(pk_top);
 
-		const bool v_id = k_id.Validate(NullRNG(), 3);
-		const bool v_pminus1 = k_pminus1.Validate(NullRNG(), 3);
-		const bool v_p = k_p.Validate(NullRNG(), 3);
-		const bool v_pplus1 = k_pplus1.Validate(NullRNG(), 3);
-		const bool v_top = k_top.Validate(NullRNG(), 3);
+		// Level 1 exercises canonicality only; level 2+ adds small-order
+		// rejection which would also catch the canonical baselines below.
+		const bool v_id = k_id.Validate(NullRNG(), 1);
+		const bool v_pminus1 = k_pminus1.Validate(NullRNG(), 1);
+		const bool v_p = k_p.Validate(NullRNG(), 1);
+		const bool v_pplus1 = k_pplus1.Validate(NullRNG(), 1);
+		const bool v_top = k_top.Validate(NullRNG(), 1);
 
 		// R = identity, S = 0 verifies against the identity key and any of its aliases.
 		byte sig[64] = { 0 };

@@ -824,6 +824,30 @@ bool TestEd25519()
 	std::cout << "Ed25519 scalar canonicality, NaCl path (Issue 1352)" << std::endl;
 #endif
 
+	// Issue weidai11/cryptopp#1352. Validate at level 2 must reject small-order
+	// public keys. Identity is one of the 12 blacklisted points.
+	try {
+		byte identity[32] = { 0 };
+		identity[0] = 1;
+		ed25519Verifier verifier(identity);
+
+		bool basic = verifier.GetPublicKey().Validate(GlobalRNG(), 0);
+		bool strict = verifier.GetPublicKey().Validate(GlobalRNG(), 2);
+
+		ed25519Signer signer(GlobalRNG());
+		bool fresh = ed25519Verifier(signer).GetPublicKey().Validate(GlobalRNG(), 2);
+
+		fail = !basic || strict || !fresh;
+	}
+	catch (const Exception&) {
+		fail = true;
+	}
+
+	pass = pass && !fail;
+
+	std::cout << (fail ? "FAILED" : "passed") << "  ";
+	std::cout << "Ed25519 small-order public key (Issue 1352)" << std::endl;
+
 	return pass;
 }
 
