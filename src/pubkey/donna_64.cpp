@@ -447,6 +447,22 @@ ed25519_pubkey_is_canonical(const byte pk[32]) {
     return pk[0] < 0xed;
 }
 
+/* Reject S >= L (RFC 8032 canonical encoding check). */
+inline bool
+ed25519_scalar_is_canonical(const byte S[32]) {
+    static const byte L[32] = {
+        0xed,0xd3,0xf5,0x5c,0x1a,0x63,0x12,0x58,
+        0xd6,0x9c,0xf7,0xa2,0xde,0xf9,0xde,0x14,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10
+    };
+    for (int i = 31; i >= 0; --i) {
+        if (S[i] < L[i]) return true;
+        if (S[i] > L[i]) return false;
+    }
+    return false;
+}
+
 /* out = in */
 inline void
 curve25519_copy(bignum25519 out, const bignum25519 in) {
@@ -1760,7 +1776,7 @@ ed25519_sign_open_CXX(const byte *m, size_t mlen, const byte pk[32], const byte 
     bignum256modm hram, S;
     byte checkR[32];
 
-    if ((RS[63] & 224) || !ed25519_pubkey_is_canonical(pk) ||
+    if (!ed25519_scalar_is_canonical(RS + 32) || !ed25519_pubkey_is_canonical(pk) ||
         !ge25519_unpack_negative_vartime(&A, pk))
         return -1;
 
@@ -1789,7 +1805,7 @@ ed25519_sign_open_CXX(std::istream& stream, const byte pk[32], const byte RS[64]
     bignum256modm hram, S;
     byte checkR[32];
 
-    if ((RS[63] & 224) || !ed25519_pubkey_is_canonical(pk) ||
+    if (!ed25519_scalar_is_canonical(RS + 32) || !ed25519_pubkey_is_canonical(pk) ||
         !ge25519_unpack_negative_vartime(&A, pk))
         return -1;
 
