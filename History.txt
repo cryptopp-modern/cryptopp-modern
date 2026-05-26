@@ -4,6 +4,21 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contans the
 last several releases.
 
+2026.5.2 - May 2026
+      - patch release (security + conformance)
+      - capped DERReencode recursion depth at 32 levels
+        * matches OpenSSL ASN1_MAX_CONSTRUCTED_NEST
+        * deeper nested constructed indefinite BER throws BERDecodeError
+        * addresses upstream Crypto++ issue 1353
+      - rejected Ed25519 signatures where S >= L
+        * Donna verifier and NaCl C API verifier both patched
+        * scalar canonicality check added before existing verification path
+        * addresses the signature-scalar part of upstream Crypto++ issue 1352
+      - rejected small-order Ed25519 public keys at validation level 2 or higher
+        * ed25519PublicKey::Validate wires in the existing HasSmallOrder helper
+        * level 0 behaviour is unchanged
+        * addresses the small-order part of upstream Crypto++ issue 1352
+
 2026.5.1 - May 2026
       - patch release (correctness + build fixes)
       - fixed BLAKE3 incorrect hashes on AArch64

@@ -26,6 +26,11 @@
 
 ### cryptopp-modern Releases
 
+**2026.5.2** (May 2026) - Security and Conformance Patch
+- Capped `DERReencode` recursion depth at 32 levels (upstream Crypto++ issue 1353)
+- Rejected Ed25519 signatures where `S >= L` in both Donna and NaCl verifiers (upstream Crypto++ issue 1352, signature-scalar part)
+- Rejected small-order Ed25519 public keys in `ed25519PublicKey::Validate` at level 2 or higher (upstream Crypto++ issue 1352, small-order part)
+
 **2026.5.1** (May 2026) - Correctness and Build Fixes
 - Fixed BLAKE3 incorrect hashes on AArch64 (removed fork-local NEON single-block compress; AArch64 uses portable path)
 - Restored Android CMake builds (auto-staging of NDK `cpu-features.h`)
