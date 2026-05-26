@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.5.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.5.2-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,7 +24,13 @@
 ---
 
 
-## What's New in 2026.5.1
+## What's New in 2026.5.2
+
+- **ASN.1 DERReencode depth cap** - Caps `DERReencode` recursion at 32 levels, matching OpenSSL's `ASN1_MAX_CONSTRUCTED_NEST`. Prevents stack exhaustion on crafted nested constructed indefinite BER input. Addresses upstream Crypto++ issue 1353.
+- **Ed25519 signature scalar canonicality** - Both the Donna verifier and the NaCl C API verifier now reject signatures where `S >= L`. Addresses the signature-scalar part of upstream Crypto++ issue 1352. Conformance fix, not a forgery.
+- **Ed25519 small-order public key rejection** - `ed25519PublicKey::Validate` rejects small-order public keys at validation level 2 or higher. Level 0 behaviour is unchanged.
+
+### Previously in 2026.5.1
 
 - **BLAKE3 correctness fix on AArch64** - Removed the fork-local NEON single-block compress that produced incorrect digests on Apple Silicon, ARM64 Linux, and Android arm64-v8a. AArch64 builds now use the portable path, matching the BLAKE3 reference. Stored hashes from affected versions should be recomputed.
 - **Android build fixes** - Restored the CMake staging step for `cpu-features.h` and replaced an AArch64-only intrinsic in BLAKE3's NEON code so `armeabi-v7a` builds compile.

@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.5.1 (current release)
+- 2026.5.2 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -22,6 +22,44 @@ If we receive a report of a security related bug then we will:
 All information will be made public after a fix is available. We do not withhold information from users because stakeholders need accurate information to assess risk and place controls to remediate the risk.
 
 ## Security Advisories
+
+### ASN.1 DERReencode unbounded recursion (fixed in 2026.5.2)
+
+`DERReencode` walked nested constructed indefinite BER without a depth limit. A crafted chain of `0x30 0x80` sequences could exhaust the thread stack. `PKCS8PrivateKey` import reaches this path through `BERDecodeOptionalAttributes`, so any caller that imports untrusted PKCS#8 material was exposed.
+
+**Severity:** Availability. Reporter rated this CVSS 7.5. No confidentiality or integrity impact.
+
+**Affected versions:** all releases up to and including 2026.5.1.
+
+**Fix:** Capped the recursion depth at 32 levels, matching OpenSSL's `ASN1_MAX_CONSTRUCTED_NEST`. Deeper inputs now throw `BERDecodeError` instead of recursing further.
+
+**Upstream:** addresses upstream Crypto++ issue 1353. Upstream PR weidai11/cryptopp#1354 ports the same fix to Crypto++ master.
+
+### Ed25519 non-canonical signature scalars (fixed in 2026.5.2)
+
+The Ed25519 verifiers accepted signatures where the scalar `S` was not canonically encoded. The previous check only masked the top three bits of `S`, leaving the gap `L <= S < 2^253`. A valid signature changed from `S'` to `S' + L` could still verify because the verification equation holds modulo the subgroup order.
+
+Both the Donna verifier and the NaCl C API verifier (`crypto_sign_open` in `tweetnacl.cpp`) had this defect.
+
+**Severity:** Low. Conformance, not forgery. Matters for systems that key behaviour on raw signature bytes, such as replay caches, audit trails, deduplication, allowlists, and interoperability with stricter Ed25519 implementations.
+
+**Affected versions:** all releases up to and including 2026.5.1.
+
+**Fix:** Both verifiers now reject `S >= L` before continuing with verification.
+
+**Upstream:** addresses the signature-scalar part of upstream Crypto++ issue 1352. Upstream PR weidai11/cryptopp#1355 ports the same fix to Crypto++ master.
+
+### Ed25519 small-order public keys (fixed in 2026.5.2)
+
+`ed25519PublicKey::Validate` did not reject small-order Ed25519 public keys. Some downstream consumers rely on `Validate` at level 2 or higher to filter weak keys.
+
+**Severity:** Low. Conformance. Validation-level behaviour only; the verifier itself was not changed.
+
+**Affected versions:** all releases up to and including 2026.5.1.
+
+**Fix:** `Validate` now rejects small-order public keys at level 2 or higher. The existing canonical encoding check still runs at all validation levels. Level 0 behaviour is unchanged.
+
+**Upstream:** addresses the small-order public key part of upstream Crypto++ issue 1352. Upstream commit weidai11/cryptopp@4775a166 covers the same case on upstream master.
 
 ### BLAKE3 incorrect hashes on AArch64 (fixed in 2026.5.1)
 

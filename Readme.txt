@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.5.1 - May 2026
+Version 2026.5.2 - May 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -306,6 +306,21 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.5.2 - May 2026
+      - patch release (security + conformance)
+      - capped DERReencode recursion depth at 32 levels
+        * matches OpenSSL ASN1_MAX_CONSTRUCTED_NEST
+        * deeper nested constructed indefinite BER throws BERDecodeError
+        * addresses upstream Crypto++ issue 1353
+      - rejected Ed25519 signatures where S >= L
+        * Donna verifier and NaCl C API verifier both patched
+        * scalar canonicality check added before existing verification path
+        * addresses the signature-scalar part of upstream Crypto++ issue 1352
+      - rejected small-order Ed25519 public keys at validation level 2 or higher
+        * ed25519PublicKey::Validate wires in the existing HasSmallOrder helper
+        * level 0 behaviour is unchanged
+        * addresses the small-order part of upstream Crypto++ issue 1352
 
 2026.5.1 - May 2026
       - patch release (correctness + build fixes)

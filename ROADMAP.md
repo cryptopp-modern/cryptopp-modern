@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.5.1
+**Current Version:** 2026.5.2
 
 ---
 
@@ -178,6 +178,11 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.5.2 (May 2026) - Security and Conformance Patch
+- **ASN.1 DERReencode depth cap** - 32-level cap matching OpenSSL `ASN1_MAX_CONSTRUCTED_NEST`; prevents stack exhaustion on nested constructed indefinite BER (upstream Crypto++ issue 1353)
+- **Ed25519 signature scalar canonicality** - Donna and NaCl verifiers reject `S >= L` per RFC 8032 (upstream Crypto++ issue 1352, signature-scalar part)
+- **Ed25519 small-order public keys** - `ed25519PublicKey::Validate` rejects small-order keys at level 2 or higher (upstream Crypto++ issue 1352, small-order part)
 
 ### 2026.5.1 (May 2026) - Correctness and Build Fixes
 - **BLAKE3 AArch64 Correctness** - Removed broken fork-local NEON single-block compress; AArch64 now uses the portable path, matching the BLAKE3 reference (Issue #27)
