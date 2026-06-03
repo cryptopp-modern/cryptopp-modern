@@ -142,15 +142,15 @@ This is a maintained fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.4.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.6.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | April 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.4.0) |
+| **Last Release** | October 1, 2023 | June 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.6.0) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
 | **AES-CTR-HMAC** | ❌ | ✅ Encrypt-then-MAC |
-| **Post-Quantum** | ❌ | ✅ ML-KEM, ML-DSA, SLH-DSA, X-Wing |
+| **Post-Quantum** | ❌ | ✅ ML-KEM, ML-DSA, SLH-DSA, LMS/HSS, X-Wing |
 | **Marvin Fix** | ❌ | ✅ CVE-2023-50979 |
 | **CMake** | Basic | Modern (presets, find_package) |
 | **Organization** | Flat structure | Categorized src/ dirs |
