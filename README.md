@@ -13,7 +13,7 @@
 
 **cryptopp-modern** is an actively maintained fork of [Crypto++ 8.9.0](https://github.com/weidai11/cryptopp) featuring:
 
-- **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing hybrid KEM
+- **Post-Quantum Cryptography** - ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), LMS/HSS (SP 800-208), X-Wing hybrid KEM
 - **BLAKE3** - Modern, fast cryptographic hash function
 - **Argon2** - RFC 9106 password hashing (Argon2d, Argon2i, Argon2id)
 - **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), F(2^m) and Rabin/ModularSquareRoot hardening (CVE-2023-50980, CVE-2023-50981), ESIGN improvements
@@ -111,7 +111,8 @@ See [FORK.md](FORK.md) for detailed explanation.
 **Post-Quantum Cryptography:**
 - **ML-KEM** (FIPS 203) - Key encapsulation ⭐
 - **ML-DSA** (FIPS 204) - Digital signatures ⭐
-- **SLH-DSA** (FIPS 205) - Hash-based signatures ⭐
+- **SLH-DSA** (FIPS 205) - Hash-based signatures (stateless) ⭐
+- **LMS/HSS** (SP 800-208) - Hash-based signatures (stateful) ⭐
 - **X-Wing** - Hybrid KEM (X25519 + ML-KEM-768) ⭐
 
 **Public Key Cryptography:**

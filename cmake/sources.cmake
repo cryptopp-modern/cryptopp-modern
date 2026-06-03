@@ -232,9 +232,11 @@ set(cryptopp_SOURCES_UTIL
 
 # ***** Post-quantum cryptography sources *****
 set(cryptopp_SOURCES_PQC
+    src/pqc/lms.cpp
     src/pqc/mldsa.cpp
     src/pqc/mlkem.cpp
     src/pqc/slhdsa.cpp
+    src/pqc/stateful.cpp
     src/pqc/xwing.cpp
 )
 
@@ -379,6 +381,8 @@ set(cryptopp_HEADERS
     include/cryptopp/kalyna.h
     include/cryptopp/keccak.h
     include/cryptopp/lea.h
+    include/cryptopp/lms.h
+    include/cryptopp/hss.h
     include/cryptopp/lsh.h
     include/cryptopp/lubyrack.h
     include/cryptopp/luc.h
@@ -456,6 +460,7 @@ set(cryptopp_HEADERS
     include/cryptopp/sosemanuk.h
     include/cryptopp/speck.h
     include/cryptopp/square.h
+    include/cryptopp/stateful.h
     include/cryptopp/stdcpp.h
     include/cryptopp/strciphr.h
     include/cryptopp/tea.h

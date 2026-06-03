@@ -143,6 +143,12 @@
   - All 12 parameter sets (SHA-2 and SHAKE variants)
   - 128-bit, 192-bit, and 256-bit security levels
   - Small (s) and fast (f) variants
+- ✅ **LMS/HSS (SP 800-208)** - Stateful Hash-Based Signatures
+  - LMS single-tree (H5, H10 parameter sets with SHA-256, W=8)
+  - HSS hierarchical (L=2, L=3 with uniform parameters)
+  - PK_StatefulSigner framework (explicit stateful signing API)
+  - SignerStateStore backend contract with FileStateStore reference implementation
+  - RFC 8554 Appendix F interop verified
 - ✅ **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
 
 **Note:** Post-quantum algorithms provide security against both classical and quantum computer attacks, preparing applications for the post-quantum era.

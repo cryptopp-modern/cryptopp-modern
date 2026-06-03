@@ -672,6 +672,67 @@ int main() {
 
 ---
 
+#### LMS/HSS (SP 800-208) - Stateful Hash-Based Signatures
+
+```cpp
+#include <cryptopp/hss.h>
+#include <cryptopp/stateful.h>
+#include <cryptopp/osrng.h>
+#include <iostream>
+
+int main() {
+    using namespace CryptoPP;
+    typedef HSS_SHA256_H5_W8_L2 Scheme;
+    typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+    AutoSeededRandomPool rng;
+
+    // Generate key pair
+    Scheme::PrivateKey privKey;
+    privKey.GenerateRandom(rng, g_nullNameValuePairs);
+    Scheme::PublicKey pubKey;
+    privKey.MakePublicKey(pubKey);
+
+    // State store tracks which signing indices have been used.
+    // FileStateStore persists to disk. InsecureMemoryStateStore is testing only.
+    FileStateStore store = FileStateStore::Create("signer.state",
+        Params::TotalSignatures());
+
+    // Sign - each call consumes one signing index permanently
+    Scheme::Signer signer(privKey, store);
+    std::string message = "Firmware image v2.1";
+    SecByteBlock sig(signer.SignatureLength());
+    signer.SignMessage(rng,
+        reinterpret_cast<const byte*>(message.data()),
+        message.size(), sig.begin());
+
+    std::cout << "Signed with HSS (L=2 H5). "
+              << signer.RemainingSignatures() << " signatures remaining."
+              << std::endl;
+
+    // Verify - stateless, conventional PK_Verifier interface
+    Scheme::Verifier verifier(
+        pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+    bool valid = verifier.VerifyMessage(
+        reinterpret_cast<const byte*>(message.data()),
+        message.size(), sig.begin(), sig.size());
+
+    std::cout << "Signature valid: " << (valid ? "YES" : "NO") << std::endl;
+    return 0;
+}
+```
+
+**Important:** LMS/HSS is stateful. Each signature permanently consumes signer state. See the [LMS/HSS API reference](https://cryptopp-modern.com/docs/api/pqc/lms-hss/) and the [Stateful Signing Guide](https://cryptopp-modern.com/docs/guides/stateful-signing/) for state management details.
+
+**Available parameter sets:**
+| Parameter Set | Levels | Total Signatures | Public Key | Signature |
+|--------------|--------|------------------|------------|-----------|
+| `HSS_SHA256_H5_W8_L2` | 2 | 1,024 | 60 bytes | 2,644 bytes |
+| `HSS_SHA256_H10_W8_L2` | 2 | 1,048,576 | 60 bytes | 2,964 bytes |
+| `HSS_SHA256_H5_W8_L3` | 3 | 32,768 | 60 bytes | 3,996 bytes |
+
+---
+
 ### Post-Quantum Key Encapsulation
 
 **Use when:** Quantum-resistant key exchange for establishing shared secrets
@@ -877,7 +938,7 @@ cryptopp-modern includes:
 - **Symmetric Encryption:** AES, ChaCha20, Serpent, Twofish, Camellia, ARIA
 - **Modes:** GCM, CCM, EAX, CBC, CTR, CFB, OFB
 - **Public Key:** RSA, DSA, ECDSA, Ed25519, Diffie-Hellman, ECIES, ElGamal
-- **Post-Quantum:** ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), X-Wing
+- **Post-Quantum:** ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), LMS/HSS (SP 800-208), X-Wing
 - **Key Derivation:** Argon2, PBKDF2, HKDF, Scrypt
 - **MACs:** HMAC, CMAC, GMAC, Poly1305
 

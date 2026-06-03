@@ -259,6 +259,38 @@ jobs:
     - name: Build cryptopp library
       run: cmake --build build/ci-android-armeabi-v7a --target cryptopp -j"$(nproc)"
 
+  cmake-android-x86_64:
+    name: CMake Android (x86_64)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (Android x86_64)
+      run: cmake --preset=ci-android-x86_64
+
+    - name: Build cryptopp library
+      run: cmake --build build/ci-android-x86_64 --target cryptopp -j"$(nproc)"
+
+  cmake-android-x86:
+    name: CMake Android (x86)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (Android x86)
+      run: cmake --preset=ci-android-x86
+
+    - name: Build cryptopp library
+      run: cmake --build build/ci-android-x86 --target cryptopp -j"$(nproc)"
+
   # =============================================================================
   # Makefile Builds (Backward Compatibility)
   # =============================================================================
@@ -434,15 +466,15 @@ jobs:
     - name: Run validation tests
       run: ./cryptest.exe v 2>&1 | tee validation.log
 
+    - name: Run test vectors
+      run: ./cryptest.exe tv all 2>&1 | tee -a validation.log
+
     - name: Check for sanitizer errors
       run: |
         if grep -E "(runtime error:|ERROR:|ASAN)" validation.log; then
           echo "Sanitizer errors found"
           exit 1
         fi
-
-    - name: Run test vectors
-      run: ./cryptest.exe tv all
 
   # =============================================================================
   # AVX512 Testing

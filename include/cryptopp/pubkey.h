@@ -1933,7 +1933,7 @@ public:
 
 			DecodingResult result = encAlg.SymmetricDecrypt(derivedKey, ciphertext, ciphertextLength, tempPlaintext, parameters);
 
-			if (result.isValidCoding && result.messageLength <= tempBufferLen)
+			if (result.isValidCoding && result.messageLength > 0 && result.messageLength <= tempBufferLen)
 			{
 				// Success: copy plaintext to caller's buffer
 				std::memcpy(plaintext, tempPlaintext, result.messageLength);

@@ -545,6 +545,9 @@
     <ClCompile Include="zlib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pqc\lms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\pqc\mldsa.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -552,6 +555,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\pqc\slhdsa.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pqc\stateful.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\pqc\xwing.cpp">
@@ -1107,6 +1113,12 @@
     <ClInclude Include="chachapoly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\cryptopp\lms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cryptopp\hss.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\cryptopp\mldsa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1116,7 +1128,13 @@
     <ClInclude Include="include\cryptopp\slhdsa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\cryptopp\stateful.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\cryptopp\xwing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pqc\lms_params.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pqc\mldsa_params.h">
