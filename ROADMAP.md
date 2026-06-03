@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.5.2
+**Current Version:** 2026.6.0
 
 ---
 
@@ -184,6 +184,16 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.6.0 (June 2026) - LMS/HSS Stateful Signatures
+- **LMS/HSS stateful hash-based signatures** - LMS single-tree (H5, H10 with W=8) and HSS hierarchical (L=2, L=3) signatures following NIST SP 800-208 and RFC 8554
+- **Stateful signing API** - `PK_StatefulSigner` deliberately not a subtype of `PK_Signer`; `SignerStateStore` contract ensures a reserved index can never be reissued
+- **FileStateStore** - Durable file-backed state store with write-ahead persistence, HMAC-SHA256 integrity, fail-closed poisoning, and platform-specific flush handling
+- **ASN.1 wiring** - RFC 8708 `id-alg-hss-lms-hashsig` for X.509 SubjectPublicKeyInfo public keys; library-local PKCS#8 wrapper for private keys
+- **PQC Save/Load tests** - Round-trip coverage for ML-KEM, ML-DSA, and SLH-DSA
+- **Android x86 CI** - `x86_64` and `x86` build coverage added
+- **Sanitizer CI fix** - `cryptest tv` output now included in the checked log
+- **Legacy compiler CI** - GCC 9-10 and Clang 11-14 lanes added
 
 ### 2026.5.2 (May 2026) - Security and Conformance Patch
 - **ASN.1 DERReencode depth cap** - 32-level cap matching OpenSSL `ASN1_MAX_CONSTRUCTED_NEST`; prevents stack exhaustion on nested constructed indefinite BER (upstream Crypto++ issue 1353)

@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.5.2 - May 2026
+Version 2026.6.0 - June 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -308,6 +308,32 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.6.0 - June 2026
+      - minor release (LMS/HSS stateful hash-based signatures)
+      - added LMS single-tree signatures
+        * H5 (32 sigs) and H10 (1024 sigs) with Winternitz W=8
+        * SHA-256 only
+        * follows NIST SP 800-208 and RFC 8554
+      - added HSS hierarchical signatures
+        * L=2 (1024 sigs at H5) and L=3 (32k sigs at H5)
+        * uniform parameter sets at every level
+      - added stateful signing framework
+        * PK_StatefulSigner deliberately not a subtype of PK_Signer
+        * SignerStateStore backend contract; reserved indexes never reissued
+        * StateReservation move-only capability token
+      - added FileStateStore durable backend
+        * write-ahead persistence with HMAC-SHA256 integrity
+        * fail-closed poisoning on integrity failure
+        * Win32 / POSIX / macOS F_FULLFSYNC flush handling
+      - added ASN.1 wiring for LMS public keys
+        * X.509 SubjectPublicKeyInfo with RFC 8708 id-alg-hss-lms-hashsig
+        * library-local PKCS#8 wrapper carrying SEED || I
+      - added Save/Load round-trip tests for ML-KEM, ML-DSA, SLH-DSA
+      - added Android x86_64 and x86 build coverage in CI
+      - added legacy compiler CI lanes (GCC 9-10, Clang 11-14)
+      - fixed sanitizer CI grep gap (cryptest tv output now checked)
+      - guarded zero-length memcpy in DL_DecryptorBase::Decrypt (UBSan hygiene)
 
 2026.5.2 - May 2026
       - patch release (security + conformance)

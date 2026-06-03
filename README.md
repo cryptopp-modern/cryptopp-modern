@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.5.2-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.6.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,17 +24,20 @@
 ---
 
 
-## What's New in 2026.5.2
+## What's New in 2026.6.0
+
+- **LMS/HSS stateful hash-based signatures** - Adds LMS single-tree (H5, H10 with W=8) and HSS hierarchical (L=2, L=3) signatures following NIST SP 800-208 and RFC 8554. New stateful signing API deliberately separate from `PK_Signer`. ASN.1 wiring uses RFC 8708 `id-alg-hss-lms-hashsig`.
+- **FileStateStore** - Durable file-backed `SignerStateStore` with write-ahead persistence, HMAC-SHA256 integrity, and fail-closed poisoning. Platform support for Win32, POSIX, and macOS `F_FULLFSYNC`.
+- **PQC Save/Load tests** - Round-trip test coverage for ML-KEM, ML-DSA, and SLH-DSA key encoding.
+- **Android x86 CI** - Build coverage added for Android `x86_64` and `x86` targets.
+- **Sanitizer CI fix** - `cryptest tv` output is now included in the checked sanitizer log so errors there are no longer hidden.
+- **Legacy compiler CI** - GCC 9-10 and Clang 11-14 lanes added.
+
+### Previously in 2026.5.2
 
 - **ASN.1 DERReencode depth cap** - Caps `DERReencode` recursion at 32 levels, matching OpenSSL's `ASN1_MAX_CONSTRUCTED_NEST`. Prevents stack exhaustion on crafted nested constructed indefinite BER input. Addresses upstream Crypto++ issue 1353.
 - **Ed25519 signature scalar canonicality** - Both the Donna verifier and the NaCl C API verifier now reject signatures where `S >= L`. Addresses the signature-scalar part of upstream Crypto++ issue 1352. Conformance fix, not a forgery.
 - **Ed25519 small-order public key rejection** - `ed25519PublicKey::Validate` rejects small-order public keys at validation level 2 or higher. Level 0 behaviour is unchanged.
-
-### Previously in 2026.5.1
-
-- **BLAKE3 correctness fix on AArch64** - Removed the fork-local NEON single-block compress that produced incorrect digests on Apple Silicon, ARM64 Linux, and Android arm64-v8a. AArch64 builds now use the portable path, matching the BLAKE3 reference. Stored hashes from affected versions should be recomputed.
-- **Android build fixes** - Restored the CMake staging step for `cpu-features.h` and replaced an AArch64-only intrinsic in BLAKE3's NEON code so `armeabi-v7a` builds compile.
-- **CI coverage extended** - Android build-only jobs, legacy GCC 9/10 and Clang 13/14 jobs, and `actions/checkout` bumped to v5.
 
 ---
 
