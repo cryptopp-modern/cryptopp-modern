@@ -26,6 +26,18 @@
 
 ### cryptopp-modern Releases
 
+**2026.6.0** (June 2026) - LMS/HSS Stateful Signatures (Minor)
+- Added LMS single-tree signatures (`LMS_SHA256_H5_W8`, `LMS_SHA256_H10_W8`) following NIST SP 800-208 and RFC 8554
+- Added HSS hierarchical signatures (`HSS_SHA256_H5_W8_L2`, `HSS_SHA256_H10_W8_L2`, `HSS_SHA256_H5_W8_L3`) with uniform parameter sets
+- Added stateful signing API: `PK_StatefulSigner`, `SignerStateStore`, `StateReservation`, `InsecureMemoryStateStore`, `FileStateStore`
+- Added `FileStateStore` durable backend (write-ahead persistence, HMAC-SHA256 integrity, fail-closed poisoning, Win32/POSIX/macOS `F_FULLFSYNC` flush)
+- Added ASN.1 wiring for RFC 8708 `id-alg-hss-lms-hashsig` (X.509 SubjectPublicKeyInfo, library-local PKCS#8)
+- Added Save/Load round-trip tests for ML-KEM, ML-DSA, SLH-DSA
+- Added Android `x86_64` and `x86` build coverage in CI
+- Added legacy compiler CI lanes (GCC 9-10, Clang 11-14)
+- Fixed sanitizer CI gap so `cryptest tv` output is included in the checked log
+- Guarded zero-length `memcpy` in `DL_DecryptorBase::Decrypt` for UBSan hygiene
+
 **2026.5.2** (May 2026) - Security and Conformance Patch
 - Capped `DERReencode` recursion depth at 32 levels (upstream Crypto++ issue 1353)
 - Rejected Ed25519 signatures where `S >= L` in both Donna and NaCl verifiers (upstream Crypto++ issue 1352, signature-scalar part)
@@ -180,6 +192,6 @@ This is a maintained fork to:
 
 ---
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-06-03
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.4.0
+**Current Version:** 2026.6.0
