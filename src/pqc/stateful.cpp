@@ -9,6 +9,7 @@
 #include <cryptopp/misc.h>
 
 #include <cstring>
+#include <limits>
 
 #ifdef _WIN32
 # ifndef WIN32_LEAN_AND_MEAN
@@ -92,11 +93,40 @@ static const size_t DEFAULT_HMAC_KEY_LEN = sizeof(DEFAULT_HMAC_KEY) - 1;
 
 #ifdef _WIN32
 
+// Convert a UTF-8 path to UTF-16 for the Win32 wide-char file APIs.
+// MB_ERR_INVALID_CHARS makes malformed UTF-8 a hard error rather than
+// silently substituting replacement characters into the resolved path.
+static std::wstring Utf8PathToWide(const std::string &path)
+{
+    if (path.empty()) return std::wstring();
+    // MultiByteToWideChar takes the input length as int; the static_cast
+    // below would truncate paths above INT_MAX.
+    if (path.size() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: path too long");
+    const int wlen = MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS,
+        path.c_str(), static_cast<int>(path.size()),
+        NULLPTR, 0);
+    if (wlen <= 0)
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: invalid UTF-8 in path: " + path);
+    std::wstring wide(static_cast<size_t>(wlen), L'\0');
+    const int converted = MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS,
+        path.c_str(), static_cast<int>(path.size()),
+        &wide[0], wlen);
+    if (converted != wlen)
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: UTF-8 conversion failed for path: " + path);
+    return wide;
+}
+
 static void* PlatformCreateExclusive(const std::string &path)
 {
+    const std::wstring wpath = Utf8PathToWide(path);
     HANDLE h = CreateFileW(
-        // Convert narrow to wide (ASCII paths only for v1)
-        std::wstring(path.begin(), path.end()).c_str(),
+        wpath.c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0,  // no sharing
         NULLPTR,
@@ -111,8 +141,9 @@ static void* PlatformCreateExclusive(const std::string &path)
 
 static void* PlatformOpenExisting(const std::string &path)
 {
+    const std::wstring wpath = Utf8PathToWide(path);
     HANDLE h = CreateFileW(
-        std::wstring(path.begin(), path.end()).c_str(),
+        wpath.c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULLPTR,

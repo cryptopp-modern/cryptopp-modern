@@ -25,6 +25,7 @@
 #include <cstdio>
 #include <map>
 #include <utility>
+#include <limits>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
@@ -3599,24 +3600,97 @@ bool ValidateHSS()
 
 // ******************** FileStateStore Validation ************************* //
 
-// Helper: remove a test file if it exists
+// Test helpers below mirror FileStateStore's CreateFileW path handling so non-ASCII test paths resolve to the same file.
+
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
+# endif
+# include <windows.h>
+
+static std::wstring TestUtf8PathToWide(const std::string &path)
+{
+	if (path.empty()) return std::wstring();
+	if (path.size() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+		throw Exception(Exception::IO_ERROR,
+			"test helper: path too long");
+	const int wlen = MultiByteToWideChar(
+		CP_UTF8, MB_ERR_INVALID_CHARS,
+		path.c_str(), static_cast<int>(path.size()),
+		nullptr, 0);
+	if (wlen <= 0)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: invalid UTF-8 in path: " + path);
+	std::wstring wide(static_cast<size_t>(wlen), L'\0');
+	MultiByteToWideChar(
+		CP_UTF8, MB_ERR_INVALID_CHARS,
+		path.c_str(), static_cast<int>(path.size()),
+		&wide[0], wlen);
+	return wide;
+}
+#endif
+
+// Remove a test file if it exists. Best-effort, mirroring POSIX
+// std::remove semantics (failure to delete a non-existent file is fine).
 static void RemoveTestFile(const std::string &path)
 {
+#ifdef _WIN32
+	try {
+		const std::wstring wpath = TestUtf8PathToWide(path);
+		if (!wpath.empty()) DeleteFileW(wpath.c_str());
+	}
+	catch (const Exception&) {
+		// Cleanup is best-effort; swallow conversion errors.
+	}
+#else
 	std::remove(path.c_str());
+#endif
 }
 
-// Helper: write raw bytes to a file (for corruption tests)
+// Write raw bytes to a file (for corruption tests). Throws on any failure
+// so a broken setup does not silently mask the test it is preparing.
 static void WriteRawFile(const std::string &path, const byte *data, size_t len)
 {
+#ifdef _WIN32
+	const std::wstring wpath = TestUtf8PathToWide(path);
+	HANDLE h = CreateFileW(wpath.c_str(), GENERIC_WRITE, 0, nullptr,
+	                       CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (h == INVALID_HANDLE_VALUE)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: CreateFileW failed for write: " + path);
+	DWORD written = 0;
+	BOOL ok = WriteFile(h, data, static_cast<DWORD>(len), &written, nullptr);
+	CloseHandle(h);
+	if (!ok || written != static_cast<DWORD>(len))
+		throw Exception(Exception::IO_ERROR,
+			"test helper: WriteFile failed: " + path);
+#else
 	std::ofstream f(path, std::ios::binary | std::ios::trunc);
 	f.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+#endif
 }
 
-// Helper: read raw bytes from a file
+// Read raw bytes from a file. Throws on any failure so a broken read
+// does not leave the caller's buffer holding stale data.
 static void ReadRawFile(const std::string &path, byte *data, size_t len)
 {
+#ifdef _WIN32
+	const std::wstring wpath = TestUtf8PathToWide(path);
+	HANDLE h = CreateFileW(wpath.c_str(), GENERIC_READ, 0, nullptr,
+	                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (h == INVALID_HANDLE_VALUE)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: CreateFileW failed for read: " + path);
+	DWORD bytesRead = 0;
+	BOOL ok = ReadFile(h, data, static_cast<DWORD>(len), &bytesRead, nullptr);
+	CloseHandle(h);
+	if (!ok || bytesRead != static_cast<DWORD>(len))
+		throw Exception(Exception::IO_ERROR,
+			"test helper: ReadFile failed: " + path);
+#else
 	std::ifstream f(path, std::ios::binary);
 	f.read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(len));
+#endif
 }
 
 static bool TestFileStoreCreateAndOpen()
@@ -4476,6 +4550,62 @@ static bool TestFileStoreInProcessRollback()
 }
 #endif  // !_WIN32
 
+static bool TestFileStoreNonAsciiPath()
+{
+	const char* name = "FileStateStore";
+	// UTF-8 encoded path: "test_filestore_café_状態.state"
+	//   café  -> caf + 0xC3 0xA9   (U+00E9, Latin small letter e with acute)
+	//   状    -> 0xE7 0x8A 0xB6    (U+72B6)
+	//   態    -> 0xE6 0x85 0x8B    (U+614B)
+	const std::string path =
+		"test_filestore_caf\xC3\xA9_\xE7\x8A\xB6\xE6\x85\x8B.state";
+	RemoveTestFile(path);
+
+	try {
+		{
+			FileStateStore store = FileStateStore::Create(path, 100);
+			for (int i = 0; i < 3; i++) {
+				StateReservation r = store.ReserveNext();
+				if (r.LeafIndex() != static_cast<uint64_t>(i)) {
+					std::cout << "FAILED:  " << name
+					          << " non-ASCII path reserve index " << i << std::endl;
+					RemoveTestFile(path);
+					return false;
+				}
+				store.CommitReservation(r);
+			}
+		}
+
+		{
+			FileStateStore store = FileStateStore::Open(path, 100);
+			if (store.RemainingSignatures() != 97) {
+				std::cout << "FAILED:  " << name
+				          << " non-ASCII path reopen remaining != 97" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+			StateReservation r = store.ReserveNext();
+			if (r.LeafIndex() != 3) {
+				std::cout << "FAILED:  " << name
+				          << " non-ASCII path reopen next index != 3" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+		          << " non-ASCII (UTF-8) path round-trip" << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name
+		          << " non-ASCII path - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
 bool ValidateFileStateStore()
 {
 	std::cout << "\nFileStateStore validation suite running...\n\n";
@@ -4489,6 +4619,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStorePoisonedState() && pass;
 	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
 	pass = TestFileStorePoisonedStateContract() && pass;
+	pass = TestFileStoreNonAsciiPath() && pass;
 #ifndef _WIN32
 	pass = TestFileStoreInProcessRollback() && pass;
 #endif
