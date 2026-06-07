@@ -1182,6 +1182,69 @@ static bool TestLMSSignVerify(const char* name)
 	}
 }
 
+// Cross-key negative: a signature produced under key A must be rejected
+// by a verifier holding key B's public key.
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSCrossKeyNegative(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privA;
+		privA.GenerateRandom(rng, g_nullNameValuePairs);
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubA;
+		privA.MakePublicKey(pubA);
+
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privB;
+		privB.GenerateRandom(rng, g_nullNameValuePairs);
+		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubB;
+		privB.MakePublicKey(pubB);
+
+		InsecureMemoryStateStore storeA(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signerA(privA, storeA);
+
+		const std::string message = "Cross-key negative test message";
+		SecByteBlock signature(signerA.SignatureLength());
+		signerA.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifierB(
+			pubB.GetPublicKeyBytePtr(), pubB.GetPublicKeyByteLength());
+		bool accepted = verifierB.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (accepted) {
+			std::cout << "FAILED:  " << name
+			          << " cross-key: signature from key A accepted by key B verifier"
+			          << std::endl;
+			return false;
+		}
+
+		// Sanity: correct key must still accept (guards against false-pass).
+		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifierA(
+			pubA.GetPublicKeyBytePtr(), pubA.GetPublicKeyByteLength());
+		bool acceptedSelf = verifierA.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!acceptedSelf) {
+			std::cout << "FAILED:  " << name
+			          << " cross-key: self-verification rejected (test setup broken)"
+			          << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " cross-key negative" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " cross-key - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 template <class LMS_PARAMS, class OTS_PARAMS>
 static bool TestLMSMultipleSignatures(const char* name)
 {
@@ -2276,6 +2339,8 @@ bool ValidateLMS()
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSCrossKeyNegative<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
 	// LMS-SHA256-M32-H10 / LMOTS-SHA256-N32-W8
 	pass = TestLMSKeyGen<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
@@ -2399,6 +2464,68 @@ static bool TestHSSSignVerify(const char* name)
 	}
 	catch (const Exception& e) {
 		std::cout << "FAILED:  " << name << " sign/verify - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// HSS cross-key negative; see the LMS test above for rationale.
+template <class HSS_PARAMS>
+static bool TestHSSCrossKeyNegative(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		HSSPrivateKey<HSS_PARAMS> privA;
+		privA.GenerateRandom(rng, g_nullNameValuePairs);
+		HSSPublicKey<HSS_PARAMS> pubA;
+		privA.MakePublicKey(pubA);
+
+		HSSPrivateKey<HSS_PARAMS> privB;
+		privB.GenerateRandom(rng, g_nullNameValuePairs);
+		HSSPublicKey<HSS_PARAMS> pubB;
+		privB.MakePublicKey(pubB);
+
+		InsecureMemoryStateStore storeA(HSS_PARAMS::TotalSignatures());
+		HSSSigner<HSS_PARAMS> signerA(privA, storeA);
+
+		const std::string message = "Cross-key negative test message";
+		SecByteBlock signature(signerA.SignatureLength());
+		signerA.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin());
+
+		HSSVerifier<HSS_PARAMS> verifierB(
+			pubB.GetPublicKeyBytePtr(), pubB.GetPublicKeyByteLength());
+		bool accepted = verifierB.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (accepted) {
+			std::cout << "FAILED:  " << name
+			          << " cross-key: signature from key A accepted by key B verifier"
+			          << std::endl;
+			return false;
+		}
+
+		// Sanity: correct key must still accept
+		HSSVerifier<HSS_PARAMS> verifierA(
+			pubA.GetPublicKeyBytePtr(), pubA.GetPublicKeyByteLength());
+		bool acceptedSelf = verifierA.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			signature.begin(), signature.size());
+
+		if (!acceptedSelf) {
+			std::cout << "FAILED:  " << name
+			          << " cross-key: self-verification rejected (test setup broken)"
+			          << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " cross-key negative" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " cross-key - " << e.what() << std::endl;
 		return false;
 	}
 }
@@ -3578,6 +3705,8 @@ bool ValidateHSS()
 		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestHSSRFCAppendixFTC1() && pass;
 	pass = TestHSSMalformedSignatures() && pass;
+	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
 	// HSS-specific: subtree boundary, reconstruction, exhaustion
 	pass = TestHSSSubtreeBoundary() && pass;
