@@ -3496,6 +3496,71 @@ static bool TestHSSL3SafeFailure()
 	}
 }
 
+static bool TestHSSL4SignVerify()
+{
+	// Smoke test that L=4 compiles, signs, and verifies. Exercises the
+	// LEVELS <= 4 ceiling enforced by static_assert in HSS_Params.
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L4_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		if (!pubKey.Validate(NullRNG(), 0)) {
+			std::cout << "FAILED:  " << name << " public key validation" << std::endl;
+			return false;
+		}
+
+		if (pubKey.GetL() != 4) {
+			std::cout << "FAILED:  " << name << " L != 4" << std::endl;
+			return false;
+		}
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		std::string msg = "L=4 HSS test message";
+		SecByteBlock sig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(msg.data()), msg.size(),
+			sig.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(msg.data()), msg.size(),
+			sig.begin(), sig.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " signature rejected" << std::endl;
+			return false;
+		}
+
+		std::string bad = "L=4 HSS test messagX";
+		bool badAccepted = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(bad.data()), bad.size(),
+			sig.begin(), sig.size());
+
+		if (badAccepted) {
+			std::cout << "FAILED:  " << name << " modified message accepted" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " sign/verify" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " sign/verify - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
@@ -3525,6 +3590,9 @@ bool ValidateHSS()
 	pass = TestHSSL3SubtreeBoundary() && pass;
 	pass = TestHSSL3Reconstruction() && pass;
 	pass = TestHSSL3SafeFailure() && pass;
+
+	// HSS L=4 smoke test (exercises the LEVELS <= 4 ceiling)
+	pass = TestHSSL4SignVerify() && pass;
 
 	return pass;
 }
