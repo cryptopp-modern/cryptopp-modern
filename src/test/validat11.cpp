@@ -3689,6 +3689,146 @@ static bool TestHSSL4SignVerify()
 	}
 }
 
+static bool TestHSSL4MiddleBoundary()
+{
+	// L=4 H5: layer-2 -> layer-1 cursor advance at sig 1025.
+	// Signs 1025 messages so the 1025th forces a layer-1 advance
+	// (layer-2 subtree 0 is exhausted after 1024 sigs).
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L4_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock sig(signer.SignatureLength());
+
+		for (unsigned int i = 0; i < 1025; i++)
+		{
+			std::string msg = "L4 middle boundary msg " + std::to_string(i);
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin());
+
+			bool valid = verifier.VerifyMessage(
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				sig.begin(), sig.size());
+
+			if (!valid) {
+				std::cout << "FAILED:  " << name
+					<< " middle boundary - sig " << i << " rejected" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " layer-2 boundary (1025 sigs)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " middle boundary - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSL4MalformedSignatures()
+{
+	// L=4-specific: tamper sig_2 and pubkey_2 (positions only present at L>=4).
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L4_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		std::string message = "L=4 malformed signature test";
+		SecByteBlock validSig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin(), validSig.size());
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid sig rejected (sanity)" << std::endl;
+			return false;
+		}
+
+		// L=4 sig layout: Nspk (4) + 3 * (intermediate_sig + intermediate_pubkey) + final_sig.
+		// sig_0 (root -> L1)  at offset 4
+		// pubkey_1            at offset 4 + lmsSigSize
+		// sig_1 (L1  -> L2)   at offset 4 + lmsSigSize + lmsPubSize
+		// pubkey_2            at offset 4 + 2*lmsSigSize + lmsPubSize   <-- layer-2 pubkey
+		// sig_2 (L2  -> L3)   at offset 4 + 2*lmsSigSize + 2*lmsPubSize <-- depth-3 intermediate sig
+		// pubkey_3            at offset 4 + 3*lmsSigSize + 2*lmsPubSize
+		// final sig (L3 -> M) at offset 4 + 3*lmsSigSize + 3*lmsPubSize
+		const size_t lmsSigSize = Params::LMSSignatureSize();
+		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		unsigned int rejected = 0;
+
+		// Tamper depth-3 intermediate sig (sig_2)
+		{
+			SecByteBlock bad(validSig);
+			size_t sig2Offset = 4 + 2 * lmsSigSize + 2 * lmsPubSize;
+			bad[sig2Offset + lmsSigSize / 2] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name
+					<< " depth-3 intermediate sig tamper accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// Tamper layer-2 pubkey (pubkey_2) LMS type byte
+		{
+			SecByteBlock bad(validSig);
+			size_t pub2Offset = 4 + 2 * lmsSigSize + lmsPubSize;
+			bad[pub2Offset] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name
+					<< " layer-2 pubkey tamper accepted" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " L=4 malformed signature rejection (" << rejected << " cases)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " L=4 malformed - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
@@ -3721,8 +3861,12 @@ bool ValidateHSS()
 	pass = TestHSSL3Reconstruction() && pass;
 	pass = TestHSSL3SafeFailure() && pass;
 
-	// HSS L=4 smoke test (exercises the LEVELS <= 4 ceiling)
+	// HSS L=4 operational coverage
 	pass = TestHSSL4SignVerify() && pass;
+	pass = TestHSSL4MiddleBoundary() && pass;
+	pass = TestHSSL4MalformedSignatures() && pass;
+	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L4_Params>(
+		"HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
 	return pass;
 }
