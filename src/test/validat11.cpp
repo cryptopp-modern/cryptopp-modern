@@ -3266,6 +3266,48 @@ static bool TestHSSMalformedSignatures()
 			}
 		}
 
+		// 9. Tampered C nonce in final LMS signature
+		{
+			SecByteBlock bad(validSig);
+			size_t finalOffset = 4 + lmsSigSize + lmsPubSize;
+			size_t cOffset = finalOffset + 4 + 4;
+			bad[cOffset + 16] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " tampered C nonce accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// 10. Embedded pubkey_1 substituted with a structurally valid pubkey from a different HSS key
+		{
+			HSSPrivateKey<Params> otherPriv;
+			otherPriv.GenerateRandom(rng, g_nullNameValuePairs);
+			InsecureMemoryStateStore otherStore(Params::TotalSignatures());
+			HSSSigner<Params> otherSigner(otherPriv, otherStore);
+			SecByteBlock otherSig(otherSigner.SignatureLength());
+			otherSigner.SignMessage(rng,
+				reinterpret_cast<const byte*>(message.data()), message.size(),
+				otherSig.begin());
+
+			SecByteBlock bad(validSig);
+			size_t pubOffset = 4 + lmsSigSize;
+			for (size_t i = 0; i < lmsPubSize; i++)
+				bad[pubOffset + i] = otherSig[pubOffset + i];
+
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name << " substituted pubkey_1 accepted" << std::endl;
+				return false;
+			}
+		}
+
 		std::cout << "passed:  " << name << " malformed signature rejection (" << rejected << " cases)" << std::endl;
 		return true;
 	}
@@ -3624,6 +3666,92 @@ static bool TestHSSL3SafeFailure()
 	}
 }
 
+static bool TestHSSL3MalformedSignatures()
+{
+	// L=3-specific: tamper sig_1 and pubkey_2 (positions only present at L>=3).
+	AutoSeededRandomPool rng;
+	const char* name = "HSS[3]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8";
+
+	try {
+		typedef HSS_SHA256_H5_W8_L3_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		std::string message = "L=3 malformed signature test";
+		SecByteBlock validSig(signer.SignatureLength());
+		signer.SignMessage(rng,
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(message.data()), message.size(),
+			validSig.begin(), validSig.size());
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " valid sig rejected (sanity)" << std::endl;
+			return false;
+		}
+
+		// L=3 sig layout: Nspk (4) + 2 * (intermediate_sig + intermediate_pubkey) + final_sig.
+		// sig_0 (root -> L1)  at offset 4
+		// pubkey_1            at offset 4 + lmsSigSize
+		// sig_1 (L1 -> L2)    at offset 4 + lmsSigSize + lmsPubSize     <-- middle intermediate sig
+		// pubkey_2            at offset 4 + 2*lmsSigSize + lmsPubSize   <-- layer-2 pubkey
+		// final sig (L2 -> M) at offset 4 + 2*lmsSigSize + 2*lmsPubSize
+		const size_t lmsSigSize = Params::LMSSignatureSize();
+		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		unsigned int rejected = 0;
+
+		// Tamper middle intermediate sig (sig_1)
+		{
+			SecByteBlock bad(validSig);
+			size_t sig1Offset = 4 + lmsSigSize + lmsPubSize;
+			bad[sig1Offset + lmsSigSize / 2] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name
+					<< " middle intermediate sig tamper accepted" << std::endl;
+				return false;
+			}
+		}
+
+		// Tamper layer-2 pubkey (pubkey_2) LMS type byte
+		{
+			SecByteBlock bad(validSig);
+			size_t pub2Offset = 4 + 2 * lmsSigSize + lmsPubSize;
+			bad[pub2Offset] ^= 0x01;
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(message.data()), message.size(),
+					bad.begin(), bad.size()))
+				rejected++;
+			else {
+				std::cout << "FAILED:  " << name
+					<< " layer-2 pubkey tamper accepted" << std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " L=3 malformed signature rejection (" << rejected << " cases)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " L=3 malformed - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 static bool TestHSSL4SignVerify()
 {
 	// Smoke test that L=4 compiles, signs, and verifies. Exercises the
@@ -3860,6 +3988,7 @@ bool ValidateHSS()
 	pass = TestHSSL3SubtreeBoundary() && pass;
 	pass = TestHSSL3Reconstruction() && pass;
 	pass = TestHSSL3SafeFailure() && pass;
+	pass = TestHSSL3MalformedSignatures() && pass;
 
 	// HSS L=4 operational coverage
 	pass = TestHSSL4SignVerify() && pass;
