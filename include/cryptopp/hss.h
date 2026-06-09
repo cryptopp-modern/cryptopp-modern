@@ -3,14 +3,9 @@
 
 /// \file hss.h
 /// \brief HSS hierarchical stateful hash-based signature scheme (RFC 8554)
-/// \details HSS stacks multiple LMS trees in a hierarchy. A root tree
-///  signs child tree public keys, and the bottom-level tree signs messages.
-///  This dramatically increases signing capacity compared to single-tree LMS.
-///  HSS requires L >= 2. For single-tree signatures, use LMS directly.
-///  The signer uses PK_StatefulSigner (not PK_Signer) to make
-///  the stateful nature explicit. The verifier uses the conventional
-///  PK_Verifier interface. The SignerStateStore tracks a single global
-///  signature counter; the signer decomposes it into per-level indices.
+/// \details HSS stacks LMS trees in a hierarchy. Parent trees sign child
+///  public keys; the bottom tree signs messages. Signing state is tracked
+///  by SignerStateStore and exposed through PK_StatefulSigner.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-6">RFC 8554 Section 6</A>,
 ///  <A HREF="https://csrc.nist.gov/pubs/sp/800/208/final">NIST SP 800-208</A>
 /// \since cryptopp-modern 2026.6.0
@@ -31,6 +26,31 @@
 #include <vector>
 
 NAMESPACE_BEGIN(CryptoPP)
+
+// ******************** HSS Capacity ************************* //
+
+namespace HSS_Internal {
+
+// C++11 compile-time Base^N helper with overflow detection.
+template <uint64_t Base, unsigned int N>
+struct HSSCapacity
+{
+    static const bool fits =
+        HSSCapacity<Base, N - 1>::fits &&
+        HSSCapacity<Base, N - 1>::value <= UINT64_MAX / Base;
+
+    static const uint64_t value =
+        HSSCapacity<Base, N - 1>::value * Base;
+};
+
+template <uint64_t Base>
+struct HSSCapacity<Base, 0>
+{
+    static const bool fits = true;
+    static const uint64_t value = 1;
+};
+
+} // namespace HSS_Internal
 
 // ******************** HSS Parameter Sets ************************* //
 
@@ -55,14 +75,7 @@ struct HSS_Params
     /// \brief Check if total capacity fits in uint64_t
     static constexpr bool CapacityFitsUint64()
     {
-        uint64_t cap = 1;
-        for (unsigned int i = 0; i < LEVELS; i++)
-        {
-            if (cap > UINT64_MAX / static_cast<uint64_t>(LEAVES_PER_LEVEL))
-                return false;
-            cap *= static_cast<uint64_t>(LEAVES_PER_LEVEL);
-        }
-        return true;
+        return HSS_Internal::HSSCapacity<LEAVES_PER_LEVEL, LEVELS>::fits;
     }
 
     static_assert(CapacityFitsUint64(), "HSS capacity exceeds uint64_t");
@@ -70,10 +83,7 @@ struct HSS_Params
     /// \brief Total signing capacity
     static constexpr uint64_t TotalSignatures()
     {
-        uint64_t total = 1;
-        for (unsigned int i = 0; i < LEVELS; i++)
-            total *= static_cast<uint64_t>(LEAVES_PER_LEVEL);
-        return total;
+        return HSS_Internal::HSSCapacity<LEAVES_PER_LEVEL, LEVELS>::value;
     }
 
     /// \brief LMS signature size for one level
@@ -117,8 +127,7 @@ struct HSS_Params
 // ******************** HSS Message Accumulator ************************* //
 
 /// \brief HSS message accumulator
-/// \details Buffers the entire message. First bytes reserved for signature
-///  during verification.
+/// \details Stores the signature prefix and message bytes for verification.
 template <class HSS_PARAMS>
 struct HSS_MessageAccumulator : public PK_MessageAccumulator
 {
@@ -155,12 +164,9 @@ protected:
 
 // ******************** HSS Public Key ************************* //
 
-/// \brief HSS public key (verification key)
+/// \brief HSS public key
 /// \tparam HSS_PARAMS HSS parameter set
-/// \details The HSS public key contains L (number of levels) followed
-///  by the root LMS public key.
-/// \details Validate() checks L matches the template, and performs full
-///  structural validation of the embedded root LMS public key.
+/// \details Contains L followed by the root LMS public key.
 template <class HSS_PARAMS>
 class HSSPublicKey : public PublicKey
 {
@@ -206,11 +212,8 @@ private:
 
 /// \brief HSS private key material
 /// \tparam HSS_PARAMS HSS parameter set
-/// \details Contains only root immutable key material (seed + identifier).
-///  Child keys are derived deterministically at runtime.
-///  Signing progress lives in the SignerStateStore, not in the key.
-///  Serialising and deserialising a private key does not restore signing
-///  capability; a valid state store is required.
+/// \details Contains root seed and identifier material. Child keys are
+///  derived as needed. Signing progress is held by SignerStateStore.
 template <class HSS_PARAMS>
 class HSSPrivateKey : public PrivateKey
 {
@@ -237,8 +240,6 @@ public:
     const byte* GetIdentifierBytePtr() const { return m_I.begin(); }
 
     /// \brief Compute the HSS public key
-    /// \details Computes the root LMS Merkle tree to derive T[1],
-    ///  then assembles L + root LMS public key.
     void MakePublicKey(HSSPublicKey<HSS_PARAMS> &pub) const;
 
     /// \brief Library PKCS#8 wrapping
@@ -256,12 +257,10 @@ private:
 
 // ******************** HSS Verifier ************************* //
 
-/// \brief HSS signature verifier (stateless)
+/// \brief HSS signature verifier
 /// \tparam HSS_PARAMS HSS parameter set
-/// \details Verification is a strict bounded chain walk: parse Nspk,
-///  verify each intermediate signed public key, then verify the final
-///  message signature. Rejects truncation, trailing garbage, and
-///  mismatched type IDs.
+/// \details Verifies the signed public-key chain and final message
+///  signature. Rejects truncation, trailing data, and mismatched type IDs.
 template <class HSS_PARAMS>
 class HSSVerifier : public PK_Verifier
 {
@@ -329,9 +328,8 @@ protected:
 /// \brief HSS stateful signature signer
 /// \tparam HSS_PARAMS HSS parameter set
 /// \details Each signature consumes one global signing index. The signer
-///  decomposes it into per-level LMS leaf indices and manages subtree
-///  chain regeneration internally. Caches are built lazily on first
-///  SignMessage(). Not thread-safe.
+///  derives per-level LMS indices from that value and rebuilds subtree
+///  state as needed. Not thread-safe.
 template <class HSS_PARAMS>
 class HSSSigner : public PK_StatefulSigner
 {
@@ -344,8 +342,7 @@ public:
     virtual ~HSSSigner() = default;
 
     /// \brief Construct signer bound to a private key and state store
-    /// \details The store's total capacity must equal
-    ///  HSS_PARAMS::TotalSignatures(). Caches are built lazily.
+    /// \details The store capacity must match HSS_PARAMS::TotalSignatures().
     HSSSigner(const PrivateKeyType &key, SignerStateStore &store);
 
     // Non-copyable
@@ -362,11 +359,9 @@ public:
     bool IsExhausted() const override { return m_store.IsExhausted(); }
     uint64_t RemainingSignatures() const override { return m_store.RemainingSignatures(); }
 
-    /// \brief Sign a message (not thread-safe)
-    /// \details Consumes one global signing index. Internally manages
-    ///  subtree chain regeneration when crossing subtree boundaries.
-    ///  All parent leaf consumption during regeneration is part of the
-    ///  reserved capability. Failure after reservation burns the index.
+    /// \brief Sign a message
+    /// \details Consumes one global signing index. A failure after
+    ///  reservation burns that index.
     void SignMessage(
         RandomNumberGenerator &rng,
         const byte *message, size_t messageLen,
