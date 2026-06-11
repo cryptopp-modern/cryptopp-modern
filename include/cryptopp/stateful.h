@@ -6,9 +6,8 @@
 /// \details Stateful hash-based signature schemes such as LMS/HSS and
 ///  XMSS/XMSSMT differ from stateless schemes in that each signature
 ///  consumes signer state. Index reuse breaks security.
-/// \details This header provides the framework abstractions for stateful
-///  signing: PK_StatefulSigner (the signer interface), SignerStateStore
-///  (the persistence backend), and StateReservation (the capability token).
+/// \details Defines the signer interface, persistence backend contract,
+///  and reservation token used by stateful signing schemes.
 /// \details PK_StatefulSigner is intentionally NOT a subtype of PK_Signer.
 ///  Stateful signers must not be silently substitutable for stateless signers.
 /// \sa <A HREF="https://csrc.nist.gov/pubs/sp/800/208/final">NIST SP 800-208</A>
@@ -71,8 +70,7 @@ public:
     /// \details For single-tree schemes (LMS) this is a leaf index.
     ///  For hierarchical schemes (HSS) this is a global signing index
     ///  that the signer decomposes into per-level leaf indices.
-    ///  The signer should treat this as the sole source of truth for
-    ///  which signing capability was reserved.
+    ///  The signer should use this value as the reserved signing index.
     uint64_t LeafIndex() const { return m_leafIndex; }
 
     /// \brief Move constructor
@@ -102,9 +100,10 @@ public:
     StateReservation(const StateReservation &) = delete;
     StateReservation &operator=(const StateReservation &) = delete;
 
-    /// \brief Check if this reservation has been moved from
-    /// \details Returns false after move. This is a debug aid,
-    ///  not a security boundary.
+    /// \brief Check whether this reservation still represents a valid claim
+    /// \details Returns false after move. Backends must reject invalid
+    ///  reservations passed to CommitReservation() or AbortReservation()
+    ///  with SignerStateIntegrityFailure.
     bool IsValid() const { return m_valid; }
 
 private:
@@ -156,35 +155,39 @@ public:
 
     /// \brief Durably commit a reservation after successful signing
     /// \param reservation the reservation to commit
-    /// \details Must be idempotent: a second commit of the same
+    /// \details Must be idempotent: a second commit of the same valid
     ///  reservation must succeed without advancing state.
+    /// \throw SignerStateIntegrityFailure if the reservation is invalid
     virtual void CommitReservation(const StateReservation &reservation) = 0;
 
     /// \brief Abort a reservation
     /// \param reservation the reservation to abort
     /// \details The reserved index is burned and must not be made
     ///  available for reuse. Abort does not cancel consumption.
+    /// \throw SignerStateIntegrityFailure if the reservation is invalid
     virtual void AbortReservation(const StateReservation &reservation) = 0;
 
     /// \brief Check if signing capacity is exhausted
     /// \return true if no signing indices remain
     virtual bool IsExhausted() const = 0;
 
-    /// \brief Advisory health check
-    /// \return false if the backend detects rollback, corruption,
-    ///  or inconsistency
-    /// \details IsHealthy() is advisory. ReserveNext() is
-    ///  authoritative. A backend can be healthy at one instant and
-    ///  fail on the next ReserveNext() call. Use this for monitoring
-    ///  and pre-flight checks, not as a safety gate.
+    /// \brief Verify backend integrity
+    /// \return true if the backend is healthy
+    /// \throw SignerStateIntegrityFailure if integrity cannot be trusted;
+    ///  the backend enters a poisoned state and subsequent ReserveNext()
+    ///  and IsHealthy() calls also throw
+    /// \details This is not a passive boolean probe. Implementations
+    ///  must signal detected rollback, corruption, or inconsistency by
+    ///  throwing, not by returning false.
     virtual bool IsHealthy() const = 0;
 
     /// \brief Returns the current view of remaining signing capacity
     /// \return number of remaining signatures
-    /// \details Never overcounts. May undercount if indices have been
-    ///  burned by aborted reservations or if the backend's view is not
-    ///  perfectly current. Callers should treat this as a planning
-    ///  signal, not an absolute guarantee.
+    /// \details Implementations must never overcount. Undercounting is
+    ///  acceptable when indices have been burned by aborted reservations
+    ///  or when the backend cannot safely determine exact capacity.
+    ///  Callers should treat this as a planning signal, not an absolute
+    ///  guarantee.
     virtual uint64_t RemainingSignatures() const = 0;
 };
 
@@ -217,8 +220,11 @@ public:
 
     /// \brief Returns the current view of remaining signing capacity
     /// \return number of remaining signatures
-    /// \details Never overcounts. May undercount. Callers should treat
-    ///  this as a planning signal, not an absolute guarantee.
+    /// \details Implementations must never overcount. Undercounting is
+    ///  acceptable when indices have been burned by aborted reservations
+    ///  or when the backend cannot safely determine exact capacity.
+    ///  Callers should treat this as a planning signal, not an absolute
+    ///  guarantee.
     virtual uint64_t RemainingSignatures() const = 0;
 
     /// \brief Sign a message
@@ -330,14 +336,16 @@ public:
     /// \throw SignerStateIntegrityFailure if the store is poisoned
     StateReservation ReserveNext() override;
 
-    /// \brief No-op. State was already advanced on reserve.
-    /// \details Exists to satisfy the SignerStateStore interface.
-    ///  For write-ahead stores, commit does not control durability.
+    /// \brief Validate and commit a reservation
+    /// \details State was already advanced on reserve, so valid commits do
+    ///  not perform additional persistence work.
+    /// \throw SignerStateIntegrityFailure if the reservation is invalid
     void CommitReservation(const StateReservation &reservation) override;
 
-    /// \brief No-op. State was already advanced on reserve. Index is burned.
-    /// \details Exists to satisfy the SignerStateStore interface.
-    ///  For write-ahead stores, abort does not roll back state.
+    /// \brief Validate and burn a reservation
+    /// \details State was already advanced on reserve, so valid aborts do
+    ///  not roll back. The reserved index is burned and is not reused.
+    /// \throw SignerStateIntegrityFailure if the reservation is invalid
     void AbortReservation(const StateReservation &reservation) override;
 
     bool IsExhausted() const override;

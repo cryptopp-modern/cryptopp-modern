@@ -38,16 +38,20 @@ StateReservation InsecureMemoryStateStore::ReserveNext()
 
 void InsecureMemoryStateStore::CommitReservation(const StateReservation &reservation)
 {
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            "InsecureMemoryStateStore: invalid state reservation");
+
     // In-memory store advances state on reserve, so commit is a no-op.
-    // Idempotent by definition: calling twice is harmless.
-    CRYPTOPP_UNUSED(reservation);
 }
 
 void InsecureMemoryStateStore::AbortReservation(const StateReservation &reservation)
 {
-    // Abort burns the index. In-memory store already advanced on reserve,
-    // so nothing to do. The index is gone.
-    CRYPTOPP_UNUSED(reservation);
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            "InsecureMemoryStateStore: invalid state reservation");
+
+    // Abort burns the index. State already advanced on reserve.
 }
 
 bool InsecureMemoryStateStore::IsExhausted() const
@@ -533,13 +537,19 @@ StateReservation FileStateStore::ReserveNext()
 
 void FileStateStore::CommitReservation(const StateReservation &reservation)
 {
-    CRYPTOPP_UNUSED(reservation);
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            "FileStateStore: invalid state reservation");
+
     // Write-ahead store: state already advanced on reserve.
 }
 
 void FileStateStore::AbortReservation(const StateReservation &reservation)
 {
-    CRYPTOPP_UNUSED(reservation);
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            "FileStateStore: invalid state reservation");
+
     // Write-ahead store: state already advanced on reserve. Index is burned.
 }
 

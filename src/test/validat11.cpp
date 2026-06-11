@@ -1448,6 +1448,50 @@ static bool TestLMSStoreContract()
 	}
 }
 
+static bool TestInsecureMemoryStoreInvalidReservation()
+{
+	const char* name = "InsecureMemoryStateStore invalid reservation";
+
+	try {
+		InsecureMemoryStateStore store(4);
+
+		StateReservation r = store.ReserveNext();
+		StateReservation moved(std::move(r));
+
+		bool commitThrew = false;
+		try {
+			store.CommitReservation(r);
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			commitThrew = true;
+		}
+
+		bool abortThrew = false;
+		try {
+			store.AbortReservation(r);
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			abortThrew = true;
+		}
+
+		if (!commitThrew || !abortThrew) {
+			std::cout << "FAILED:  " << name
+			          << " did not reject moved-from reservation" << std::endl;
+			return false;
+		}
+
+		// Sanity: moved-to reservation is still valid.
+		store.CommitReservation(moved);
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 template <class LMS_PARAMS, class OTS_PARAMS>
 static bool TestLMSSerialization(const char* name)
 {
@@ -2321,6 +2365,7 @@ bool ValidateLMS()
 
 	// Store contract tests
 	pass = TestLMSStoreContract() && pass;
+	pass = TestInsecureMemoryStoreInvalidReservation() && pass;
 
 	// NIST ACVP known-answer tests
 	pass = TestLMSKeyGenKAT() && pass;
@@ -4886,6 +4931,55 @@ static bool TestFileStorePoisonedStateContract()
 	}
 }
 
+static bool TestFileStoreInvalidReservation()
+{
+	const char* name = "FileStateStore invalid reservation";
+	const std::string path = "test_filestore_invalid_reservation.state";
+	RemoveTestFile(path);
+
+	try {
+		FileStateStore store = FileStateStore::Create(path, 4);
+
+		StateReservation r = store.ReserveNext();
+		StateReservation moved(std::move(r));
+
+		bool commitThrew = false;
+		try {
+			store.CommitReservation(r);
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			commitThrew = true;
+		}
+
+		bool abortThrew = false;
+		try {
+			store.AbortReservation(r);
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			abortThrew = true;
+		}
+
+		if (!commitThrew || !abortThrew) {
+			std::cout << "FAILED:  " << name
+			          << " did not reject moved-from reservation" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		// Sanity: moved-to reservation is still valid.
+		store.CommitReservation(moved);
+
+		std::cout << "passed:  " << name << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
 #ifndef _WIN32
 static bool TestFileStoreInProcessRollback()
 {
@@ -5021,6 +5115,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStorePoisonedState() && pass;
 	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
 	pass = TestFileStorePoisonedStateContract() && pass;
+	pass = TestFileStoreInvalidReservation() && pass;
 	pass = TestFileStoreNonAsciiPath() && pass;
 #ifndef _WIN32
 	pass = TestFileStoreInProcessRollback() && pass;
