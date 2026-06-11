@@ -1298,6 +1298,43 @@ static bool TestLMSMultipleSignatures(const char* name)
 	}
 }
 
+class FaultyOutOfRangeStore : public SignerStateStore
+{
+public:
+	explicit FaultyOutOfRangeStore(uint64_t outOfRangeIndex)
+		: m_outOfRangeIndex(outOfRangeIndex) {}
+
+	StateReservation ReserveNext() override
+	{
+		return MakeReservation(m_outOfRangeIndex);
+	}
+	void CommitReservation(const StateReservation &) override {}
+	void AbortReservation(const StateReservation &) override {}
+	bool IsExhausted() const override { return false; }
+	bool IsHealthy() const override { return true; }
+	uint64_t RemainingSignatures() const override { return 1; }
+
+private:
+	uint64_t m_outOfRangeIndex;
+};
+
+class FaultyInvalidReservationStore : public SignerStateStore
+{
+public:
+	StateReservation ReserveNext() override
+	{
+		StateReservation r = MakeReservation(0);
+		StateReservation throwaway(std::move(r));
+		CRYPTOPP_UNUSED(throwaway);
+		return r;  // moved-from, IsValid() == false
+	}
+	void CommitReservation(const StateReservation &) override {}
+	void AbortReservation(const StateReservation &) override {}
+	bool IsExhausted() const override { return false; }
+	bool IsHealthy() const override { return true; }
+	uint64_t RemainingSignatures() const override { return 1; }
+};
+
 static bool TestLMSExhaustion()
 {
 	AutoSeededRandomPool rng;
@@ -1367,6 +1404,82 @@ static bool TestLMSExhaustion()
 	}
 	catch (const Exception& e) {
 		std::cout << "FAILED:  " << name << " exhaustion - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSOutOfRangeReservation()
+{
+	const char* name = "LMS out-of-range reservation";
+	AutoSeededRandomPool rng;
+
+	try {
+		LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		FaultyOutOfRangeStore store(LMS_SHA256_M32_H5::TOTAL_LEAVES);
+		LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> signer(privKey, store);
+
+		SecByteBlock signature(signer.SignatureLength());
+		const byte msg[] = "out-of-range reservation test";
+
+		bool threw = false;
+		try {
+			signer.SignMessage(rng, msg, sizeof(msg), signature.begin());
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name
+			          << " did not throw on out-of-range index" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestLMSInvalidReservationFromStore()
+{
+	const char* name = "LMS invalid reservation from store";
+	AutoSeededRandomPool rng;
+
+	try {
+		LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		FaultyInvalidReservationStore store;
+		LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> signer(privKey, store);
+
+		SecByteBlock signature(signer.SignatureLength());
+		const byte msg[] = "invalid reservation test";
+
+		bool threw = false;
+		try {
+			signer.SignMessage(rng, msg, sizeof(msg), signature.begin());
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name
+			          << " did not throw on invalid reservation" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
 		return false;
 	}
 }
@@ -2397,6 +2510,8 @@ bool ValidateLMS()
 
 	// Exhaustion test (H5 = 32 signatures)
 	pass = TestLMSExhaustion() && pass;
+	pass = TestLMSOutOfRangeReservation() && pass;
+	pass = TestLMSInvalidReservationFromStore() && pass;
 
 	return pass;
 }
@@ -2905,6 +3020,86 @@ static bool TestHSSExhaustion()
 	}
 	catch (const Exception& e) {
 		std::cout << "FAILED:  " << name << " exhaustion - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSOutOfRangeReservation()
+{
+	const char* name = "HSS out-of-range reservation";
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		FaultyOutOfRangeStore store(Params::TotalSignatures());
+		HSSSigner<Params> signer(privKey, store);
+
+		SecByteBlock signature(signer.SignatureLength());
+		const byte msg[] = "out-of-range reservation test";
+
+		bool threw = false;
+		try {
+			signer.SignMessage(rng, msg, sizeof(msg), signature.begin());
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name
+			          << " did not throw on out-of-range index" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+static bool TestHSSInvalidReservationFromStore()
+{
+	const char* name = "HSS invalid reservation from store";
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef HSS_SHA256_H5_W8_L2_Params Params;
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		FaultyInvalidReservationStore store;
+		HSSSigner<Params> signer(privKey, store);
+
+		SecByteBlock signature(signer.SignatureLength());
+		const byte msg[] = "invalid reservation test";
+
+		bool threw = false;
+		try {
+			signer.SignMessage(rng, msg, sizeof(msg), signature.begin());
+		}
+		catch (const SignerStateIntegrityFailure&) {
+			threw = true;
+		}
+
+		if (!threw) {
+			std::cout << "FAILED:  " << name
+			          << " did not throw on invalid reservation" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
 		return false;
 	}
 }
@@ -4026,6 +4221,8 @@ bool ValidateHSS()
 	pass = TestHSSSignerReconstruction() && pass;
 	pass = TestHSSReconstructionAtBoundary() && pass;
 	pass = TestHSSExhaustion() && pass;
+	pass = TestHSSOutOfRangeReservation() && pass;
+	pass = TestHSSInvalidReservationFromStore() && pass;
 	pass = TestHSSSafeFailure() && pass;
 
 	// HSS L=3 selective tests (non-exhaustive)

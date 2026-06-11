@@ -833,9 +833,16 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
 
     // Reserve (authoritative safety boundary)
     StateReservation reservation = m_store->ReserveNext();
-    uint32_t q = static_cast<uint32_t>(reservation.LeafIndex());
 
-    CRYPTOPP_ASSERT(q < (1u << LMS_PARAMS::H));
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            AlgorithmName() + ": invalid state reservation");
+
+    if (reservation.LeafIndex() >= LMS_PARAMS::TOTAL_LEAVES)
+        throw SignerStateIntegrityFailure(
+            AlgorithmName() + ": state index out of range");
+
+    uint32_t q = static_cast<uint32_t>(reservation.LeafIndex());
 
     try
     {
@@ -1390,6 +1397,15 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
 
     // Reserve global signing index (authoritative safety boundary)
     StateReservation reservation = m_store.ReserveNext();
+
+    if (!reservation.IsValid())
+        throw SignerStateIntegrityFailure(
+            AlgorithmName() + ": invalid state reservation");
+
+    if (reservation.LeafIndex() >= HSS_PARAMS::TotalSignatures())
+        throw SignerStateIntegrityFailure(
+            AlgorithmName() + ": state index out of range");
+
     uint64_t globalIndex = reservation.LeafIndex();
 
     uint32_t perLevel[4];  // max 4 levels
