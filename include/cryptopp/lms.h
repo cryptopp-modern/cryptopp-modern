@@ -110,7 +110,7 @@ struct LMS_MessageAccumulator : public PK_MessageAccumulator
     }
 
     /// \brief Add data to the accumulator
-    void Update(const byte *msg, size_t len) {
+    void Update(const byte *msg, size_t len) override {
         if (len == 0) return;
         if (!msg)
             throw InvalidArgument("LMS: Update called with null pointer and non-zero length");
@@ -118,7 +118,7 @@ struct LMS_MessageAccumulator : public PK_MessageAccumulator
     }
 
     /// \brief Reset the accumulator
-    void Restart() {
+    void Restart() override {
         m_msg.clear();
         m_msg.reserve(RESERVE_SIZE);
         m_msg.resize(SIGNATURE_LENGTH);
@@ -161,13 +161,13 @@ struct LMSPublicKey : public PublicKey
     OID GetAlgorithmID() const { return ASN1::id_alg_hss_lms_hashsig(); }
 
     /// \brief Check this object for errors
-    bool Validate(RandomNumberGenerator &rng, unsigned int level) const;
+    bool Validate(RandomNumberGenerator &rng, unsigned int level) const override;
 
     /// \brief Get a named value
-    bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const;
+    bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const override;
 
     /// \brief Assign contents from another source
-    void AssignFrom(const NameValuePairs &source);
+    void AssignFrom(const NameValuePairs &source) override;
 
     /// \brief Set the public key from raw bytes
     /// \param pk pointer to public key data
@@ -198,10 +198,10 @@ struct LMSPublicKey : public PublicKey
     void BERDecode(BufferedTransformation &bt);
 
     /// \brief Save the key to a BufferedTransformation
-    void Save(BufferedTransformation &bt) const { DEREncode(bt); }
+    void Save(BufferedTransformation &bt) const override { DEREncode(bt); }
 
     /// \brief Load the key from a BufferedTransformation
-    void Load(BufferedTransformation &bt) { BERDecode(bt); }
+    void Load(BufferedTransformation &bt) override { BERDecode(bt); }
 
 private:
     SecByteBlock m_pk;
@@ -229,18 +229,18 @@ struct LMSPrivateKey : public PrivateKey
     OID GetAlgorithmID() const { return ASN1::id_alg_hss_lms_hashsig(); }
 
     /// \brief Check this object for errors
-    bool Validate(RandomNumberGenerator &rng, unsigned int level) const;
+    bool Validate(RandomNumberGenerator &rng, unsigned int level) const override;
 
     /// \brief Get a named value
-    bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const;
+    bool GetVoidValue(const char *name, const std::type_info &valueType, void *pValue) const override;
 
     /// \brief Assign contents from another source
-    void AssignFrom(const NameValuePairs &source);
+    void AssignFrom(const NameValuePairs &source) override;
 
     /// \brief Generate a random key pair
     /// \param rng a RandomNumberGenerator to produce keying material
     /// \param params additional initialization parameters (unused)
-    void GenerateRandom(RandomNumberGenerator &rng, const NameValuePairs &params);
+    void GenerateRandom(RandomNumberGenerator &rng, const NameValuePairs &params) override;
 
     /// \brief Set the private key from seed and identifier
     /// \param seed pointer to the secret seed (SEED_SIZE bytes)
@@ -276,10 +276,10 @@ struct LMSPrivateKey : public PrivateKey
     void BERDecode(BufferedTransformation &bt);
 
     /// \brief Save the key to a BufferedTransformation
-    void Save(BufferedTransformation &bt) const { DEREncode(bt); }
+    void Save(BufferedTransformation &bt) const override { DEREncode(bt); }
 
     /// \brief Load the key from a BufferedTransformation
-    void Load(BufferedTransformation &bt) { BERDecode(bt); }
+    void Load(BufferedTransformation &bt) override { BERDecode(bt); }
 
 private:
     SecByteBlock m_seed;    // SEED (n bytes)
@@ -315,43 +315,43 @@ struct LMSVerifier : public PK_Verifier
     LMSVerifier(const byte *publicKey, size_t len);
 
     /// \brief Get the algorithm name
-    std::string AlgorithmName() const {
+    std::string AlgorithmName() const override {
         return LMS_PARAMS::StaticAlgorithmName() + "/" + OTS_PARAMS::StaticAlgorithmName();
     }
 
     // PublicKeyAlgorithm interface
-    PublicKey& AccessPublicKey() { return m_key; }
-    const PublicKey& GetPublicKey() const { return m_key; }
+    PublicKey& AccessPublicKey() override { return m_key; }
+    const PublicKey& GetPublicKey() const override { return m_key; }
 
     // PK_SignatureScheme interface
-    size_t SignatureLength() const { return SIGNATURE_LENGTH; }
-    size_t MaxRecoverableLength() const { return 0; }
-    size_t MaxRecoverableLengthFromSignatureLength(size_t signatureLength) const {
+    size_t SignatureLength() const override { return SIGNATURE_LENGTH; }
+    size_t MaxRecoverableLength() const override { return 0; }
+    size_t MaxRecoverableLengthFromSignatureLength(size_t signatureLength) const override {
         CRYPTOPP_UNUSED(signatureLength);
         return 0;
     }
 
-    bool IsProbabilistic() const { return false; }
-    bool AllowNonrecoverablePart() const { return true; }
-    bool RecoverablePartFirst() const { return false; }
+    bool IsProbabilistic() const override { return false; }
+    bool AllowNonrecoverablePart() const override { return true; }
+    bool RecoverablePartFirst() const override { return false; }
 
     // PK_Verifier interface
-    PK_MessageAccumulator* NewVerificationAccumulator() const {
+    PK_MessageAccumulator* NewVerificationAccumulator() const override {
         return new MessageAccumulatorType();
     }
 
     void InputSignature(PK_MessageAccumulator &messageAccumulator,
-        const byte *signature, size_t signatureLength) const {
+        const byte *signature, size_t signatureLength) const override {
         if (!signature || signatureLength != SIGNATURE_LENGTH)
             throw InvalidArgument(AlgorithmName() + ": invalid signature length");
         MessageAccumulatorType &accum = static_cast<MessageAccumulatorType&>(messageAccumulator);
         std::memcpy(accum.signature(), signature, SIGNATURE_LENGTH);
     }
 
-    bool VerifyAndRestart(PK_MessageAccumulator &messageAccumulator) const;
+    bool VerifyAndRestart(PK_MessageAccumulator &messageAccumulator) const override;
 
     DecodingResult RecoverAndRestart(byte *recoveredMessage,
-        PK_MessageAccumulator &messageAccumulator) const {
+        PK_MessageAccumulator &messageAccumulator) const override {
         CRYPTOPP_UNUSED(recoveredMessage);
         CRYPTOPP_UNUSED(messageAccumulator);
         throw NotImplemented("LMSVerifier: recoverable messages not supported");
