@@ -160,6 +160,27 @@ inline LMSParams LMSParams_SHA256_M32_H10()
     return LMSParams{0x06, 32, 10};
 }
 
+// ==================== Internal Function Declarations ====================
+
+void lmots_sign(byte *sig, const byte *message, size_t messageLen,
+                const byte *I, uint32_t q, const byte *SEED,
+                const byte *C, const OTSParams &params);
+void lmots_compute_candidate_key(byte *Kc, const byte *sig,
+                                 const byte *message, size_t messageLen,
+                                 const byte *I, uint32_t q,
+                                 const OTSParams &params);
+void lmots_compute_public_key(byte *K, const byte *I, uint32_t q,
+                              const byte *SEED, const OTSParams &params);
+void lms_compute_full_tree(byte *tree, const byte *I, const byte *SEED,
+                           const LMSParams &lmsParams, const OTSParams &otsParams);
+void lms_extract_auth_path(byte *path, const byte *tree, uint32_t q,
+                           const LMSParams &lmsParams);
+bool lms_verify_path(const byte *candidateLeaf, const byte *path,
+                     uint32_t q, const byte *root, const byte *I,
+                     const LMSParams &lmsParams);
+void lms_leaf_hash(byte *out, const byte *I, uint32_t r,
+                   const byte *K, unsigned int m);
+
 NAMESPACE_END  // LMS_Internal
 NAMESPACE_END  // CryptoPP
 
