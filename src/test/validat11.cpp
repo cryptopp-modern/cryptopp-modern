@@ -5220,6 +5220,67 @@ static bool TestFileStoreInProcessRollback()
 }
 #endif  // !_WIN32
 
+static bool TestFileStoreSizeValidation()
+{
+	const char* name = "FileStateStore size validation";
+	const std::string path = "test_filestore_size.state";
+	RemoveTestFile(path);
+
+	try {
+		// Short file: 32 bytes
+		{
+			byte shortBuf[32];
+			std::memset(shortBuf, 0, sizeof(shortBuf));
+			WriteRawFile(path, shortBuf, sizeof(shortBuf));
+
+			bool threw = false;
+			try {
+				FileStateStore store = FileStateStore::Open(path, 100);
+			}
+			catch (const SignerStateIntegrityFailure&) {
+				threw = true;
+			}
+
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " accepted short file" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+			RemoveTestFile(path);
+		}
+
+		// Long file: 128 bytes
+		{
+			byte longBuf[128];
+			std::memset(longBuf, 0, sizeof(longBuf));
+			WriteRawFile(path, longBuf, sizeof(longBuf));
+
+			bool threw = false;
+			try {
+				FileStateStore store = FileStateStore::Open(path, 100);
+			}
+			catch (const SignerStateIntegrityFailure&) {
+				threw = true;
+			}
+
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " accepted oversized file" << std::endl;
+				RemoveTestFile(path);
+				return false;
+			}
+			RemoveTestFile(path);
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
 static bool TestFileStoreNonAsciiPath()
 {
 	const char* name = "FileStateStore";
@@ -5290,6 +5351,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
 	pass = TestFileStorePoisonedStateContract() && pass;
 	pass = TestFileStoreInvalidReservation() && pass;
+	pass = TestFileStoreSizeValidation() && pass;
 	pass = TestFileStoreNonAsciiPath() && pass;
 #ifndef _WIN32
 	pass = TestFileStoreInProcessRollback() && pass;

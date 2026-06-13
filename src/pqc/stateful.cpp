@@ -160,6 +160,18 @@ static void* PlatformOpenExisting(const std::string &path)
     return h;
 }
 
+static size_t PlatformFileSize(void *handle)
+{
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(handle, &size))
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: cannot determine file size");
+    if (size.QuadPart < 0)
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: invalid file size");
+    return static_cast<size_t>(size.QuadPart);
+}
+
 static void PlatformWriteAt(void *handle, const byte *data, size_t len, size_t offset)
 {
     LARGE_INTEGER li;
@@ -221,6 +233,18 @@ static int PlatformOpenExisting(const std::string &path)
         throw Exception(Exception::IO_ERROR,
             "FileStateStore: cannot open file: " + path);
     return fd;
+}
+
+static size_t PlatformFileSize(int fd)
+{
+    struct stat st;
+    if (fstat(fd, &st) != 0)
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: cannot fstat file");
+    if (st.st_size < 0)
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: invalid file size");
+    return static_cast<size_t>(st.st_size);
 }
 
 static void PlatformWriteAt(int fd, const byte *data, size_t len, size_t offset)
@@ -501,11 +525,16 @@ FileStateStore FileStateStore::Open(const std::string &path,
 
 #ifdef _WIN32
     store.m_handle = PlatformOpenExisting(path);
+    if (PlatformFileSize(store.m_handle) != FILE_SIZE)
+        throw SignerStateIntegrityFailure(
+            "FileStateStore: state file size is not 64 bytes");
 #else
     store.m_fd = PlatformOpenExisting(path);
+    if (PlatformFileSize(store.m_fd) != FILE_SIZE)
+        throw SignerStateIntegrityFailure(
+            "FileStateStore: state file size is not 64 bytes");
 #endif
 
-    // Read and verify the full file
     store.ReadAndVerify();
 
     return store;
