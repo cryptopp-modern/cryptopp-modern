@@ -5220,6 +5220,58 @@ static bool TestFileStoreInProcessRollback()
 }
 #endif  // !_WIN32
 
+static bool TestZeroCapacityRejection()
+{
+	const char* name = "Zero-capacity rejection";
+	const std::string path = "test_filestore_zero_cap.state";
+	RemoveTestFile(path);
+
+	bool memoryThrew = false;
+	try {
+		InsecureMemoryStateStore store(0);
+	}
+	catch (const InvalidArgument&) {
+		memoryThrew = true;
+	}
+	if (!memoryThrew) {
+		std::cout << "FAILED:  " << name << " InsecureMemoryStateStore(0) accepted" << std::endl;
+		return false;
+	}
+
+	bool createThrew = false;
+	try {
+		FileStateStore store = FileStateStore::Create(path, 0);
+	}
+	catch (const InvalidArgument&) {
+		createThrew = true;
+	}
+	if (!createThrew) {
+		std::cout << "FAILED:  " << name << " FileStateStore::Create(path, 0) accepted" << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+	RemoveTestFile(path);
+
+	// For Open we need a valid file to attempt opening with zero expected leaves.
+	FileStateStore::Create(path, 4);
+	bool openThrew = false;
+	try {
+		FileStateStore store = FileStateStore::Open(path, 0);
+	}
+	catch (const InvalidArgument&) {
+		openThrew = true;
+	}
+	if (!openThrew) {
+		std::cout << "FAILED:  " << name << " FileStateStore::Open(path, 0) accepted" << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+	RemoveTestFile(path);
+
+	std::cout << "passed:  " << name << std::endl;
+	return true;
+}
+
 static bool TestFileStoreSizeValidation()
 {
 	const char* name = "FileStateStore size validation";
@@ -5351,6 +5403,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
 	pass = TestFileStorePoisonedStateContract() && pass;
 	pass = TestFileStoreInvalidReservation() && pass;
+	pass = TestZeroCapacityRejection() && pass;
 	pass = TestFileStoreSizeValidation() && pass;
 	pass = TestFileStoreNonAsciiPath() && pass;
 #ifndef _WIN32

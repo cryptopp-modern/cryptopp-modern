@@ -257,9 +257,14 @@ class InsecureMemoryStateStore : public SignerStateStore
 {
 public:
     /// \brief Construct a test-only state store
-    /// \param totalLeaves the total number of available signing indices
+    /// \param totalLeaves the total number of available signing indices (must be > 0)
+    /// \throw InvalidArgument if totalLeaves is zero
     explicit InsecureMemoryStateStore(uint64_t totalLeaves)
-        : m_nextIndex(0), m_totalLeaves(totalLeaves) {}
+        : m_nextIndex(0), m_totalLeaves(totalLeaves)
+    {
+        if (totalLeaves == 0)
+            throw InvalidArgument("InsecureMemoryStateStore: totalLeaves must be greater than zero");
+    }
 
     StateReservation ReserveNext() override;
     void CommitReservation(const StateReservation &reservation) override;

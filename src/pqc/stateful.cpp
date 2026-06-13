@@ -472,6 +472,9 @@ FileStateStore FileStateStore::Create(const std::string &path,
                                        const byte *integrityKey,
                                        size_t keyLen)
 {
+    if (totalLeaves == 0)
+        throw InvalidArgument("FileStateStore::Create: totalLeaves must be greater than zero");
+
     FileStateStore store;
     store.m_path = path;
     store.m_totalLeaves = totalLeaves;
@@ -515,6 +518,9 @@ FileStateStore FileStateStore::Open(const std::string &path,
                                      const byte *integrityKey,
                                      size_t keyLen)
 {
+    if (expectedTotalLeaves == 0)
+        throw InvalidArgument("FileStateStore::Open: expectedTotalLeaves must be greater than zero");
+
     FileStateStore store;
     store.m_path = path;
     store.m_totalLeaves = expectedTotalLeaves;
