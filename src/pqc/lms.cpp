@@ -813,6 +813,8 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
         throw InvalidArgument(AlgorithmName() + ": signature buffer is null");
     if (!message && messageLen > 0)
         throw InvalidArgument(AlgorithmName() + ": message is null with non-zero length");
+    if (!m_store)
+        throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
 
     using namespace LMS_Internal;
 
@@ -1367,7 +1369,7 @@ void HSSSigner<HSS_PARAMS>::DecomposeGlobalIndex(uint64_t globalIndex,
 
 template <class HSS_PARAMS>
 HSSSigner<HSS_PARAMS>::HSSSigner(const PrivateKeyType &key, SignerStateStore &store)
-    : m_rootKey(key), m_store(store), m_levels(HSS_PARAMS::L), m_reconciled(false)
+    : m_rootKey(key), m_store(&store), m_levels(HSS_PARAMS::L), m_reconciled(false)
 {
     // Lazy: no caches built here. First SignMessage() calls ReconcileState().
     for (unsigned int i = 0; i < HSS_PARAMS::L; i++)
@@ -1384,9 +1386,11 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
         throw InvalidArgument(AlgorithmName() + ": signature buffer is null");
     if (!message && messageLen > 0)
         throw InvalidArgument(AlgorithmName() + ": message is null with non-zero length");
+    if (!m_store)
+        throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
 
     // Reserve global signing index (authoritative safety boundary)
-    StateReservation reservation = m_store.ReserveNext();
+    StateReservation reservation = m_store->ReserveNext();
 
     if (!reservation.IsValid())
         throw SignerStateIntegrityFailure(
@@ -1423,11 +1427,11 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
         }
 
         ProduceSignature(rng, message, messageLen, signature, perLevel);
-        m_store.CommitReservation(reservation);
+        m_store->CommitReservation(reservation);
     }
     catch (...)
     {
-        m_store.AbortReservation(reservation);
+        m_store->AbortReservation(reservation);
         throw;
     }
 }

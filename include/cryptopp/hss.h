@@ -356,8 +356,8 @@ public:
     // PK_StatefulSigner interface
     std::string AlgorithmName() const override { return HSS_PARAMS::StaticAlgorithmName(); }
     size_t SignatureLength() const override { return SIGNATURE_LENGTH; }
-    bool IsExhausted() const override { return m_store.IsExhausted(); }
-    uint64_t RemainingSignatures() const override { return m_store.RemainingSignatures(); }
+    bool IsExhausted() const override { return m_store->IsExhausted(); }
+    uint64_t RemainingSignatures() const override { return m_store->RemainingSignatures(); }
 
     /// \brief Sign a message
     /// \details Consumes one global signing index. A failure after
@@ -371,7 +371,7 @@ public:
 
 private:
     PrivateKeyType m_rootKey;
-    SignerStateStore &m_store;
+    SignerStateStore *m_store;  // non-owning, caller manages lifetime
 
     /// \brief Per-level cached state
     struct LevelState {
