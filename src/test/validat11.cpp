@@ -5155,6 +5155,43 @@ static bool TestFileStoreInvalidReservation()
 }
 
 #ifndef _WIN32
+static bool TestFileStoreConcurrentOpenRejected()
+{
+	// POSIX only: a second Open against the same path while the first
+	// store still holds the advisory flock should fail with IO_ERROR.
+	const char* name = "FileStateStore (POSIX) concurrent open rejected";
+	const std::string path = "test_filestore_concurrent.state";
+	RemoveTestFile(path);
+
+	try {
+		FileStateStore first = FileStateStore::Create(path, 4);
+
+		bool secondThrew = false;
+		try {
+			FileStateStore second = FileStateStore::Open(path, 4);
+		}
+		catch (const Exception &e) {
+			if (e.GetErrorType() == Exception::IO_ERROR)
+				secondThrew = true;
+		}
+
+		if (!secondThrew) {
+			std::cout << "FAILED:  " << name << " second open accepted" << std::endl;
+			RemoveTestFile(path);
+			return false;
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		RemoveTestFile(path);
+		return true;
+	}
+	catch (const Exception &e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(path);
+		return false;
+	}
+}
+
 static bool TestFileStoreInProcessRollback()
 {
 	// POSIX only: rewrite the backing file with an older nextIndex
@@ -5407,6 +5444,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStoreSizeValidation() && pass;
 	pass = TestFileStoreNonAsciiPath() && pass;
 #ifndef _WIN32
+	pass = TestFileStoreConcurrentOpenRejected() && pass;
 	pass = TestFileStoreInProcessRollback() && pass;
 #endif
 	pass = TestFileStoreLMSIntegration() && pass;

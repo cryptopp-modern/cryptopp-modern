@@ -19,6 +19,7 @@
 #else
 # include <sys/types.h>
 # include <sys/stat.h>
+# include <sys/file.h>
 # include <fcntl.h>
 # include <unistd.h>
 # include <errno.h>
@@ -217,12 +218,26 @@ static void PlatformClose(void *handle)
 
 #else  // POSIX
 
+static void AcquireExclusiveLock(int fd, const std::string &path)
+{
+    // Advisory exclusive lock; non-blocking so a second opener fails fast
+    // rather than hanging. Matches the documented single-writer contract
+    // at the OS boundary. Cooperating processes only.
+    if (flock(fd, LOCK_EX | LOCK_NB) != 0)
+    {
+        close(fd);
+        throw Exception(Exception::IO_ERROR,
+            "FileStateStore: cannot acquire exclusive lock on: " + path);
+    }
+}
+
 static int PlatformCreateExclusive(const std::string &path)
 {
     int fd = open(path.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
     if (fd < 0)
         throw Exception(Exception::IO_ERROR,
             "FileStateStore: create failed: " + path);
+    AcquireExclusiveLock(fd, path);
     return fd;
 }
 
@@ -232,6 +247,7 @@ static int PlatformOpenExisting(const std::string &path)
     if (fd < 0)
         throw Exception(Exception::IO_ERROR,
             "FileStateStore: cannot open file: " + path);
+    AcquireExclusiveLock(fd, path);
     return fd;
 }
 
