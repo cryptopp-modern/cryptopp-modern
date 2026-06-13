@@ -136,15 +136,12 @@ void lmots_sign(byte *sig, const byte *message, size_t messageLen,
     const unsigned int ls = params.ls;
     const unsigned int u = params.u;
 
-    // Step 1: Encode OTS type in signature
     u32str(sig, params.type_id);
     byte *sig_C = sig + 4;
     byte *sig_y = sig + 4 + n;
 
-    // Step 2: Copy C (randomiser) into signature
     std::memcpy(sig_C, C, n);
 
-    // Step 3: Q = H(I || u32str(q) || u16str(D_MESG) || C || message)
     SecByteBlock Q(n);
     {
         SHA256 hash;
@@ -159,7 +156,6 @@ void lmots_sign(byte *sig, const byte *message, size_t messageLen,
         hash.TruncatedFinal(Q, n);
     }
 
-    // Step 4: Compute checksum and append to Q
     byte cksm_bytes[2];
     u16str(cksm_bytes, checksum(Q, w, ls, u));
 
@@ -168,7 +164,6 @@ void lmots_sign(byte *sig, const byte *message, size_t messageLen,
     std::memcpy(Q_cksm, Q, n);
     std::memcpy(Q_cksm + n, cksm_bytes, 2);
 
-    // Step 5: For each chain, derive private key and iterate
     SecByteBlock tmp(n);
     for (unsigned int i = 0; i < p; i++)
     {
@@ -206,7 +201,6 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
     const byte *sig_C = sig + 4;
     const byte *sig_y = sig + 4 + n;
 
-    // Step 1: Q = H(I || u32str(q) || u16str(D_MESG) || C || message)
     SecByteBlock Q(n);
     {
         SHA256 hash;
@@ -221,7 +215,6 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
         hash.TruncatedFinal(Q, n);
     }
 
-    // Step 2: Compute checksum
     byte cksm_bytes[2];
     u16str(cksm_bytes, checksum(Q, w, ls, u));
 
@@ -229,7 +222,6 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
     std::memcpy(Q_cksm, Q, n);
     std::memcpy(Q_cksm + n, cksm_bytes, 2);
 
-    // Step 3: Compute z[i] and hash into Kc
     // Kc = H(I || u32str(q) || u16str(D_PBLC) || z[0] || ... || z[p-1])
     SHA256 final_hash;
     byte buf4[4], buf2[2];
@@ -851,20 +843,16 @@ void LMSSigner<LMS_PARAMS, OTS_PARAMS>::SignMessage(
         rng.GenerateBlock(C, n);
 
         // Build LMS signature: q(4) + OTS_sig + LMS_type(4) + auth_path(h*m)
-        // Step 1: q
         u32str(signature, q);
 
-        // Step 2: OTS signature at offset 4
         byte *otsSigPos = signature + 4;
         lmots_sign(otsSigPos, message, messageLen,
                    m_key.GetIdentifierBytePtr(), q,
                    m_key.GetSeedBytePtr(), C, otsP);
 
-        // Step 3: LMS type at offset 4 + otsSigLen
         const size_t otsSigLen = otsP.SigLen();
         u32str(signature + 4 + otsSigLen, LMS_PARAMS::TYPE_ID);
 
-        // Step 4: Auth path at offset 4 + otsSigLen + 4
         byte *authPathPos = signature + 4 + otsSigLen + 4;
         lms_extract_auth_path(authPathPos, m_tree, q, lmsP);
 
@@ -1278,7 +1266,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     // Create bounded cursor over signature
     SignatureCursor cursor = {sig, SIGNATURE_LENGTH, false};
 
-    // Step 1: Read and validate Nspk
     uint32_t Nspk = 0;
     if (!cursor.ReadU32(Nspk) || Nspk != HSS_PARAMS::L - 1)
     {
@@ -1290,7 +1277,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     SecByteBlock currentKey(lmsPubSize);
     std::memcpy(currentKey, m_key.GetRootLMSPublicKey(), lmsPubSize);
 
-    // Step 2: Verify each intermediate signed public key
     for (uint32_t i = 0; i < Nspk; i++)
     {
         const byte *intermediateSig = cursor.ReadBlock(lmsSigSize);
@@ -1336,13 +1322,17 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
         std::memcpy(currentKey, childPubKey, lmsPubSize);
     }
 
-    // Step 3: Verify final LMS signature on message (reject trailing garbage)
     if (!cursor.HasExactly(lmsSigSize))
     {
         accum.Restart();
         return false;
     }
     const byte *finalSig = cursor.ReadBlock(lmsSigSize);
+    if (!finalSig)
+    {
+        accum.Restart();
+        return false;
+    }
 
     bool result = lms_verify_signature_raw(currentKey, message, messageLen,
                                             finalSig, lmsP, otsP);
@@ -1408,7 +1398,7 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
 
     uint64_t globalIndex = reservation.LeafIndex();
 
-    uint32_t perLevel[4];  // max 4 levels
+    uint32_t perLevel[HSS_PARAMS::L] = {};
     DecomposeGlobalIndex(globalIndex, perLevel, HSS_PARAMS::L);
 
     try
@@ -1456,7 +1446,7 @@ void HSSSigner<HSS_PARAMS>::ReconcileState(uint64_t globalIndex)
     const unsigned int n = OTS_P::N;
     const uint32_t numNodes = 2u * (1u << LMS_P::H);
 
-    uint32_t perLevel[4];
+    uint32_t perLevel[HSS_PARAMS::L] = {};
     DecomposeGlobalIndex(globalIndex, perLevel, HSS_PARAMS::L);
 
     // Level 0: root - use root key material directly

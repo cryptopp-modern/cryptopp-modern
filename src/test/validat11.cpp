@@ -4244,7 +4244,7 @@ bool ValidateHSS()
 
 // ******************** FileStateStore Validation ************************* //
 
-// Test helpers below mirror FileStateStore's CreateFileW path handling so non-ASCII test paths resolve to the same file.
+// Mirror FileStateStore path handling for non-ASCII test paths.
 
 #ifdef _WIN32
 # ifndef WIN32_LEAN_AND_MEAN
