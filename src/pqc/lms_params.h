@@ -28,6 +28,15 @@ inline void u32str(byte *out, uint32_t val)
     out[3] = static_cast<byte>(val);
 }
 
+/// \brief Decode 4 bytes big-endian as a 32-bit value
+inline uint32_t LoadBE32(const byte *in)
+{
+    return (static_cast<uint32_t>(in[0]) << 24) |
+           (static_cast<uint32_t>(in[1]) << 16) |
+           (static_cast<uint32_t>(in[2]) << 8) |
+           (static_cast<uint32_t>(in[3]));
+}
+
 /// \brief Encode a 16-bit value as 2 bytes big-endian (u16str in RFC 8554)
 inline void u16str(byte *out, uint16_t val)
 {

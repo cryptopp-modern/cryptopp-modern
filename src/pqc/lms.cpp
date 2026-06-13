@@ -490,14 +490,8 @@ bool LMSPublicKey<LMS_PARAMS, OTS_PARAMS>::Validate(RandomNumberGenerator &rng, 
 
     // Verify embedded type IDs match the parameter set
     using namespace LMS_Internal;
-    uint32_t lmsType = (static_cast<uint32_t>(m_pk[0]) << 24) |
-                       (static_cast<uint32_t>(m_pk[1]) << 16) |
-                       (static_cast<uint32_t>(m_pk[2]) << 8) |
-                       (static_cast<uint32_t>(m_pk[3]));
-    uint32_t otsType = (static_cast<uint32_t>(m_pk[4]) << 24) |
-                       (static_cast<uint32_t>(m_pk[5]) << 16) |
-                       (static_cast<uint32_t>(m_pk[6]) << 8) |
-                       (static_cast<uint32_t>(m_pk[7]));
+    uint32_t lmsType = LoadBE32(m_pk);
+    uint32_t otsType = LoadBE32(m_pk + 4);
     return lmsType == LMS_PARAMS::TYPE_ID && otsType == OTS_PARAMS::TYPE_ID;
 }
 
@@ -719,10 +713,7 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
 
     // Extract q
     const byte *sig_q = sig;
-    uint32_t q = (static_cast<uint32_t>(sig_q[0]) << 24) |
-                 (static_cast<uint32_t>(sig_q[1]) << 16) |
-                 (static_cast<uint32_t>(sig_q[2]) << 8) |
-                 (static_cast<uint32_t>(sig_q[3]));
+    uint32_t q = LoadBE32(sig_q);
 
     // Validate q is in range
     if (q >= static_cast<uint32_t>(1u << h))
@@ -737,10 +728,7 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
     const byte *authPath = sig + 4 + otsSigLen + 4;
 
     // Verify LMS type matches
-    uint32_t sigLmsType = (static_cast<uint32_t>(sig_lmsType[0]) << 24) |
-                          (static_cast<uint32_t>(sig_lmsType[1]) << 16) |
-                          (static_cast<uint32_t>(sig_lmsType[2]) << 8) |
-                          (static_cast<uint32_t>(sig_lmsType[3]));
+    uint32_t sigLmsType = LoadBE32(sig_lmsType);
 
     if (sigLmsType != LMS_PARAMS::TYPE_ID)
     {
@@ -749,10 +737,7 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
     }
 
     // Verify OTS type in signature matches
-    uint32_t sigOtsType = (static_cast<uint32_t>(otsSig[0]) << 24) |
-                          (static_cast<uint32_t>(otsSig[1]) << 16) |
-                          (static_cast<uint32_t>(otsSig[2]) << 8) |
-                          (static_cast<uint32_t>(otsSig[3]));
+    uint32_t sigOtsType = LoadBE32(otsSig);
 
     if (sigOtsType != OTS_PARAMS::TYPE_ID)
     {
@@ -910,10 +895,7 @@ struct SignatureCursor
     bool ReadU32(uint32_t &val)
     {
         if (remaining < 4) { failed = true; return false; }
-        val = (static_cast<uint32_t>(data[0]) << 24) |
-              (static_cast<uint32_t>(data[1]) << 16) |
-              (static_cast<uint32_t>(data[2]) << 8) |
-              (static_cast<uint32_t>(data[3]));
+        val = LMS_Internal::LoadBE32(data);
         data += 4;
         remaining -= 4;
         return true;
@@ -960,10 +942,7 @@ bool lms_verify_signature_raw(
     const byte *root = pubKey + 24;   // offset past LMS_type(4) + OTS_type(4) + I(16)
 
     // Parse q from signature
-    uint32_t q = (static_cast<uint32_t>(lmsSig[0]) << 24) |
-                 (static_cast<uint32_t>(lmsSig[1]) << 16) |
-                 (static_cast<uint32_t>(lmsSig[2]) << 8) |
-                 (static_cast<uint32_t>(lmsSig[3]));
+    uint32_t q = LoadBE32(lmsSig);
 
     if (q >= (1u << h))
         return false;
@@ -973,19 +952,13 @@ bool lms_verify_signature_raw(
     const byte *authPath = lmsSig + 4 + otsSigLen + 4;
 
     // Verify OTS type in signature
-    uint32_t sigOtsType = (static_cast<uint32_t>(otsSig[0]) << 24) |
-                          (static_cast<uint32_t>(otsSig[1]) << 16) |
-                          (static_cast<uint32_t>(otsSig[2]) << 8) |
-                          (static_cast<uint32_t>(otsSig[3]));
+    uint32_t sigOtsType = LoadBE32(otsSig);
     if (sigOtsType != otsP.type_id)
         return false;
 
     // Verify LMS type in signature
     const byte *sigLmsTypePtr = lmsSig + 4 + otsSigLen;
-    uint32_t sigLmsType = (static_cast<uint32_t>(sigLmsTypePtr[0]) << 24) |
-                          (static_cast<uint32_t>(sigLmsTypePtr[1]) << 16) |
-                          (static_cast<uint32_t>(sigLmsTypePtr[2]) << 8) |
-                          (static_cast<uint32_t>(sigLmsTypePtr[3]));
+    uint32_t sigLmsType = LoadBE32(sigLmsTypePtr);
     if (sigLmsType != lmsP.type_id)
         return false;
 
@@ -1022,10 +995,7 @@ void HSSPublicKey<HSS_PARAMS>::SetPublicKey(const byte *pk, size_t len)
 template <class HSS_PARAMS>
 uint32_t HSSPublicKey<HSS_PARAMS>::GetL() const
 {
-    return (static_cast<uint32_t>(m_pk[0]) << 24) |
-           (static_cast<uint32_t>(m_pk[1]) << 16) |
-           (static_cast<uint32_t>(m_pk[2]) << 8) |
-           (static_cast<uint32_t>(m_pk[3]));
+    return LMS_Internal::LoadBE32(m_pk);
 }
 
 template <class HSS_PARAMS>
