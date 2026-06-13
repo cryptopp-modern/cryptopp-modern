@@ -409,9 +409,19 @@ struct LMSSigner : public PK_StatefulSigner
 
     size_t SignatureLength() const override { return SIGNATURE_LENGTH; }
 
-    bool IsExhausted() const override { return m_store->IsExhausted(); }
+    bool IsExhausted() const override
+    {
+        if (!m_store)
+            throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
+        return m_store->IsExhausted();
+    }
 
-    uint64_t RemainingSignatures() const override { return m_store->RemainingSignatures(); }
+    uint64_t RemainingSignatures() const override
+    {
+        if (!m_store)
+            throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
+        return m_store->RemainingSignatures();
+    }
 
     void SignMessage(
         RandomNumberGenerator &rng,

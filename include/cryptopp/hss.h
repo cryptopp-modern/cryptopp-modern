@@ -356,8 +356,19 @@ public:
     // PK_StatefulSigner interface
     std::string AlgorithmName() const override { return HSS_PARAMS::StaticAlgorithmName(); }
     size_t SignatureLength() const override { return SIGNATURE_LENGTH; }
-    bool IsExhausted() const override { return m_store->IsExhausted(); }
-    uint64_t RemainingSignatures() const override { return m_store->RemainingSignatures(); }
+    bool IsExhausted() const override
+    {
+        if (!m_store)
+            throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
+        return m_store->IsExhausted();
+    }
+
+    uint64_t RemainingSignatures() const override
+    {
+        if (!m_store)
+            throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
+        return m_store->RemainingSignatures();
+    }
 
     /// \brief Sign a message
     /// \details Consumes one global signing index. A failure after
