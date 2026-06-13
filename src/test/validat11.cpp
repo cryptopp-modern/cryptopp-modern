@@ -1116,22 +1116,18 @@ static bool TestLMSSignVerify(const char* name)
 	AutoSeededRandomPool rng;
 
 	try {
-		// Generate key pair
 		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
 		privKey.GenerateRandom(rng, g_nullNameValuePairs);
 
 		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
 		privKey.MakePublicKey(pubKey);
 
-		// Create signer with test-only state store
 		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
 		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey, store);
 
-		// Create verifier
 		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
 			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
 
-		// Sign a message
 		std::string message = "Test message for LMS signature validation";
 		SecByteBlock signature(signer.SignatureLength());
 
@@ -1139,7 +1135,6 @@ static bool TestLMSSignVerify(const char* name)
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			signature.begin());
 
-		// Verify the signature
 		bool valid = verifier.VerifyMessage(
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			signature.begin(), signature.size());
@@ -1262,7 +1257,6 @@ static bool TestLMSMultipleSignatures(const char* name)
 		LMSVerifier<LMS_PARAMS, OTS_PARAMS> verifier(
 			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
 
-		// Sign and verify multiple messages
 		const unsigned int count = 5;
 		for (unsigned int i = 0; i < count; i++)
 		{
@@ -1355,7 +1349,6 @@ static bool TestLMSExhaustion()
 		std::string message = "Exhaustion test message";
 		SecByteBlock signature(signer.SignatureLength());
 
-		// Sign all 32 messages
 		for (unsigned int i = 0; i < 32; i++)
 		{
 			signer.SignMessage(rng,
@@ -1372,7 +1365,6 @@ static bool TestLMSExhaustion()
 			}
 		}
 
-		// Verify exhausted
 		if (!signer.IsExhausted()) {
 			std::cout << "FAILED:  " << name << " not exhausted after 32 signatures" << std::endl;
 			return false;
@@ -1611,14 +1603,12 @@ static bool TestLMSSerialization(const char* name)
 	AutoSeededRandomPool rng;
 
 	try {
-		// Generate key pair
 		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
 		privKey.GenerateRandom(rng, g_nullNameValuePairs);
 
 		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey;
 		privKey.MakePublicKey(pubKey);
 
-		// DER encode private key
 		std::string privDer;
 		StringSink privSink(privDer);
 		privKey.DEREncode(privSink);
@@ -1628,7 +1618,6 @@ static bool TestLMSSerialization(const char* name)
 			return false;
 		}
 
-		// BER decode private key
 		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey2;
 		StringSource privSource(privDer, true);
 		privKey2.BERDecode(privSource);
@@ -1643,7 +1632,6 @@ static bool TestLMSSerialization(const char* name)
 			return false;
 		}
 
-		// DER encode public key
 		std::string pubDer;
 		StringSink pubSink(pubDer);
 		pubKey.DEREncode(pubSink);
@@ -1653,7 +1641,6 @@ static bool TestLMSSerialization(const char* name)
 			return false;
 		}
 
-		// BER decode public key
 		LMSPublicKey<LMS_PARAMS, OTS_PARAMS> pubKey2;
 		StringSource pubSource(pubDer, true);
 		pubKey2.BERDecode(pubSource);
@@ -2071,7 +2058,6 @@ static bool TestLMSMalformedSignatures(const char* name)
 	AutoSeededRandomPool rng;
 
 	try {
-		// Generate key pair and one valid signature
 		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
 		privKey.GenerateRandom(rng, g_nullNameValuePairs);
 
@@ -2089,7 +2075,6 @@ static bool TestLMSMalformedSignatures(const char* name)
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			validSig.begin());
 
-		// Confirm valid signature works
 		bool valid = verifier.VerifyMessage(
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			validSig.begin(), validSig.size());
@@ -2260,7 +2245,6 @@ static bool TestLMSSigGenKAT()
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			sig1.begin());
 
-		// Verify the signature
 		LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> verifier(
 			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
 
@@ -2577,7 +2561,6 @@ static bool TestHSSSignVerify(const char* name)
 		HSSVerifier<HSS_PARAMS> verifier(
 			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
 
-		// Sign a message
 		std::string message = "Test message for HSS signature validation";
 		SecByteBlock signature(signer.SignatureLength());
 
@@ -2585,7 +2568,6 @@ static bool TestHSSSignVerify(const char* name)
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			signature.begin());
 
-		// Verify
 		bool valid = verifier.VerifyMessage(
 			reinterpret_cast<const byte*>(message.data()), message.size(),
 			signature.begin(), signature.size());
@@ -2968,7 +2950,6 @@ static bool TestHSSExhaustion()
 
 		SecByteBlock signature(signer.SignatureLength());
 
-		// Sign all 1024 messages, verify each
 		for (uint64_t i = 0; i < total; i++)
 		{
 			std::string msg = "Exhaustion msg " + std::to_string(i);
@@ -3116,12 +3097,10 @@ static bool TestHSSSerialization(const char* name)
 		HSSPublicKey<HSS_PARAMS> pubKey;
 		privKey.MakePublicKey(pubKey);
 
-		// DER encode public key
 		std::string pubDer;
 		StringSink pubSink(pubDer);
 		pubKey.DEREncode(pubSink);
 
-		// BER decode public key
 		HSSPublicKey<HSS_PARAMS> decodedPub;
 		StringSource pubSource(pubDer, true);
 		decodedPub.BERDecode(pubSource);
@@ -3139,12 +3118,10 @@ static bool TestHSSSerialization(const char* name)
 			return false;
 		}
 
-		// DER encode private key
 		std::string privDer;
 		StringSink privSink(privDer);
 		privKey.DEREncode(privSink);
 
-		// BER decode private key
 		HSSPrivateKey<HSS_PARAMS> decodedPriv;
 		StringSource privSource(privDer, true);
 		decodedPriv.BERDecode(privSource);

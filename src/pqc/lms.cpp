@@ -1114,7 +1114,6 @@ void HSSPrivateKey<HSS_PARAMS>::MakePublicKey(HSSPublicKey<HSS_PARAMS> &pub) con
     const unsigned int m = LMS_P::M;
     const uint32_t numNodes = 2u * (1u << LMS_P::H);
 
-    // Compute root Merkle tree
     SecByteBlock tree(static_cast<size_t>(numNodes) * m);
     lms_compute_full_tree(tree, m_I, m_seed, lmsP, otsP);
 
@@ -1235,7 +1234,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     const size_t lmsSigSize = HSS_PARAMS::LMSSignatureSize();
     const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
 
-    // Create bounded cursor over signature
     SignatureCursor cursor = {sig, SIGNATURE_LENGTH, false};
 
     uint32_t Nspk = 0;
@@ -1245,7 +1243,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
         return false;
     }
 
-    // Start with root LMS public key
     SecByteBlock currentKey(lmsPubSize);
     std::memcpy(currentKey, m_key.GetRootLMSPublicKey(), lmsPubSize);
 
@@ -1265,7 +1262,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
             return false;
         }
 
-        // Validate child public key via LMSPublicKey delegation
         {
             typedef LMSPublicKey<LMS_P, OTS_P> ChildLMSKeyType;
             ChildLMSKeyType childLmsKey;
@@ -1282,7 +1278,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
             }
         }
 
-        // Verify: parent LMS signature over child public key
         if (!lms_verify_signature_raw(currentKey, childPubKey, lmsPubSize,
                                        intermediateSig, lmsP, otsP))
         {
@@ -1290,7 +1285,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
             return false;
         }
 
-        // Advance to child key
         std::memcpy(currentKey, childPubKey, lmsPubSize);
     }
 
@@ -1430,7 +1424,6 @@ void HSSSigner<HSS_PARAMS>::ReconcileState(uint64_t globalIndex)
     root.tree.resize(static_cast<size_t>(numNodes) * m);
     lms_compute_full_tree(root.tree, root.identifier, root.seed, lmsP, otsP);
 
-    // Build root LMS public key
     const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
     root.lmsPublicKey.resize(lmsPubSize);
     build_lms_public_key_bytes(root.lmsPublicKey, LMS_P::TYPE_ID, OTS_P::TYPE_ID,
@@ -1469,7 +1462,6 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
         LevelState &child = m_levels[level];
         uint32_t parentLeaf = perLevel[level - 1];
 
-        // Derive child key material (deterministic, no RNG)
         child.seed.resize(n);
         child.identifier.resize(16);
         derive_child_seed(child.seed, parent.identifier, parentLeaf,
@@ -1477,12 +1469,10 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
         derive_child_identifier(child.identifier, parent.identifier,
                                 parentLeaf, parent.seed, n);
 
-        // Compute child Merkle tree
         child.tree.resize(static_cast<size_t>(numNodes) * m);
         lms_compute_full_tree(child.tree, child.identifier, child.seed,
                               lmsP, otsP);
 
-        // Build child LMS public key
         child.lmsPublicKey.resize(lmsPubSize);
         build_lms_public_key_bytes(child.lmsPublicKey, LMS_P::TYPE_ID,
                                    OTS_P::TYPE_ID, child.identifier,
