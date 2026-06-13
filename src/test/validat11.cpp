@@ -5154,6 +5154,95 @@ static bool TestFileStoreInvalidReservation()
 	}
 }
 
+// Helper for cross-store tests below: returns true if op() throws
+// SignerStateIntegrityFailure, false otherwise.
+#define CROSS_STORE_EXPECT_THROW(which, op) \
+	do { \
+		bool threw = false; \
+		try { op; } \
+		catch (const SignerStateIntegrityFailure&) { threw = true; } \
+		if (!threw) { \
+			std::cout << "FAILED:  " << name << " " << (which) \
+			          << " accepted foreign reservation" << std::endl; \
+			RemoveTestFile(pathA); RemoveTestFile(pathB); \
+			return false; \
+		} \
+	} while (0)
+
+static bool TestCrossStoreReservationRejection()
+{
+	const char* name = "Cross-store reservation rejection";
+	const std::string pathA = "test_filestore_cross_a.state";
+	const std::string pathB = "test_filestore_cross_b.state";
+	RemoveTestFile(pathA);
+	RemoveTestFile(pathB);
+
+	try {
+		// In-memory A reservation rejected by in-memory B (commit + abort)
+		{
+			InsecureMemoryStateStore a(4);
+			InsecureMemoryStateStore b(4);
+			StateReservation rA = a.ReserveNext();
+			CROSS_STORE_EXPECT_THROW("memory B commit", b.CommitReservation(rA));
+			CROSS_STORE_EXPECT_THROW("memory B abort", b.AbortReservation(rA));
+			// Original store still accepts the reservation.
+			a.CommitReservation(rA);
+		}
+
+		// File A reservation rejected by File B (commit + abort)
+		{
+			FileStateStore a = FileStateStore::Create(pathA, 4);
+			FileStateStore b = FileStateStore::Create(pathB, 4);
+			StateReservation rA = a.ReserveNext();
+			CROSS_STORE_EXPECT_THROW("file B commit", b.CommitReservation(rA));
+			CROSS_STORE_EXPECT_THROW("file B abort", b.AbortReservation(rA));
+			a.CommitReservation(rA);
+		}
+		RemoveTestFile(pathA);
+		RemoveTestFile(pathB);
+
+		// In-memory reservation rejected by FileStateStore (cross-type)
+		{
+			InsecureMemoryStateStore mem(4);
+			FileStateStore file = FileStateStore::Create(pathA, 4);
+			StateReservation rMem = mem.ReserveNext();
+			CROSS_STORE_EXPECT_THROW("cross-type file commit",
+				file.CommitReservation(rMem));
+			CROSS_STORE_EXPECT_THROW("cross-type file abort",
+				file.AbortReservation(rMem));
+			mem.CommitReservation(rMem);
+		}
+		RemoveTestFile(pathA);
+
+		// Moved-from reservation from store A passed to store B is rejected.
+		// The validity helper handles both invalidity and issuer mismatch
+		// without depending on check order.
+		{
+			InsecureMemoryStateStore a(4);
+			InsecureMemoryStateStore b(4);
+			StateReservation rA = a.ReserveNext();
+			StateReservation moved(std::move(rA));
+			CROSS_STORE_EXPECT_THROW("memory B moved-from commit",
+				b.CommitReservation(rA));
+			CROSS_STORE_EXPECT_THROW("memory B moved-from abort",
+				b.AbortReservation(rA));
+			// Moved-to reservation still valid against its original issuer.
+			a.CommitReservation(moved);
+		}
+
+		std::cout << "passed:  " << name << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		RemoveTestFile(pathA);
+		RemoveTestFile(pathB);
+		return false;
+	}
+}
+
+#undef CROSS_STORE_EXPECT_THROW
+
 #ifndef _WIN32
 static bool TestFileStoreConcurrentOpenRejected()
 {
@@ -5440,6 +5529,7 @@ bool ValidateFileStateStore()
 	pass = TestFileStoreCrossRestartRollbackLimit() && pass;
 	pass = TestFileStorePoisonedStateContract() && pass;
 	pass = TestFileStoreInvalidReservation() && pass;
+	pass = TestCrossStoreReservationRejection() && pass;
 	pass = TestZeroCapacityRejection() && pass;
 	pass = TestFileStoreSizeValidation() && pass;
 	pass = TestFileStoreNonAsciiPath() && pass;

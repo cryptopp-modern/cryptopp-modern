@@ -39,7 +39,7 @@ StateReservation InsecureMemoryStateStore::ReserveNext()
 
 void InsecureMemoryStateStore::CommitReservation(const StateReservation &reservation)
 {
-    if (!reservation.IsValid())
+    if (!IsReservationValidForThis(reservation))
         throw SignerStateIntegrityFailure(
             "InsecureMemoryStateStore: invalid state reservation");
 
@@ -48,7 +48,7 @@ void InsecureMemoryStateStore::CommitReservation(const StateReservation &reserva
 
 void InsecureMemoryStateStore::AbortReservation(const StateReservation &reservation)
 {
-    if (!reservation.IsValid())
+    if (!IsReservationValidForThis(reservation))
         throw SignerStateIntegrityFailure(
             "InsecureMemoryStateStore: invalid state reservation");
 
@@ -621,7 +621,7 @@ StateReservation FileStateStore::ReserveNext()
 
 void FileStateStore::CommitReservation(const StateReservation &reservation)
 {
-    if (!reservation.IsValid())
+    if (!IsReservationValidForThis(reservation))
         throw SignerStateIntegrityFailure(
             "FileStateStore: invalid state reservation");
 
@@ -630,7 +630,7 @@ void FileStateStore::CommitReservation(const StateReservation &reservation)
 
 void FileStateStore::AbortReservation(const StateReservation &reservation)
 {
-    if (!reservation.IsValid())
+    if (!IsReservationValidForThis(reservation))
         throw SignerStateIntegrityFailure(
             "FileStateStore: invalid state reservation");
 

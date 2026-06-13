@@ -52,6 +52,8 @@ public:
         : Exception(OTHER_ERROR, s) {}
 };
 
+class SignerStateStore;
+
 // ******************** State Reservation ************************* //
 
 /// \brief Opaque capability representing a claimed signing index
@@ -63,6 +65,9 @@ public:
 ///  It is created by SignerStateStore::ReserveNext() and passed to
 ///  CommitReservation() or AbortReservation(). The signer should treat
 ///  it as opaque and should not depend on its internal representation.
+/// \details Each reservation carries a pointer to its issuing store.
+///  Backends must reject reservations issued by a different store
+///  with SignerStateIntegrityFailure.
 class StateReservation
 {
 public:
@@ -75,9 +80,12 @@ public:
 
     /// \brief Move constructor
     StateReservation(StateReservation &&other) noexcept
-        : m_leafIndex(other.m_leafIndex), m_valid(other.m_valid)
+        : m_leafIndex(other.m_leafIndex),
+          m_issuer(other.m_issuer),
+          m_valid(other.m_valid)
     {
         other.m_leafIndex = 0;
+        other.m_issuer = NULLPTR;
         other.m_valid = false;
     }
 
@@ -87,8 +95,10 @@ public:
         if (this != &other)
         {
             m_leafIndex = other.m_leafIndex;
+            m_issuer = other.m_issuer;
             m_valid = other.m_valid;
             other.m_leafIndex = 0;
+            other.m_issuer = NULLPTR;
             other.m_valid = false;
         }
         return *this;
@@ -107,13 +117,17 @@ public:
     bool IsValid() const { return m_valid; }
 
 private:
-    // All state store backends construct reservations through this friendship.
+    // All state store backends construct reservations through this friendship,
+    // and use the friendship to read Issuer() inside the validity helper.
     friend class SignerStateStore;
 
-    explicit StateReservation(uint64_t leafIndex)
-        : m_leafIndex(leafIndex), m_valid(true) {}
+    explicit StateReservation(uint64_t leafIndex, const SignerStateStore *issuer)
+        : m_leafIndex(leafIndex), m_issuer(issuer), m_valid(true) {}
+
+    const SignerStateStore *Issuer() const { return m_issuer; }
 
     uint64_t m_leafIndex;
+    const SignerStateStore *m_issuer;
     bool m_valid;
 };
 
@@ -138,10 +152,21 @@ public:
 protected:
     /// \brief Factory method for constructing StateReservation objects
     /// \details Only state store backends should construct reservations.
-    ///  This protected factory avoids friending every concrete backend.
-    static StateReservation MakeReservation(uint64_t leafIndex)
+    ///  Each reservation captures `this` so a token from one store cannot
+    ///  be committed or aborted against another.
+    StateReservation MakeReservation(uint64_t leafIndex) const
     {
-        return StateReservation(leafIndex);
+        return StateReservation(leafIndex, this);
+    }
+
+    /// \brief Backend-side capability check
+    /// \details Returns true only if the reservation is still valid and
+    ///  was issued by this store. Concrete backends should call this in
+    ///  CommitReservation() and AbortReservation() so the two-part check
+    ///  cannot drift apart.
+    bool IsReservationValidForThis(const StateReservation &reservation) const
+    {
+        return reservation.IsValid() && reservation.Issuer() == this;
     }
 
 public:
