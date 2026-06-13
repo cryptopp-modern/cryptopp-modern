@@ -249,18 +249,40 @@ static size_t PlatformFileSize(int fd)
 
 static void PlatformWriteAt(int fd, const byte *data, size_t len, size_t offset)
 {
-    ssize_t written = pwrite(fd, data, len, static_cast<off_t>(offset));
-    if (written < 0 || static_cast<size_t>(written) != len)
-        throw Exception(Exception::IO_ERROR,
-            "FileStateStore: write failed");
+    size_t done = 0;
+    while (done < len)
+    {
+        ssize_t written;
+        do {
+            written = pwrite(fd, data + done, len - done,
+                             static_cast<off_t>(offset + done));
+        } while (written < 0 && errno == EINTR);
+
+        if (written <= 0)
+            throw Exception(Exception::IO_ERROR,
+                "FileStateStore: write failed");
+
+        done += static_cast<size_t>(written);
+    }
 }
 
 static void PlatformReadAt(int fd, byte *data, size_t len, size_t offset)
 {
-    ssize_t bytesRead = pread(fd, data, len, static_cast<off_t>(offset));
-    if (bytesRead < 0 || static_cast<size_t>(bytesRead) != len)
-        throw Exception(Exception::IO_ERROR,
-            "FileStateStore: read failed");
+    size_t done = 0;
+    while (done < len)
+    {
+        ssize_t bytesRead;
+        do {
+            bytesRead = pread(fd, data + done, len - done,
+                              static_cast<off_t>(offset + done));
+        } while (bytesRead < 0 && errno == EINTR);
+
+        if (bytesRead <= 0)
+            throw Exception(Exception::IO_ERROR,
+                "FileStateStore: read failed");
+
+        done += static_cast<size_t>(bytesRead);
+    }
 }
 
 static void PlatformFlush(int fd)
@@ -269,16 +291,27 @@ static void PlatformFlush(int fd)
     // platter. F_FULLFSYNC is the stronger durability guarantee.
     // For a stateful signing counter, we use the strongest available.
 #ifdef __APPLE__
-    if (fcntl(fd, F_FULLFSYNC) != 0)
+    int r;
+    do {
+        r = fcntl(fd, F_FULLFSYNC);
+    } while (r != 0 && errno == EINTR);
+    if (r != 0)
     {
         // F_FULLFSYNC failed - fall back to fsync rather than silently
         // accepting weaker durability. If fsync also fails, throw.
-        if (fsync(fd) != 0)
+        do {
+            r = fsync(fd);
+        } while (r != 0 && errno == EINTR);
+        if (r != 0)
             throw Exception(Exception::IO_ERROR,
                 "FileStateStore: flush failed");
     }
 #else
-    if (fsync(fd) != 0)
+    int r;
+    do {
+        r = fsync(fd);
+    } while (r != 0 && errno == EINTR);
+    if (r != 0)
         throw Exception(Exception::IO_ERROR,
             "FileStateStore: flush failed");
 #endif
