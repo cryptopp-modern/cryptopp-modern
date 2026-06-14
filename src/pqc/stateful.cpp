@@ -223,7 +223,11 @@ static void AcquireExclusiveLock(int fd, const std::string &path)
     // Advisory exclusive lock; non-blocking so a second opener fails fast
     // rather than hanging. Matches the documented single-writer contract
     // at the OS boundary. Cooperating processes only.
-    if (flock(fd, LOCK_EX | LOCK_NB) != 0)
+    int r;
+    do {
+        r = flock(fd, LOCK_EX | LOCK_NB);
+    } while (r != 0 && errno == EINTR);
+    if (r != 0)
     {
         close(fd);
         throw Exception(Exception::IO_ERROR,

@@ -309,7 +309,9 @@ private:
 /// \details Write-ahead persistence for the signing index counter.
 ///  The index advances on disk before the reservation is returned.
 ///  On crash, at most one index is lost. No index is ever reused.
-///  Single-writer only - concurrent writers cause index reuse.
+///  Single-writer only. The backend rejects concurrent opens where
+///  supported, but POSIX locking is advisory and only protects
+///  cooperating users of this API.
 ///  Targets desktop/server platforms with POSIX or Win32 filesystems.
 ///  Embedded targets should implement SignerStateStore directly.
 /// \sa SignerStateStore, InsecureMemoryStateStore

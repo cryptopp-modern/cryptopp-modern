@@ -4287,7 +4287,13 @@ static void WriteRawFile(const std::string &path, const byte *data, size_t len)
 			"test helper: WriteFile failed: " + path);
 #else
 	std::ofstream f(path, std::ios::binary | std::ios::trunc);
+	if (!f)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: ofstream open failed: " + path);
 	f.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+	if (!f)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: ofstream write failed: " + path);
 #endif
 }
 
@@ -4310,7 +4316,13 @@ static void ReadRawFile(const std::string &path, byte *data, size_t len)
 			"test helper: ReadFile failed: " + path);
 #else
 	std::ifstream f(path, std::ios::binary);
+	if (!f)
+		throw Exception(Exception::IO_ERROR,
+			"test helper: ifstream open failed: " + path);
 	f.read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(len));
+	if (f.gcount() != static_cast<std::streamsize>(len))
+		throw Exception(Exception::IO_ERROR,
+			"test helper: ifstream short read: " + path);
 #endif
 }
 
