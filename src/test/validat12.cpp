@@ -3138,6 +3138,29 @@ static bool TestHSSL4MalformedSignatures()
 	}
 }
 
+// Smoke-check the per-level indexed accessors against the uniform aggregates
+// across the shipped configurations.
+static_assert(HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSize() &&
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<1>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSize(),
+              "HSS indexed LMS signature size must match uniform size (H5/W8 L2)");
+static_assert(HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySize(),
+              "HSS indexed LMS public key size must match uniform size (H5/W8 L2)");
+static_assert(HSS_SHA256_H5_W8_L2_Params::LeavesAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LEAVES_PER_LEVEL,
+              "HSS indexed leaf count must match uniform value (H5/W8 L2)");
+static_assert(HSS_SHA256_H10_W8_L2_Params::LMSSignatureSizeAt<1>() ==
+              HSS_SHA256_H10_W8_L2_Params::LMSSignatureSize(),
+              "HSS indexed LMS signature size must match uniform size (H10/W8 L2)");
+static_assert(HSS_SHA256_H5_W8_L3_Params::LMSPublicKeySizeAt<2>() ==
+              HSS_SHA256_H5_W8_L3_Params::LMSPublicKeySize(),
+              "HSS indexed LMS public key size must match uniform size (H5/W8 L3)");
+static_assert(HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>() ==
+              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSize(),
+              "HSS indexed LMS signature size must match uniform size (H5/W8 L4)");
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";

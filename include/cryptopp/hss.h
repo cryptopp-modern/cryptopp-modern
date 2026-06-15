@@ -50,6 +50,19 @@ struct HSSCapacity<Base, 0>
     static const uint64_t value = 1;
 };
 
+// C++11 compile-time type-at-index helper for parameter packs.
+template <unsigned int I, class Head, class... Tail>
+struct TypeAt
+{
+    typedef typename TypeAt<I - 1, Tail...>::type type;
+};
+
+template <class Head, class... Tail>
+struct TypeAt<0, Head, Tail...>
+{
+    typedef Head type;
+};
+
 } // namespace HSS_Internal
 
 // ******************** HSS Parameter Sets ************************* //
@@ -121,6 +134,49 @@ struct HSS_Params
         return "HSS[" + std::to_string(LEVELS) + "]/" +
                LMS_PARAMS::StaticAlgorithmName() + "/" +
                OTS_PARAMS::StaticAlgorithmName();
+    }
+
+    // Per-level indexed accessors. Uniform here: every index resolves to the
+    // same LMS/OTS pair.
+
+    /// \brief Level descriptor for level I
+    template <unsigned int I>
+    struct LevelAt
+    {
+        static_assert(I < LEVELS, "HSS level index out of range");
+        typedef LMS_PARAMS LMSParams;
+        typedef OTS_PARAMS OTSParams;
+    };
+
+    /// \brief LMS parameter set at level I
+    template <unsigned int I>
+    using LMSParamsAt = typename LevelAt<I>::LMSParams;
+
+    /// \brief LM-OTS parameter set at level I
+    template <unsigned int I>
+    using OTSParamsAt = typename LevelAt<I>::OTSParams;
+
+    /// \brief LMS signature size at level I
+    template <unsigned int I>
+    static constexpr size_t LMSSignatureSizeAt()
+    {
+        return 4 + OTSParamsAt<I>::SIG_LEN + 4 +
+               static_cast<size_t>(LMSParamsAt<I>::H) *
+               static_cast<size_t>(LMSParamsAt<I>::M);
+    }
+
+    /// \brief LMS public key size at level I
+    template <unsigned int I>
+    static constexpr size_t LMSPublicKeySizeAt()
+    {
+        return 4 + 4 + 16 + LMSParamsAt<I>::M;
+    }
+
+    /// \brief Leaf count of the level-I tree
+    template <unsigned int I>
+    static constexpr uint64_t LeavesAt()
+    {
+        return static_cast<uint64_t>(LMSParamsAt<I>::TOTAL_LEAVES);
     }
 };
 
