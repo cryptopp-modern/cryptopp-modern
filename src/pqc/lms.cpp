@@ -1009,13 +1009,13 @@ bool HSSPublicKey<HSS_PARAMS>::Validate(RandomNumberGenerator &rng, unsigned int
         return false;
 
     // Validate the embedded root LMS public key by delegating to LMSPublicKey
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
-    typedef LMSPublicKey<LMS_P, OTS_P> RootLMSKeyType;
+    typedef typename HSS_PARAMS::template LMSParamsAt<0> RootLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<0> RootOTS_P;
+    typedef LMSPublicKey<RootLMS_P, RootOTS_P> RootLMSKeyType;
 
     try {
         RootLMSKeyType rootLmsKey;
-        rootLmsKey.SetPublicKey(GetRootLMSPublicKey(), HSS_PARAMS::LMSPublicKeySize());
+        rootLmsKey.SetPublicKey(GetRootLMSPublicKey(), HSS_PARAMS::template LMSPublicKeySizeAt<0>());
         if (!rootLmsKey.Validate(rng, level))
             return false;
     } catch (const Exception &) {
@@ -1105,14 +1105,14 @@ void HSSPrivateKey<HSS_PARAMS>::MakePublicKey(HSSPublicKey<HSS_PARAMS> &pub) con
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
+    typedef typename HSS_PARAMS::template LMSParamsAt<0> RootLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<0> RootOTS_P;
 
-    const OTSParams otsP = MakeOTSParams<OTS_P>();
-    const LMSParams lmsP = MakeLMSParams<LMS_P>();
+    const OTSParams otsP = MakeOTSParams<RootOTS_P>();
+    const LMSParams lmsP = MakeLMSParams<RootLMS_P>();
 
-    const unsigned int m = LMS_P::M;
-    const uint32_t numNodes = 2u * (1u << LMS_P::H);
+    const unsigned int m = RootLMS_P::M;
+    const uint32_t numNodes = 2u * (1u << RootLMS_P::H);
 
     SecByteBlock tree(static_cast<size_t>(numNodes) * m);
     lms_compute_full_tree(tree, m_I, m_seed, lmsP, otsP);
@@ -1120,7 +1120,7 @@ void HSSPrivateKey<HSS_PARAMS>::MakePublicKey(HSSPublicKey<HSS_PARAMS> &pub) con
     // Build HSS public key: L(4) + LMS public key
     SecByteBlock pkBuf(HSS_PARAMS::PublicKeySize());
     u32str(pkBuf, HSS_PARAMS::L);
-    build_lms_public_key_bytes(pkBuf + 4, LMS_P::TYPE_ID, OTS_P::TYPE_ID,
+    build_lms_public_key_bytes(pkBuf + 4, RootLMS_P::TYPE_ID, RootOTS_P::TYPE_ID,
                                m_I, tree + m, m);
 
     pub.SetPublicKey(pkBuf, HSS_PARAMS::PublicKeySize());
@@ -1218,8 +1218,8 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
+    typedef typename HSS_PARAMS::template LMSParamsAt<0> UniformLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<0> UniformOTS_P;
 
     MessageAccumulatorType &accum =
         static_cast<MessageAccumulatorType&>(messageAccumulator);
@@ -1228,11 +1228,11 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     const byte *message = accum.data();
     const size_t messageLen = accum.size();
 
-    const OTSParams otsP = MakeOTSParams<OTS_P>();
-    const LMSParams lmsP = MakeLMSParams<LMS_P>();
+    const OTSParams otsP = MakeOTSParams<UniformOTS_P>();
+    const LMSParams lmsP = MakeLMSParams<UniformLMS_P>();
 
-    const size_t lmsSigSize = HSS_PARAMS::LMSSignatureSize();
-    const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
+    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
+    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
 
     SignatureCursor cursor = {sig, SIGNATURE_LENGTH, false};
 
@@ -1263,7 +1263,7 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
         }
 
         {
-            typedef LMSPublicKey<LMS_P, OTS_P> ChildLMSKeyType;
+            typedef LMSPublicKey<UniformLMS_P, UniformOTS_P> ChildLMSKeyType;
             ChildLMSKeyType childLmsKey;
             try {
                 childLmsKey.SetPublicKey(childPubKey, lmsPubSize);
@@ -1319,7 +1319,7 @@ void HSSSigner<HSS_PARAMS>::DecomposeGlobalIndex(uint64_t globalIndex,
     CRYPTOPP_ASSERT(levels >= 2 && levels <= 4);
     CRYPTOPP_ASSERT(globalIndex < HSS_PARAMS::TotalSignatures());
 
-    const uint64_t N = static_cast<uint64_t>(HSS_PARAMS::LEAVES_PER_LEVEL);
+    const uint64_t N = HSS_PARAMS::template LeavesAt<0>();
     uint64_t remaining = globalIndex;
 
     for (int i = static_cast<int>(levels) - 1; i >= 0; i--)
@@ -1405,14 +1405,14 @@ void HSSSigner<HSS_PARAMS>::ReconcileState(uint64_t globalIndex)
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
+    typedef typename HSS_PARAMS::template LMSParamsAt<0> RootLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<0> RootOTS_P;
 
-    const OTSParams otsP = MakeOTSParams<OTS_P>();
-    const LMSParams lmsP = MakeLMSParams<LMS_P>();
-    const unsigned int m = LMS_P::M;
-    const unsigned int n = OTS_P::N;
-    const uint32_t numNodes = 2u * (1u << LMS_P::H);
+    const OTSParams otsP = MakeOTSParams<RootOTS_P>();
+    const LMSParams lmsP = MakeLMSParams<RootLMS_P>();
+    const unsigned int m = RootLMS_P::M;
+    const unsigned int n = RootOTS_P::N;
+    const uint32_t numNodes = 2u * (1u << RootLMS_P::H);
 
     uint32_t perLevel[HSS_PARAMS::L] = {};
     DecomposeGlobalIndex(globalIndex, perLevel, HSS_PARAMS::L);
@@ -1424,9 +1424,9 @@ void HSSSigner<HSS_PARAMS>::ReconcileState(uint64_t globalIndex)
     root.tree.resize(static_cast<size_t>(numNodes) * m);
     lms_compute_full_tree(root.tree, root.identifier, root.seed, lmsP, otsP);
 
-    const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
+    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
     root.lmsPublicKey.resize(lmsPubSize);
-    build_lms_public_key_bytes(root.lmsPublicKey, LMS_P::TYPE_ID, OTS_P::TYPE_ID,
+    build_lms_public_key_bytes(root.lmsPublicKey, RootLMS_P::TYPE_ID, RootOTS_P::TYPE_ID,
                                root.identifier, root.tree + m, m);
 
     root.childSubtreeId = 0;  // unused for level 0
@@ -1444,17 +1444,17 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
+    typedef typename HSS_PARAMS::template LMSParamsAt<0> UniformLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<0> UniformOTS_P;
 
-    const OTSParams otsP = MakeOTSParams<OTS_P>();
-    const LMSParams lmsP = MakeLMSParams<LMS_P>();
-    const unsigned int m = LMS_P::M;
-    const unsigned int n = OTS_P::N;
-    const uint32_t numNodes = 2u * (1u << LMS_P::H);
+    const OTSParams otsP = MakeOTSParams<UniformOTS_P>();
+    const LMSParams lmsP = MakeLMSParams<UniformLMS_P>();
+    const unsigned int m = UniformLMS_P::M;
+    const unsigned int n = UniformOTS_P::N;
+    const uint32_t numNodes = 2u * (1u << UniformLMS_P::H);
 
-    const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
-    const size_t lmsSigSize = HSS_PARAMS::LMSSignatureSize();
+    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
+    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
 
     for (unsigned int level = fromLevel; level < HSS_PARAMS::L; level++)
     {
@@ -1474,8 +1474,8 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
                               lmsP, otsP);
 
         child.lmsPublicKey.resize(lmsPubSize);
-        build_lms_public_key_bytes(child.lmsPublicKey, LMS_P::TYPE_ID,
-                                   OTS_P::TYPE_ID, child.identifier,
+        build_lms_public_key_bytes(child.lmsPublicKey, UniformLMS_P::TYPE_ID,
+                                   UniformOTS_P::TYPE_ID, child.identifier,
                                    child.tree + m, m);
 
         // Sign child public key with parent LMS tree
@@ -1496,7 +1496,7 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
                    parent.identifier, parentLeaf, parent.seed, C, otsP);
 
         const size_t otsSigLen = otsP.SigLen();
-        u32str(sig + 4 + otsSigLen, LMS_P::TYPE_ID);
+        u32str(sig + 4 + otsSigLen, UniformLMS_P::TYPE_ID);
 
         lms_extract_auth_path(sig + 4 + otsSigLen + 4, parent.tree,
                               parentLeaf, lmsP);
@@ -1516,15 +1516,15 @@ void HSSSigner<HSS_PARAMS>::ProduceSignature(
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::LMSParameters LMS_P;
-    typedef typename HSS_PARAMS::OTSParameters OTS_P;
+    typedef typename HSS_PARAMS::template LMSParamsAt<HSS_PARAMS::L - 1> BottomLMS_P;
+    typedef typename HSS_PARAMS::template OTSParamsAt<HSS_PARAMS::L - 1> BottomOTS_P;
 
-    const OTSParams otsP = MakeOTSParams<OTS_P>();
-    const LMSParams lmsP = MakeLMSParams<LMS_P>();
-    const unsigned int n = OTS_P::N;
+    const OTSParams otsP = MakeOTSParams<BottomOTS_P>();
+    const LMSParams lmsP = MakeLMSParams<BottomLMS_P>();
+    const unsigned int n = BottomOTS_P::N;
 
-    const size_t lmsSigSize = HSS_PARAMS::LMSSignatureSize();
-    const size_t lmsPubSize = HSS_PARAMS::LMSPublicKeySize();
+    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
+    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
 
     size_t offset = 0;
 
@@ -1564,7 +1564,7 @@ void HSSSigner<HSS_PARAMS>::ProduceSignature(
                bottom.identifier, q, bottom.seed, C, otsP);
 
     const size_t otsSigLen = otsP.SigLen();
-    u32str(finalSig + 4 + otsSigLen, LMS_P::TYPE_ID);
+    u32str(finalSig + 4 + otsSigLen, BottomLMS_P::TYPE_ID);
 
     lms_extract_auth_path(finalSig + 4 + otsSigLen + 4, bottom.tree,
                           q, lmsP);

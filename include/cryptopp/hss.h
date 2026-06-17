@@ -274,7 +274,7 @@ template <class HSS_PARAMS>
 class HSSPrivateKey : public PrivateKey
 {
 public:
-    CRYPTOPP_CONSTANT(SEED_SIZE = HSS_PARAMS::OTSParameters::N);
+    CRYPTOPP_CONSTANT(SEED_SIZE = HSS_PARAMS::template OTSParamsAt<0>::N);
     CRYPTOPP_CONSTANT(I_SIZE = 16);
 
     HSSPrivateKey() : m_seed(SEED_SIZE), m_I(I_SIZE) {}
