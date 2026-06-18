@@ -1715,7 +1715,7 @@ static bool TestHSSSubtreeBoundary()
 		SecByteBlock signature(signer.SignatureLength());
 
 		// Sign 32 messages (exhausts bottom-level subtree 0)
-		for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+		for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++)
 		{
 			std::string msg = "Subtree boundary test msg " + std::to_string(i);
 			signer.SignMessage(rng,
@@ -1842,7 +1842,7 @@ static bool TestHSSReconstructionAtBoundary()
 		// Sign up to the subtree boundary (32 sigs = exhaust subtree 0)
 		{
 			HSSSigner<Params> signer1(privKey, store);
-			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+			for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++)
 			{
 				std::string msg = "Boundary recon msg " + std::to_string(i);
 				signer1.SignMessage(rng,
@@ -2329,8 +2329,8 @@ static bool TestHSSMalformedSignatures()
 		// [4..1295]    intermediate LMS sig (1292 bytes)
 		// [1296..1351] intermediate LMS pub key (56 bytes)
 		// [1352..2643] final LMS sig (1292 bytes)
-		const size_t lmsSigSize = Params::LMSSignatureSize();   // 1292
-		const size_t lmsPubSize = Params::LMSPublicKeySize();   // 56
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();   // 1292
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();   // 56
 		unsigned int rejected = 0;
 
 		// 1. Wrong Nspk (set to 0 instead of 1)
@@ -2887,8 +2887,8 @@ static bool TestHSSL3MalformedSignatures()
 		// sig_1 (L1 -> L2)    at offset 4 + lmsSigSize + lmsPubSize     <-- middle intermediate sig
 		// pubkey_2            at offset 4 + 2*lmsSigSize + lmsPubSize   <-- layer-2 pubkey
 		// final sig (L2 -> M) at offset 4 + 2*lmsSigSize + 2*lmsPubSize
-		const size_t lmsSigSize = Params::LMSSignatureSize();
-		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();
 		unsigned int rejected = 0;
 
 		// Tamper middle intermediate sig (sig_1)
@@ -3092,8 +3092,8 @@ static bool TestHSSL4MalformedSignatures()
 		// sig_2 (L2  -> L3)   at offset 4 + 2*lmsSigSize + 2*lmsPubSize <-- depth-3 intermediate sig
 		// pubkey_3            at offset 4 + 3*lmsSigSize + 2*lmsPubSize
 		// final sig (L3 -> M) at offset 4 + 3*lmsSigSize + 3*lmsPubSize
-		const size_t lmsSigSize = Params::LMSSignatureSize();
-		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();
 		unsigned int rejected = 0;
 
 		// Tamper depth-3 intermediate sig (sig_2)
@@ -3138,28 +3138,23 @@ static bool TestHSSL4MalformedSignatures()
 	}
 }
 
-// Smoke-check the per-level indexed accessors against the uniform aggregates
-// across the shipped configurations.
+// Check that the variadic HSS typedefs keep the existing uniform sizes.
 static_assert(HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<0>() ==
-              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSize() &&
-              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<1>() ==
-              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSize(),
-              "HSS indexed LMS signature size must match uniform size (H5/W8 L2)");
-static_assert(HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<0>() ==
-              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySize(),
-              "HSS indexed LMS public key size must match uniform size (H5/W8 L2)");
-static_assert(HSS_SHA256_H5_W8_L2_Params::LeavesAt<0>() ==
-              HSS_SHA256_H5_W8_L2_Params::LEAVES_PER_LEVEL,
-              "HSS indexed leaf count must match uniform value (H5/W8 L2)");
-static_assert(HSS_SHA256_H10_W8_L2_Params::LMSSignatureSizeAt<1>() ==
-              HSS_SHA256_H10_W8_L2_Params::LMSSignatureSize(),
-              "HSS indexed LMS signature size must match uniform size (H10/W8 L2)");
-static_assert(HSS_SHA256_H5_W8_L3_Params::LMSPublicKeySizeAt<2>() ==
-              HSS_SHA256_H5_W8_L3_Params::LMSPublicKeySize(),
-              "HSS indexed LMS public key size must match uniform size (H5/W8 L3)");
-static_assert(HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>() ==
-              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSize(),
-              "HSS indexed LMS signature size must match uniform size (H5/W8 L4)");
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<1>() &&
+              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<1>(),
+              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L2)");
+static_assert(HSS_SHA256_H5_W8_L2_Params::SignatureSize() == 2644 &&
+              HSS_SHA256_H5_W8_L2_Params::PublicKeySize() == 60,
+              "HSS H5/W8 L2 signature and public key sizes are fixed");
+static_assert(HSS_SHA256_H10_W8_L2_Params::SignatureSize() == 2964,
+              "HSS H10/W8 L2 signature size is fixed");
+static_assert(HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<2>(),
+              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L3)");
+static_assert(HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
+              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L4)");
 
 bool ValidateHSS()
 {
@@ -3851,7 +3846,7 @@ static bool TestFileStoreHSSSubtreeBoundaryRestart()
 			FileStateStore store = FileStateStore::Create(path, Params::TotalSignatures());
 			HSSSigner<Params> signer(privKey, store);
 
-			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++) {
+			for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++) {
 				std::string msg = "Boundary restart msg " + std::to_string(i);
 				signer.SignMessage(rng,
 					reinterpret_cast<const byte*>(msg.data()), msg.size(),
