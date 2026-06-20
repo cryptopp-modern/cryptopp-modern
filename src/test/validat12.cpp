@@ -3156,6 +3156,132 @@ static_assert(HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
               HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
               "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L4)");
 
+// Mixed-height L=2: an H10 root over an H5 bottom tree, uniform W8.
+// Signature sizes differ, so this catches level-0 sizing assumptions.
+typedef HSS_Params<
+	HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
+	HSSLevel<LMS_SHA256_M32_H5,  LMOTS_SHA256_N32_W8> > HSS_Mixed_H10H5_W8_L2_Params;
+
+static bool TestHSSMixedHeights()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS mixed H10/H5 L2";
+
+	try {
+		typedef HSS_Mixed_H10H5_W8_L2_Params Params;
+
+		const std::string expectedName =
+			"HSS[2]/(LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8,"
+			"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8)";
+		if (Params::StaticAlgorithmName() != expectedName)
+		{
+			std::cout << "FAILED:  " << name << " algorithm name "
+				<< Params::StaticAlgorithmName() << std::endl;
+			return false;
+		}
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(Params::SignatureSize());
+
+		// Sign across the H5 bottom boundary: index 32 enters root leaf 1, which
+		// forces a bottom-subtree rebuild.
+		const unsigned int count = 34;
+		{
+			HSSSigner<Params> signer(privKey, store);
+			for (unsigned int i = 0; i < count; i++)
+			{
+				std::string msg = "mixed msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin());
+
+				if (!verifier.VerifyMessage(
+						reinterpret_cast<const byte*>(msg.data()), msg.size(),
+						signature.begin(), signature.size()))
+				{
+					std::cout << "FAILED:  " << name << " signature " << i
+						<< " rejected" << std::endl;
+					return false;
+				}
+
+				// Rollover check: index 31 is root 0 / bottom 31, index 32 is
+				// root 1 / bottom 0. A reversed level order would fail here.
+				if (i == 31 || i == 32)
+				{
+					auto be32 = [](const byte* p) -> uint32_t {
+						return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) |
+						       (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+					};
+					const byte* s = signature.begin();
+					const size_t finalSigOff = 4 +
+						Params::LMSSignatureSizeAt<0>() + Params::LMSPublicKeySizeAt<1>();
+					uint32_t rootLeaf = be32(s + 4);
+					uint32_t bottomLeaf = be32(s + finalSigOff);
+					if (rootLeaf != i / 32 || bottomLeaf != i % 32)
+					{
+						std::cout << "FAILED:  " << name << " index " << i
+							<< " decomposed to root " << rootLeaf
+							<< " bottom " << bottomLeaf << std::endl;
+						return false;
+					}
+				}
+			}
+		}
+
+		// Tamper rejection.
+		{
+			HSSSigner<Params> signer(privKey, store);
+			std::string msg = "mixed tamper";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+			signature[signature.size() / 2] ^= 0x01;
+			if (verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin(), signature.size()))
+			{
+				std::cout << "FAILED:  " << name << " accepted tampered signature"
+					<< std::endl;
+				return false;
+			}
+		}
+
+		// Reconstruct from the persisted store.
+		{
+			HSSSigner<Params> signer(privKey, store);
+			std::string msg = "mixed after restart";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin(), signature.size()))
+			{
+				std::cout << "FAILED:  " << name << " signature after restart rejected"
+					<< std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " sign/verify across boundary, tamper, restart" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
@@ -3197,6 +3323,15 @@ bool ValidateHSS()
 	pass = TestHSSL4MalformedSignatures() && pass;
 	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L4_Params>(
 		"HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+
+	// Mixed-height coverage: per-level dispatch with different tree heights
+	pass = TestHSSSignVerify<HSS_Mixed_H10H5_W8_L2_Params>(
+		"HSS mixed H10/H5 L2") && pass;
+	pass = TestHSSSerialization<HSS_Mixed_H10H5_W8_L2_Params>(
+		"HSS mixed H10/H5 L2") && pass;
+	pass = TestHSSCrossKeyNegative<HSS_Mixed_H10H5_W8_L2_Params>(
+		"HSS mixed H10/H5 L2") && pass;
+	pass = TestHSSMixedHeights() && pass;
 
 	return pass;
 }

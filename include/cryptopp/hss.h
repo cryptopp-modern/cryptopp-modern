@@ -145,36 +145,25 @@ struct SameN<First, Second, Tail...>
         SameN<Second, Tail...>::value;
 };
 
-// Compile-time type equality, avoiding a <type_traits> dependency in this header.
-template <class A, class B>
-struct IsSameType { static const bool value = false; };
-
-template <class A>
-struct IsSameType<A, A> { static const bool value = true; };
-
-// True when every level uses the same LMS and LM-OTS parameter pair.
+// Append each level's "<LMSname>/<OTSname>" to out, top level first.
 template <class... Levels>
-struct SameLevel;
+struct LevelNames;
 
 template <>
-struct SameLevel<>
+struct LevelNames<>
 {
-    static const bool value = true;
+    static void Append(std::vector<std::string> &) {}
 };
 
-template <class Head>
-struct SameLevel<Head>
+template <class Head, class... Tail>
+struct LevelNames<Head, Tail...>
 {
-    static const bool value = true;
-};
-
-template <class First, class Second, class... Tail>
-struct SameLevel<First, Second, Tail...>
-{
-    static const bool value =
-        IsSameType<typename First::LMSParams, typename Second::LMSParams>::value &&
-        IsSameType<typename First::OTSParams, typename Second::OTSParams>::value &&
-        SameLevel<Second, Tail...>::value;
+    static void Append(std::vector<std::string> &out)
+    {
+        out.push_back(Head::LMSParams::StaticAlgorithmName() + "/" +
+                      Head::OTSParams::StaticAlgorithmName());
+        LevelNames<Tail...>::Append(out);
+    }
 };
 
 } // namespace HSS_Internal
@@ -193,17 +182,16 @@ struct HSSLevel
     typedef OTS_PARAMS OTSParams;
 };
 
-/// \brief HSS parameter set over a list of HSSLevel descriptors
+/// \brief HSS parameter set with per-level LMS and LM-OTS choices
 /// \tparam Levels two to four HSSLevel descriptors, top (root) level first
-/// \details Mixed levels are rejected until runtime per-level dispatch is implemented.
+/// \details Uniform configurations repeat the same HSSLevel at every level.
+///  All levels must share one LM-OTS hash output size N.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-6">RFC 8554 Section 6</A>
 template <class... Levels>
 struct HSS_Params
 {
     static_assert(sizeof...(Levels) >= 2, "HSS requires at least 2 levels");
     static_assert(sizeof...(Levels) <= 4, "HSS supports up to 4 levels");
-    static_assert(HSS_Internal::SameLevel<Levels...>::value,
-        "mixed HSS levels require runtime per-level dispatch");
     static_assert(HSS_Internal::SameN<Levels...>::value,
         "HSS levels must share one LM-OTS hash output size N");
 
@@ -274,11 +262,28 @@ struct HSS_Params
     }
 
     /// \brief Algorithm name
+    /// \details Uniform configurations keep the HSS[L]/<lms>/<ots> form. Mixed
+    ///  configurations list each level: HSS[L]/(<l0>,<l1>,...).
     static std::string StaticAlgorithmName()
     {
-        return "HSS[" + std::to_string(sizeof...(Levels)) + "]/" +
-               LMSParamsAt<0>::StaticAlgorithmName() + "/" +
-               OTSParamsAt<0>::StaticAlgorithmName();
+        std::vector<std::string> names;
+        HSS_Internal::LevelNames<Levels...>::Append(names);
+
+        bool uniform = true;
+        for (size_t i = 1; i < names.size(); i++)
+            if (names[i] != names[0]) { uniform = false; break; }
+
+        const std::string prefix = "HSS[" + std::to_string(sizeof...(Levels)) + "]/";
+        if (uniform)
+            return prefix + names[0];
+
+        std::string out = prefix + "(";
+        for (size_t i = 0; i < names.size(); i++)
+        {
+            if (i) out += ",";
+            out += names[i];
+        }
+        return out + ")";
     }
 };
 

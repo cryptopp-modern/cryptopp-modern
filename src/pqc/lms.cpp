@@ -980,6 +980,56 @@ bool lms_verify_signature_raw(
     return result;
 }
 
+// Fill per-level leaf counts. L <= 4.
+template <class P, unsigned int I = 0, bool DONE = (I >= P::L)>
+struct LevelLeaves
+{
+    static void Fill(uint64_t *out)
+    {
+        out[I] = P::template LeavesAt<I>();
+        LevelLeaves<P, I + 1>::Fill(out);
+    }
+};
+
+template <class P, unsigned int I>
+struct LevelLeaves<P, I, true>
+{
+    static void Fill(uint64_t *) {}
+};
+
+// Per-level params and sizes for one sign/verify call.
+template <class P, unsigned int I = 0, bool DONE = (I >= P::L)>
+struct FillLevelTable
+{
+    template <class Table>
+    static void Apply(Table &t)
+    {
+        t.lms[I] = LMS_Internal::MakeLMSParams<typename P::template LMSParamsAt<I> >();
+        t.ots[I] = LMS_Internal::MakeOTSParams<typename P::template OTSParamsAt<I> >();
+        t.sigSize[I] = P::template LMSSignatureSizeAt<I>();
+        t.pubSize[I] = P::template LMSPublicKeySizeAt<I>();
+        FillLevelTable<P, I + 1>::Apply(t);
+    }
+};
+
+template <class P, unsigned int I>
+struct FillLevelTable<P, I, true>
+{
+    template <class Table>
+    static void Apply(Table &) {}
+};
+
+template <class P>
+struct LevelTable
+{
+    LMS_Internal::LMSParams lms[P::L];
+    LMS_Internal::OTSParams ots[P::L];
+    size_t sigSize[P::L];
+    size_t pubSize[P::L];
+
+    LevelTable() { FillLevelTable<P>::Apply(*this); }
+};
+
 }  // anonymous namespace
 
 // ******************** HSSPublicKey ************************* //
@@ -1218,8 +1268,7 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::template LMSParamsAt<0> UniformLMS_P;
-    typedef typename HSS_PARAMS::template OTSParamsAt<0> UniformOTS_P;
+    LevelTable<HSS_PARAMS> levels;
 
     MessageAccumulatorType &accum =
         static_cast<MessageAccumulatorType&>(messageAccumulator);
@@ -1227,12 +1276,6 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     const byte *sig = accum.signature();
     const byte *message = accum.data();
     const size_t messageLen = accum.size();
-
-    const OTSParams otsP = MakeOTSParams<UniformOTS_P>();
-    const LMSParams lmsP = MakeLMSParams<UniformLMS_P>();
-
-    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
-    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
 
     SignatureCursor cursor = {sig, SIGNATURE_LENGTH, false};
 
@@ -1243,57 +1286,58 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
         return false;
     }
 
-    SecByteBlock currentKey(lmsPubSize);
-    std::memcpy(currentKey, m_key.GetRootLMSPublicKey(), lmsPubSize);
+    SecByteBlock currentKey;
+    currentKey.Assign(m_key.GetRootLMSPublicKey(), levels.pubSize[0]);
+
+    // Check the root key type IDs.
+    if (LoadBE32(currentKey.data())     != levels.lms[0].type_id ||
+        LoadBE32(currentKey.data() + 4) != levels.ots[0].type_id)
+    {
+        accum.Restart();
+        return false;
+    }
 
     for (uint32_t i = 0; i < Nspk; i++)
     {
-        const byte *intermediateSig = cursor.ReadBlock(lmsSigSize);
+        const byte *intermediateSig = cursor.ReadBlock(levels.sigSize[i]);
         if (!intermediateSig)
         {
             accum.Restart();
             return false;
         }
 
-        const byte *childPubKey = cursor.ReadBlock(lmsPubSize);
+        const byte *childPubKey = cursor.ReadBlock(levels.pubSize[i + 1]);
         if (!childPubKey)
         {
             accum.Restart();
             return false;
         }
 
-        {
-            typedef LMSPublicKey<UniformLMS_P, UniformOTS_P> ChildLMSKeyType;
-            ChildLMSKeyType childLmsKey;
-            try {
-                childLmsKey.SetPublicKey(childPubKey, lmsPubSize);
-            } catch (const Exception &) {
-                accum.Restart();
-                return false;
-            }
-            if (!childLmsKey.Validate(NullRNG(), 0))
-            {
-                accum.Restart();
-                return false;
-            }
-        }
-
-        if (!lms_verify_signature_raw(currentKey, childPubKey, lmsPubSize,
-                                       intermediateSig, lmsP, otsP))
+        // Child key must match the level i+1 LMS/OTS type IDs.
+        if (LoadBE32(childPubKey)     != levels.lms[i + 1].type_id ||
+            LoadBE32(childPubKey + 4) != levels.ots[i + 1].type_id)
         {
             accum.Restart();
             return false;
         }
 
-        std::memcpy(currentKey, childPubKey, lmsPubSize);
+        if (!lms_verify_signature_raw(currentKey, childPubKey, levels.pubSize[i + 1],
+                                       intermediateSig, levels.lms[i], levels.ots[i]))
+        {
+            accum.Restart();
+            return false;
+        }
+
+        currentKey.Assign(childPubKey, levels.pubSize[i + 1]);
     }
 
-    if (!cursor.HasExactly(lmsSigSize))
+    const size_t finalSigSize = levels.sigSize[HSS_PARAMS::L - 1];
+    if (!cursor.HasExactly(finalSigSize))
     {
         accum.Restart();
         return false;
     }
-    const byte *finalSig = cursor.ReadBlock(lmsSigSize);
+    const byte *finalSig = cursor.ReadBlock(finalSigSize);
     if (!finalSig)
     {
         accum.Restart();
@@ -1301,7 +1345,8 @@ bool HSSVerifier<HSS_PARAMS>::VerifyAndRestart(
     }
 
     bool result = lms_verify_signature_raw(currentKey, message, messageLen,
-                                            finalSig, lmsP, otsP);
+                                            finalSig, levels.lms[HSS_PARAMS::L - 1],
+                                            levels.ots[HSS_PARAMS::L - 1]);
 
     SecureWipeBuffer(currentKey.data(), currentKey.size());
 
@@ -1319,13 +1364,15 @@ void HSSSigner<HSS_PARAMS>::DecomposeGlobalIndex(uint64_t globalIndex,
     CRYPTOPP_ASSERT(levels >= 2 && levels <= 4);
     CRYPTOPP_ASSERT(globalIndex < HSS_PARAMS::TotalSignatures());
 
-    const uint64_t N = HSS_PARAMS::template LeavesAt<0>();
+    uint64_t leaves[HSS_PARAMS::L] = {};
+    LevelLeaves<HSS_PARAMS>::Fill(leaves);
+
     uint64_t remaining = globalIndex;
 
     for (int i = static_cast<int>(levels) - 1; i >= 0; i--)
     {
-        perLevel[i] = static_cast<uint32_t>(remaining % N);
-        remaining /= N;
+        perLevel[i] = static_cast<uint32_t>(remaining % leaves[i]);
+        remaining /= leaves[i];
     }
 }
 
@@ -1353,7 +1400,7 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
     if (!m_store)
         throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
 
-    // Reserve global signing index (authoritative safety boundary)
+    // Reserve the next signing index.
     StateReservation reservation = m_store->ReserveNext();
 
     if (!reservation.IsValid())
@@ -1444,23 +1491,22 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
 {
     using namespace LMS_Internal;
 
-    typedef typename HSS_PARAMS::template LMSParamsAt<0> UniformLMS_P;
-    typedef typename HSS_PARAMS::template OTSParamsAt<0> UniformOTS_P;
-
-    const OTSParams otsP = MakeOTSParams<UniformOTS_P>();
-    const LMSParams lmsP = MakeLMSParams<UniformLMS_P>();
-    const unsigned int m = UniformLMS_P::M;
-    const unsigned int n = UniformOTS_P::N;
-    const uint32_t numNodes = 2u * (1u << UniformLMS_P::H);
-
-    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
-    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
+    LevelTable<HSS_PARAMS> levels;
 
     for (unsigned int level = fromLevel; level < HSS_PARAMS::L; level++)
     {
         LevelState &parent = m_levels[level - 1];
         LevelState &child = m_levels[level];
         uint32_t parentLeaf = perLevel[level - 1];
+
+        const LMSParams &childLms = levels.lms[level];
+        const OTSParams &childOts = levels.ots[level];
+        const LMSParams &parentLms = levels.lms[level - 1];
+        const OTSParams &parentOts = levels.ots[level - 1];
+
+        const unsigned int m = childLms.m;
+        const unsigned int n = childOts.n;
+        const uint32_t numNodes = 2u * (1u << childLms.h);
 
         child.seed.resize(n);
         child.identifier.resize(16);
@@ -1471,16 +1517,14 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
 
         child.tree.resize(static_cast<size_t>(numNodes) * m);
         lms_compute_full_tree(child.tree, child.identifier, child.seed,
-                              lmsP, otsP);
+                              childLms, childOts);
 
-        child.lmsPublicKey.resize(lmsPubSize);
-        build_lms_public_key_bytes(child.lmsPublicKey, UniformLMS_P::TYPE_ID,
-                                   UniformOTS_P::TYPE_ID, child.identifier,
+        child.lmsPublicKey.resize(levels.pubSize[level]);
+        build_lms_public_key_bytes(child.lmsPublicKey, childLms.type_id,
+                                   childOts.type_id, child.identifier,
                                    child.tree + m, m);
 
-        // Sign child public key with parent LMS tree
-        // This consumes parent leaf perLevel[level-1]
-        child.parentSignatureOnChild.resize(lmsSigSize);
+        child.parentSignatureOnChild.resize(levels.sigSize[level - 1]);
         byte *sig = child.parentSignatureOnChild;
 
         // LMS signature: q(4) + OTS_sig + LMS_type(4) + auth_path(h*m)
@@ -1488,18 +1532,19 @@ void HSSSigner<HSS_PARAMS>::BuildSubtreeChain(
 
         // Deterministic C for intermediate signing (i=0xFFFD, library-internal).
         // Must be deterministic for restart-safe reconstruction. See lms_params.h.
-        SecByteBlock C(n);
+        SecByteBlock C(parentOts.n);
         lmots_derive_chain_key(C, parent.identifier, parentLeaf,
-                               static_cast<uint16_t>(0xFFFD), parent.seed, n);
+                               static_cast<uint16_t>(0xFFFD), parent.seed,
+                               parentOts.n);
 
-        lmots_sign(sig + 4, child.lmsPublicKey, lmsPubSize,
-                   parent.identifier, parentLeaf, parent.seed, C, otsP);
+        lmots_sign(sig + 4, child.lmsPublicKey, levels.pubSize[level],
+                   parent.identifier, parentLeaf, parent.seed, C, parentOts);
 
-        const size_t otsSigLen = otsP.SigLen();
-        u32str(sig + 4 + otsSigLen, UniformLMS_P::TYPE_ID);
+        const size_t otsSigLen = parentOts.SigLen();
+        u32str(sig + 4 + otsSigLen, parentLms.type_id);
 
         lms_extract_auth_path(sig + 4 + otsSigLen + 4, parent.tree,
-                              parentLeaf, lmsP);
+                              parentLeaf, parentLms);
 
         SecureWipeBuffer(C.data(), C.size());
 
@@ -1523,8 +1568,7 @@ void HSSSigner<HSS_PARAMS>::ProduceSignature(
     const LMSParams lmsP = MakeLMSParams<BottomLMS_P>();
     const unsigned int n = BottomOTS_P::N;
 
-    const size_t lmsSigSize = HSS_PARAMS::template LMSSignatureSizeAt<0>();
-    const size_t lmsPubSize = HSS_PARAMS::template LMSPublicKeySizeAt<0>();
+    LevelTable<HSS_PARAMS> levels;
 
     size_t offset = 0;
 
@@ -1532,18 +1576,21 @@ void HSSSigner<HSS_PARAMS>::ProduceSignature(
     u32str(signature + offset, HSS_PARAMS::L - 1);
     offset += 4;
 
-    // Intermediate levels: emit cached parentSignatureOnChild + lmsPublicKey
+    // Each intermediate level carries the level-(k-1) signature over the
+    // level-k public key.
     for (unsigned int level = 1; level < HSS_PARAMS::L; level++)
     {
         const LevelState &lvl = m_levels[level];
+        const size_t parentSigSize = levels.sigSize[level - 1];
+        const size_t childPubSize = levels.pubSize[level];
         CRYPTOPP_ASSERT(lvl.initialised);
-        CRYPTOPP_ASSERT(lvl.parentSignatureOnChild.size() == lmsSigSize);
-        CRYPTOPP_ASSERT(lvl.lmsPublicKey.size() == lmsPubSize);
+        CRYPTOPP_ASSERT(lvl.parentSignatureOnChild.size() == parentSigSize);
+        CRYPTOPP_ASSERT(lvl.lmsPublicKey.size() == childPubSize);
 
-        std::memcpy(signature + offset, lvl.parentSignatureOnChild, lmsSigSize);
-        offset += lmsSigSize;
-        std::memcpy(signature + offset, lvl.lmsPublicKey, lmsPubSize);
-        offset += lmsPubSize;
+        std::memcpy(signature + offset, lvl.parentSignatureOnChild, parentSigSize);
+        offset += parentSigSize;
+        std::memcpy(signature + offset, lvl.lmsPublicKey, childPubSize);
+        offset += childPubSize;
     }
 
     // Final: sign message with bottom-level LMS tree
@@ -1556,7 +1603,7 @@ void HSSSigner<HSS_PARAMS>::ProduceSignature(
     // LMS signature: q(4) + OTS_sig + LMS_type(4) + auth_path(h*m)
     u32str(finalSig, q);
 
-    // Generate randomiser C (only RNG usage in entire signing flow)
+    // Generate the bottom-level LM-OTS randomiser.
     SecByteBlock C(n);
     rng.GenerateBlock(C, n);
 
@@ -1595,5 +1642,15 @@ template class HSSPublicKey<HSS_SHA256_H5_W8_L4_Params>;
 template class HSSPrivateKey<HSS_SHA256_H5_W8_L4_Params>;
 template class HSSVerifier<HSS_SHA256_H5_W8_L4_Params>;
 template class HSSSigner<HSS_SHA256_H5_W8_L4_Params>;
+
+// Mixed-height coverage: H10 root over H5 bottom, uniform W8.
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5,  LMOTS_SHA256_N32_W8> > HSS_Mixed_H10H5_W8_L2_Params;
+
+template class HSSPublicKey<HSS_Mixed_H10H5_W8_L2_Params>;
+template class HSSPrivateKey<HSS_Mixed_H10H5_W8_L2_Params>;
+template class HSSVerifier<HSS_Mixed_H10H5_W8_L2_Params>;
+template class HSSSigner<HSS_Mixed_H10H5_W8_L2_Params>;
 
 NAMESPACE_END  // CryptoPP
