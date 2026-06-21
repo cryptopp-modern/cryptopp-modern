@@ -1121,7 +1121,8 @@ static bool TestLMSMalformedSignatures(const char* name)
 
 		// Test 6: Corrupted OTS y value (middle of signature)
 		SecByteBlock corruptedY(validSig);
-		size_t yOffset = 4 + 4 + 32 + 16 * 32;  // middle of y array
+		size_t yOffset = 4 + 4 + OTS_PARAMS::N +
+			static_cast<size_t>(OTS_PARAMS::P / 2) * OTS_PARAMS::N;  // middle of y array
 		corruptedY[yOffset] ^= 0x01;
 		bool corruptedYAccepted = verifier.VerifyMessage(
 			reinterpret_cast<const byte*>(message.data()), message.size(),
@@ -1459,6 +1460,20 @@ bool ValidateLMS()
 		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSSerialization<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
+
+	// SHA-256/N32 LM-OTS family at H5: W1, W2, W4
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W1") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W1") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W2") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W2") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W4") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W4") && pass;
 
 	// Exhaustion test (H5 = 32 signatures)
 	pass = TestLMSExhaustion() && pass;

@@ -870,6 +870,38 @@ template struct LMSVerifier<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
 template struct LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>;
 template struct LMSSigner<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>;
 
+template struct LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>;
+template struct LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>;
+template struct LMSPublicKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>;
+
+template struct LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>;
+template struct LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>;
+template struct LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>;
+
+template struct LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>;
+template struct LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>;
+template struct LMSVerifier<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>;
+
+template struct LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>;
+template struct LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>;
+template struct LMSSigner<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>;
+
+template struct LMSPublicKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W1>;
+template struct LMSPublicKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W2>;
+template struct LMSPublicKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W4>;
+
+template struct LMSPrivateKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W1>;
+template struct LMSPrivateKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W2>;
+template struct LMSPrivateKey<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W4>;
+
+template struct LMSVerifier<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W1>;
+template struct LMSVerifier<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W2>;
+template struct LMSVerifier<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W4>;
+
+template struct LMSSigner<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W1>;
+template struct LMSSigner<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W2>;
+template struct LMSSigner<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W4>;
+
 NAMESPACE_END  // CryptoPP
 
 // ==================== HSS Template Implementations ====================
