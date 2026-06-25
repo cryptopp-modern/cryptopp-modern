@@ -115,12 +115,14 @@ struct MLDSA_MessageAccumulator : public PK_MessageAccumulator
     /// \brief Set the context string for signing/verification
     /// \details FIPS 204 Section 5.2 allows an optional context string (up to 255 bytes)
     ///  that is included in the message prefix. Empty by default (pure signing mode).
-    /// \param ctx pointer to context data (may be NULL if ctxLen is 0)
+    /// \param ctx pointer to context data (may be NULL only if ctxLen is 0)
     /// \param ctxLen length of context in bytes (max 255 per FIPS 204)
     void SetContext(const byte *ctx, size_t ctxLen) {
         if (ctxLen > 255)
             throw InvalidArgument("ML-DSA: context string exceeds 255 bytes");
-        if (ctx && ctxLen)
+        if (!ctx && ctxLen)
+            throw InvalidArgument("ML-DSA: SetContext called with null pointer and non-zero length");
+        if (ctxLen)
             m_ctx.assign(ctx, ctx + ctxLen);
         else
             m_ctx.clear();
