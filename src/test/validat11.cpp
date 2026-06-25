@@ -23,6 +23,8 @@
 #include <sstream>
 #include <fstream>
 #include <cstdio>
+#include <map>
+#include <utility>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
@@ -440,10 +442,47 @@ static bool TestMLDSASaveLoad(const char* name)
 	}
 }
 
+// SetContext rejects a null pointer with non-zero length and an over-long context.
+template <class PARAMS>
+static bool TestMLDSAContext(const char* name)
+{
+	try {
+		MLDSA_MessageAccumulator<PARAMS> acc;
+		acc.SetContext(NULLPTR, 0);  // empty context is allowed
+
+		bool threw = false;
+		try { acc.SetContext(NULLPTR, 1); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " SetContext(NULL, 1) did not throw" << std::endl;
+			return false;
+		}
+
+		SecByteBlock big(256);
+		threw = false;
+		try { acc.SetContext(big.begin(), big.size()); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " SetContext(ctx, 256) did not throw" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " context bounds" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " context test - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateMLDSA()
 {
 	std::cout << "\nML-DSA (FIPS 204) validation suite running...\n\n";
 	bool pass = true;
+
+	// Context argument bounds
+	pass = TestMLDSAContext<MLDSA_44>("ML-DSA-44") && pass;
 
 	// ML-DSA-44
 	pass = TestMLDSAKeyGen<MLDSA_44>("ML-DSA-44") && pass;
@@ -655,10 +694,226 @@ static bool TestSLHDSASaveLoad(const char* name)
 	}
 }
 
+// Verify a message and signature under a given context.
+template <class PARAMS>
+static bool SLHDSAVerifyWithContext(const SLHDSAVerifier<PARAMS>& verifier,
+	const std::string& message, const byte* ctx, size_t ctxLen, const SecByteBlock& sig)
+{
+	SLHDSA_MessageAccumulator<PARAMS> accum;
+	accum.SetContext(ctx, ctxLen);
+	verifier.InputSignature(accum, sig.begin(), sig.size());
+	if (!message.empty())
+		accum.Update(reinterpret_cast<const byte*>(message.data()), message.size());
+	return verifier.VerifyAndRestart(accum);
+}
+
+// Context bounds and binding: SetContext rejects bad arguments, and a signature
+// made under one context verifies only under that same context.
+template <class PARAMS>
+static bool TestSLHDSAContext(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		SLHDSA_MessageAccumulator<PARAMS> acc;
+		acc.SetContext(NULLPTR, 0);  // empty context is allowed
+
+		bool threw = false;
+		try { acc.SetContext(NULLPTR, 1); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " SetContext(NULL, 1) did not throw" << std::endl;
+			return false;
+		}
+
+		SecByteBlock big(256);
+		threw = false;
+		try { acc.SetContext(big.begin(), big.size()); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " SetContext(ctx, 256) did not throw" << std::endl;
+			return false;
+		}
+
+		SLHDSASigner<PARAMS> signer(rng);
+		SLHDSAVerifier<PARAMS> verifier(signer);
+
+		const byte ctxA[] = { 'c', 't', 'x', '-', 'A' };
+		const byte ctxB[] = { 'c', 't', 'x', '-', 'B' };
+		std::string message = "context binding test message";
+
+		SecByteBlock sig(signer.SignatureLength());
+		SLHDSA_MessageAccumulator<PARAMS> signAccum(rng);
+		signAccum.SetContext(ctxA, sizeof(ctxA));
+		signAccum.Update(reinterpret_cast<const byte*>(message.data()), message.size());
+		signer.SignAndRestart(rng, signAccum, sig.begin(), true);
+
+		if (!SLHDSAVerifyWithContext<PARAMS>(verifier, message, ctxA, sizeof(ctxA), sig)) {
+			std::cout << "FAILED:  " << name << " context A signature rejected under context A" << std::endl;
+			return false;
+		}
+		if (SLHDSAVerifyWithContext<PARAMS>(verifier, message, ctxB, sizeof(ctxB), sig)) {
+			std::cout << "FAILED:  " << name << " context A signature accepted under context B" << std::endl;
+			return false;
+		}
+		if (SLHDSAVerifyWithContext<PARAMS>(verifier, message, NULLPTR, 0, sig)) {
+			std::cout << "FAILED:  " << name << " context A signature accepted under empty context" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " context binding and bounds" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " context test - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// Verify a single ACVP vector through the FIPS 205 external (pure) interface.
+template <class PARAMS>
+static bool SLHDSAVerifyVector(const SecByteBlock& pk, const SecByteBlock& msg,
+                               const SecByteBlock& ctx, const SecByteBlock& sig)
+{
+	SLHDSAVerifier<PARAMS> verifier(pk.begin(), pk.size());
+	SLHDSA_MessageAccumulator<PARAMS> accum;
+	accum.SetContext(ctx.begin(), ctx.size());
+	verifier.InputSignature(accum, sig.begin(), sig.size());
+	if (msg.size())
+		accum.Update(msg.begin(), msg.size());
+	return verifier.VerifyAndRestart(accum);
+}
+
+static SecByteBlock SLHDSAFromHex(const std::string& hex)
+{
+	std::string bin;
+	StringSource(hex, true, new HexDecoder(new StringSink(bin)));
+	return SecByteBlock(reinterpret_cast<const byte*>(bin.data()), bin.size());
+}
+
+static bool SLHDSADispatchVerify(const std::string& name, const SecByteBlock& pk,
+	const SecByteBlock& msg, const SecByteBlock& ctx, const SecByteBlock& sig)
+{
+	if (name == "SLH-DSA-SHA2-128s")  return SLHDSAVerifyVector<SLHDSA_SHA2_128s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHA2-128f")  return SLHDSAVerifyVector<SLHDSA_SHA2_128f>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHA2-192s")  return SLHDSAVerifyVector<SLHDSA_SHA2_192s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHA2-192f")  return SLHDSAVerifyVector<SLHDSA_SHA2_192f>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHA2-256s")  return SLHDSAVerifyVector<SLHDSA_SHA2_256s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHA2-256f")  return SLHDSAVerifyVector<SLHDSA_SHA2_256f>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-128s") return SLHDSAVerifyVector<SLHDSA_SHAKE_128s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-128f") return SLHDSAVerifyVector<SLHDSA_SHAKE_128f>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-192s") return SLHDSAVerifyVector<SLHDSA_SHAKE_192s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-192f") return SLHDSAVerifyVector<SLHDSA_SHAKE_192f>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-256s") return SLHDSAVerifyVector<SLHDSA_SHAKE_256s>(pk, msg, ctx, sig);
+	if (name == "SLH-DSA-SHAKE-256f") return SLHDSAVerifyVector<SLHDSA_SHAKE_256f>(pk, msg, ctx, sig);
+	throw Exception(Exception::OTHER_ERROR, "SLH-DSA KAT: unknown parameter set " + name);
+}
+
+// NIST ACVP SLH-DSA signature verification known-answer tests.
+// External pure-interface vectors. These fail against the old internal
+// message form because it omitted the FIPS 205 message prefix.
+static bool TestSLHDSASigVerKAT()
+{
+	const char* name = "SLH-DSA ACVP sigVer KAT";
+
+	std::ifstream file(DataDir("TestVectors/slhdsa.txt").c_str());
+	if (!file) {
+		std::cout << "FAILED:  " << name << " cannot open TestVectors/slhdsa.txt" << std::endl;
+		return false;
+	}
+
+	std::string line, curName, pkHex, msgHex, ctxHex, sigHex, passedStr;
+	unsigned int total = 0;
+	// Per parameter set: count of passing and failing vectors exercised.
+	std::map<std::string, std::pair<unsigned int, unsigned int> > coverage;
+
+	try {
+		while (std::getline(file, line)) {
+			if (!line.empty() && line[line.size() - 1] == '\r')
+				line.erase(line.size() - 1);
+			if (line.empty() || line[0] == '#')
+				continue;
+
+			std::string::size_type colon = line.find(':');
+			if (colon == std::string::npos)
+				continue;
+			std::string key = line.substr(0, colon);
+			std::string val = line.substr(colon + 1);
+			while (!val.empty() && val[0] == ' ')
+				val.erase(0, 1);
+
+			if (key == "Name") curName = val;
+			else if (key == "PublicKey") pkHex = val;
+			else if (key == "Message") msgHex = val;
+			else if (key == "Context") ctxHex = val;
+			else if (key == "Signature") sigHex = val;
+			else if (key == "TestPassed") passedStr = val;
+			else if (key == "Test") {
+				if (val == "SigVer") {
+					bool expected = (passedStr == "true");
+					bool result;
+					try {
+						result = SLHDSADispatchVerify(curName,
+							SLHDSAFromHex(pkHex), SLHDSAFromHex(msgHex),
+							SLHDSAFromHex(ctxHex), SLHDSAFromHex(sigHex));
+					}
+					catch (const InvalidArgument&) {
+						// A rejected signature length or malformed input is a
+						// failed verification, not a test error.
+						result = false;
+					}
+					if (result != expected) {
+						std::cout << "FAILED:  " << name << " " << curName
+							<< " expected " << (expected ? "pass" : "fail")
+							<< " got " << (result ? "pass" : "fail") << std::endl;
+						return false;
+					}
+					if (expected) coverage[curName].first++;
+					else coverage[curName].second++;
+					total++;
+				}
+				pkHex.clear(); msgHex.clear(); ctxHex.clear();
+				sigHex.clear(); passedStr.clear();
+			}
+		}
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+
+	// Require every parameter set to be exercised with at least one passing and
+	// one failing vector, so a truncated vector file cannot pass silently.
+	static const char* const expectedSets[] = {
+		"SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f", "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+		"SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f", "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+		"SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f", "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f"
+	};
+	for (size_t i = 0; i < COUNTOF(expectedSets); i++) {
+		const std::pair<unsigned int, unsigned int>& c = coverage[expectedSets[i]];
+		if (c.first == 0 || c.second == 0) {
+			std::cout << "FAILED:  " << name << " " << expectedSets[i]
+				<< " coverage (" << c.first << " pass, " << c.second
+				<< " fail); expected at least one of each" << std::endl;
+			return false;
+		}
+	}
+
+	std::cout << "passed:  " << name << " (" << total << " vectors, "
+		<< COUNTOF(expectedSets) << " parameter sets)" << std::endl;
+	return true;
+}
+
 bool ValidateSLHDSA()
 {
 	std::cout << "\nSLH-DSA (FIPS 205) validation suite running...\n\n";
 	bool pass = true;
+
+	// NIST ACVP external-interface signature verification known-answer tests
+	pass = TestSLHDSASigVerKAT() && pass;
+
+	// Context bounds and binding through the external interface
+	pass = TestSLHDSAContext<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 
 	// Test fastest variants (128f) for quick validation
 	// SHA2 variants

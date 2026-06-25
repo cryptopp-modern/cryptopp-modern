@@ -21,6 +21,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <type_traits>
+#include <limits>
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -512,11 +513,11 @@ static void slh_keygen(byte *sk, byte *pk, RandomNumberGenerator &rng)
     SecureWipeBuffer(sk_prf, N);
 }
 
-/// SLH-DSA Signing
-/// Per FIPS 205 Algorithm 22 (slh_sign)
+/// SLH-DSA Signing (internal interface)
+/// Per FIPS 205 Algorithm 19 (slh_sign_internal)
 template <class PARAMS>
-static void slh_sign(byte *sig, const byte *msg, size_t msg_len,
-                     const byte *sk, RandomNumberGenerator &rng)
+static void slh_sign_internal(byte *sig, const byte *msg, size_t msg_len,
+                              const byte *sk, RandomNumberGenerator &rng)
 {
     typedef typename ParamTraits<PARAMS>::Internal InternalParams;
     typedef HashContext<PARAMS> Hash;
@@ -584,11 +585,11 @@ static void slh_sign(byte *sig, const byte *msg, size_t msg_len,
     SecureWipeBuffer(R, N);
 }
 
-/// SLH-DSA Verification
-/// Per FIPS 205 Algorithm 23 (slh_verify)
+/// SLH-DSA Verification (internal interface)
+/// Per FIPS 205 Algorithm 20 (slh_verify_internal)
 template <class PARAMS>
-static bool slh_verify(const byte *msg, size_t msg_len,
-                       const byte *sig, const byte *pk)
+static bool slh_verify_internal(const byte *msg, size_t msg_len,
+                                const byte *sig, const byte *pk)
 {
     typedef typename ParamTraits<PARAMS>::Internal InternalParams;
     typedef HashContext<PARAMS> Hash;
@@ -644,6 +645,54 @@ static bool slh_verify(const byte *msg, size_t msg_len,
     return SLHDSA_Internal::ht_verify<Hash, InternalParams>(fors_pk, ht_sig,
                                                              pub_seed, pub_root,
                                                              idx_tree, idx_leaf);
+}
+
+/// Build M' = toByte(0,1) || toByte(|ctx|,1) || ctx || M for the FIPS 205
+/// Section 10.2 external (pure) signature interface.
+static void build_message_prefix(SecByteBlock &mprime, const byte *ctx, size_t ctx_len,
+                                 const byte *msg, size_t msg_len)
+{
+    if (ctx_len > 255)
+        throw InvalidArgument("SLH-DSA: context string exceeds 255 bytes");
+    if (!ctx && ctx_len)
+        throw InvalidArgument("SLH-DSA: context pointer is null with non-zero length");
+    if (!msg && msg_len)
+        throw InvalidArgument("SLH-DSA: message pointer is null with non-zero length");
+    if (msg_len > (std::numeric_limits<size_t>::max)() - 2 - ctx_len)
+        throw InvalidArgument("SLH-DSA: message too large");
+
+    mprime.New(2 + ctx_len + msg_len);
+    byte *p = mprime.data();
+    p[0] = 0;
+    p[1] = static_cast<byte>(ctx_len);
+    if (ctx_len)
+        std::memcpy(p + 2, ctx, ctx_len);
+    if (msg_len)
+        std::memcpy(p + 2 + ctx_len, msg, msg_len);
+}
+
+/// SLH-DSA Signing (external interface)
+/// Per FIPS 205 Algorithm 22 (slh_sign)
+template <class PARAMS>
+static void slh_sign(byte *sig, const byte *msg, size_t msg_len,
+                     const byte *ctx, size_t ctx_len,
+                     const byte *sk, RandomNumberGenerator &rng)
+{
+    SecByteBlock mprime;
+    build_message_prefix(mprime, ctx, ctx_len, msg, msg_len);
+    slh_sign_internal<PARAMS>(sig, mprime.data(), mprime.size(), sk, rng);
+}
+
+/// SLH-DSA Verification (external interface)
+/// Per FIPS 205 Algorithm 24 (slh_verify)
+template <class PARAMS>
+static bool slh_verify(const byte *msg, size_t msg_len,
+                       const byte *ctx, size_t ctx_len,
+                       const byte *sig, const byte *pk)
+{
+    SecByteBlock mprime;
+    build_message_prefix(mprime, ctx, ctx_len, msg, msg_len);
+    return slh_verify_internal<PARAMS>(mprime.data(), mprime.size(), sig, pk);
 }
 
 } // anonymous namespace
@@ -834,8 +883,9 @@ size_t SLHDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
     const byte *msg = accum.data();
     size_t msg_len = accum.size();
 
-    // Sign per FIPS 205 Algorithm 22
+    // Sign using the FIPS 205 external interface
     slh_sign<PARAMS>(signature, msg, msg_len,
+                     accum.context(), accum.contextSize(),
                      m_key.GetPrivateKeyBytePtr(), rng);
 
     if (restart)
@@ -868,8 +918,10 @@ bool SLHDSAVerifier<PARAMS>::VerifyAndRestart(PK_MessageAccumulator &messageAccu
     size_t msg_len = accum.size();
     const byte *sig = accum.signature();
 
-    // Verify per FIPS 205 Algorithm 23
-    bool result = slh_verify<PARAMS>(msg, msg_len, sig, m_key.GetPublicKeyBytePtr());
+    // Verify using the FIPS 205 external interface
+    bool result = slh_verify<PARAMS>(msg, msg_len,
+                                     accum.context(), accum.contextSize(),
+                                     sig, m_key.GetPublicKeyBytePtr());
 
     accum.Restart();
 

@@ -237,6 +237,30 @@ struct SLHDSA_MessageAccumulator : public PK_MessageAccumulator
         m_msg.insert(m_msg.end(), msg, msg + len);
     }
 
+    /// \brief Set the context string for signing/verification
+    /// \details FIPS 205 Section 10.2 allows an optional context string (up to 255 bytes)
+    ///  that is included in the message prefix. Empty by default (pure signing mode).
+    ///  The context persists across Restart(), so it can be set once and reused for
+    ///  many signatures on the same accumulator.
+    /// \param ctx pointer to context data (may be NULL only if ctxLen is 0)
+    /// \param ctxLen length of context in bytes (max 255 per FIPS 205)
+    void SetContext(const byte *ctx, size_t ctxLen) {
+        if (ctxLen > 255)
+            throw InvalidArgument("SLH-DSA: context string exceeds 255 bytes");
+        if (!ctx && ctxLen)
+            throw InvalidArgument("SLH-DSA: SetContext called with null pointer and non-zero length");
+        if (ctxLen)
+            m_ctx.assign(ctx, ctx + ctxLen);
+        else
+            m_ctx.clear();
+    }
+
+    /// \brief Get pointer to context data
+    const byte* context() const { return m_ctx.data(); }
+
+    /// \brief Get context size in bytes
+    size_t contextSize() const { return m_ctx.size(); }
+
     /// \brief Reset the accumulator
     void Restart() {
         m_msg.reserve(RESERVE_SIZE);
@@ -257,6 +281,7 @@ struct SLHDSA_MessageAccumulator : public PK_MessageAccumulator
 
 protected:
     std::vector<byte, AllocatorWithCleanup<byte> > m_msg;
+    std::vector<byte, AllocatorWithCleanup<byte> > m_ctx;
 };
 
 // ******************** SLH-DSA Private Key ************************* //
