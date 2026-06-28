@@ -2507,6 +2507,333 @@ static bool TestHSSRFCAppendixFTC2()
 	}
 }
 
+// Deterministic RNG for the regression fixtures. A fixed fill byte makes
+// the bottom-level LM-OTS randomiser a known constant, so for fixed SEED, I,
+// and message the produced signature is a pure SHA-256 function of those inputs
+// and reproduces byte-for-byte on every platform. Not for production use.
+class HSSFixedFillRNG : public RandomNumberGenerator
+{
+public:
+	explicit HSSFixedFillRNG(byte fill) : m_fill(fill) {}
+	void GenerateBlock(byte *output, size_t size) { if (size) std::memset(output, m_fill, size); }
+private:
+	byte m_fill;
+};
+
+// Sign a fixed message under a fixed SEED/I and the fixed-fill randomiser, then
+// verify the round-trip. Returns the produced signature. SetPrivateKey seeds
+// the key directly so no RNG counters are consumed before signing; the only
+// RNG draw is the bottom-level randomiser, which the fixed-fill RNG pins.
+template <class PARAMS>
+static bool HSSDeterministicSign(SecByteBlock &sigOut, std::string &err)
+{
+	static const byte seed[32] = {
+		0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
+		0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,
+		0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
+		0x18,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F };
+	static const byte ident[16] = {
+		0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,0xA6,0xA7,
+		0xA8,0xA9,0xAA,0xAB,0xAC,0xAD,0xAE,0xAF };
+	// Signed fixture input; changing these bytes invalidates the golden values.
+	static const byte kMsg[] = "cryptopp-modern HSS byte-equivalence fixture";
+	const size_t kMsgLen = sizeof(kMsg) - 1;
+
+	HSSPrivateKey<PARAMS> privKey;
+	privKey.SetPrivateKey(seed, sizeof(seed), ident, sizeof(ident));
+
+	HSSPublicKey<PARAMS> pubKey;
+	privKey.MakePublicKey(pubKey);
+
+	InsecureMemoryStateStore store(PARAMS::TotalSignatures());
+	HSSSigner<PARAMS> signer(privKey, store);
+
+	HSSFixedFillRNG rng(0xC5);
+	sigOut.resize(signer.SignatureLength());
+	signer.SignMessage(rng, kMsg, kMsgLen, sigOut.begin());
+
+	if (sigOut.size() != PARAMS::SignatureSize()) {
+		err = "produced length does not match SignatureSize()";
+		return false;
+	}
+
+	HSSVerifier<PARAMS> verifier(
+		pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+	if (!verifier.VerifyMessage(kMsg, kMsgLen, sigOut.begin(), sigOut.size())) {
+		err = "round-trip verification failed";
+		return false;
+	}
+	return true;
+}
+
+// Golden deterministic signatures for the L=2 regression fixtures, captured
+// from the current build with fixed SEED/I and the 0xC5 OTS randomiser.
+static const char* const GOLDEN_HSS_H5W8_L2 =
+	"00000001000000000000000485b427da751e759e58c97322cae09261"
+	"fef87fae314fe139531b808dc41eece501e1795e572268409423d05f"
+	"d4a62219ac524eccf732e613a0266a31374969c34568228b03544913"
+	"954e5192beab7479172ba0510ba1b2ae36e2a9d74aeed16b8933d5fc"
+	"c97ba6d0a75b7f2b588b8f45eb85dbb005145cc3b1ae994f1faae53f"
+	"6722e89d4e2c3e98ac32e08e02f0f1cc7e8db0df3b3313dd60b585b3"
+	"4871ab5c039ca35b7a88e2b3c96f25f0caf2c89c231f5c8a59da08e7"
+	"9c22accfc6da2536cdcb59d3afc35e1764da283f6e83c9be4b5f1c47"
+	"531b0a514a1e04905b1b66fbd762091418d9457047f673de40a83c24"
+	"a821c6784d2b022c369a03df60d46f2f7df69b121b826f5b384a7b77"
+	"fcc952632f5ccd5a5c1c42d3d48eae2caaa9e46e571dd525fd31ada1"
+	"f6649346d4e17b9d93b95ed0a14822d6b2361125abb661307c9aa1cc"
+	"d698f8d94bbdeec73efe32dbbeae24bd93575645c276432e2c1159a6"
+	"2f4cf50b120e26130405cf493e2cf816393777835c3c746cf764752e"
+	"30d2b79735a3e3b6895be7a752f05fd3251b9e5c2fb9886d966535af"
+	"5d019cf4ce137afdc4db1a40deec51369351a381e42370b5340aa16c"
+	"ee280d63373b47afe92f7c3c7b0df9a1bfb30ac6d23833451b1b44b2"
+	"e42abcbd1914c099a4eb05a330619fd9eaea6d5bf3d4d9433302e1bf"
+	"092b03548cfa0e5d115e0be84eb3996fe915cfe317882885f0d89687"
+	"5083f9c39510f075a39a69cabdf7b70e205d8d7066cc08497c7773fc"
+	"1bc694227c3b15c46844c3afc37535a0a436a01ad79dcd36af5ef942"
+	"3b1b2dd584e11becec64f6ae92c51ac0956ac34f3659a24b56396edc"
+	"262963bd08ff5f7de222217eedd2eaf482dd78fb1da08f08c3d7c313"
+	"b86e634dd8916a3f33d1eb805830386504359ef8ac91eb084933ba5c"
+	"98041beb45ab0439860384fa88c09e32e00f6a319c4459aad67ee784"
+	"31c2e35d927f9f0ae057bd1c779650d7e120ba4dac0dd0b8d56dc57f"
+	"fd33208cea52dbd1e8796e09a2bea58363e19c6a295bb537adaa29b3"
+	"b383290e9b60d54a7d7c1ac97bad3c35f3231351f100c9d31b5f4fd9"
+	"96ab33bc43c75e81c1fa23f5843d2140b677c36f357c902eec74c432"
+	"5ddaa81543d3cdfde1ab617143b98d7a6a9f31b6a9a8d04c4b44be9b"
+	"cab9f4ba724583990f3616c213051b2a3312968533c3da6d27666f22"
+	"cb87c14130c94ca4fede61fc607c9942e4ca31058c021a4e09756ab1"
+	"ae78db46150fcc09bfa318eca2d0d9c26b6210d2e67fcf8415d71522"
+	"1a378e474bd4e095ce9eedc4dea2d02bcff8b018febea7e06cc82e1f"
+	"7954410f3c26bb2396c5f4fa77f8ab022ea85a619d9d3af8f54917b6"
+	"a4ba1fd1b61cd1422cbf1476628e47c9597a4c3cd94bca4d1655bb69"
+	"9cfb0644fcfde6e11143be8c6199f1ee04cc89f5ed608fd02808b115"
+	"11d0bffa49209766214475e2cd2c4478ed2ef80b26d3f5070f75661c"
+	"0f44d3ff5f2d8648e76b1ed0c87392de928d8b8c66377e3b337431c2"
+	"b860acab9277d92cf8a8822224d5a5bbca95b00642d4d680c1b4a047"
+	"eb39f01459340afebbea2c1c00000005a762e77ff2f8274e1615e98b"
+	"a922a1c7709c09288a24cddcf7127e9b507e5f36b8fc9783a75086be"
+	"e84a42bd8a2edb8a7f580f2544864b8255e782bef5fd0152ee505236"
+	"1ca1f420b48191c9b6e5293af53e9d54e121296b843ae40e3176a1ba"
+	"a3825ceae9807e944b753d440c44ea05091b0d8e06eca0ff25aaa8d1"
+	"45828f29494b47fa45e7d689409d92157524f7ad8b4777da34df101d"
+	"873cbd997ffdfa7d000000050000000402545e693ffdddaf81de3fd7"
+	"535e2cd04ba5f0d374dba7274247e34d2fb1778e474d8ab6e2a515f5"
+	"8494dc1a5cf0db8e0000000000000004c5c5c5c5c5c5c5c5c5c5c5c5"
+	"c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c50d3f7dc8658b1c71"
+	"73574193d38b1c2de0a3f51b7abc2b31445d044f2d2393d3f09be21d"
+	"2c44028917b904a15beaf451f20bb345618e24b3a92e0c32cb09e0e0"
+	"989d1893dc362b933cefbcdf1e1a6c5c686661b22299b5b5c721b306"
+	"93b876e5135b25eace90b9a3ea1a648d18d11302502f1ff9ce492293"
+	"ed03c5db9bf4952f56989d6efee8140136842e7d1c8a1d431685c065"
+	"94335cf62fbdbc897a48ba6d540fb16eb236e1732c333da9358acd12"
+	"841fb31d3e21e59ed168e04b68ab1a0ba01794b33ed992f3b7102ecf"
+	"f4eef84a0f1f689295351932aeb5d9bfcc85590556e87c7b0789f70b"
+	"1e66fed03a8de0ca9c912613e7685c34a2c73f640c3197028dbae53c"
+	"9a5dae13df3b260976fce5c5542c35b731b6c5d59568bd691f3f3480"
+	"7265dc78f918139263a0ead75ae4cbe8f7d83df33184ef258a6c5ccd"
+	"7cac39cb34c926bc1a01b641114d998b561c619a1e75b15ab3964c20"
+	"31a1cc9b7d65e769405df78ea3fefe27dd45e2e8001efb1ae9f3adec"
+	"86008e12ce2c8552bd9527ee8aea8bb099166611de740a0dc33689f0"
+	"56841cd2ff715e5999c2ea015985c50192cf62527ebc86c5a1beb848"
+	"3560b09c5e066d07f15c0436dd5654fcf73357e8f5f715ece06646a3"
+	"460d9000adff3894290c09d431e7c607e5873315e1db3edf93d07409"
+	"0788018d8284266247803390eb0549ea4c73b8a747dc082b5075a31b"
+	"518fe7e6e7ce437f1d5df71185b869e63c715befb79695f0497c4427"
+	"ece710aa2a99df29b1b84068225f127383f64d3484b4f48029a70685"
+	"e086174d1f56a05a58b7fe5e0759efa9144036813d2a31513db5050c"
+	"c757a6e0a4cc23817703f04243c04b004b52f493b35e8fb5d731c801"
+	"4411c8001226155fb984a14e43801c8ee6f4a746cb63f3a0a753258a"
+	"7f17abe135193378e9fe975f396ac51f288f1ec119753ee6097a22fc"
+	"1da3f678753a3d6ec6f74cb6610599208dc7d58655c581f9032ca935"
+	"823a76fd6a715e1f44373df132bf1968381f34e72b63ecbe571d795b"
+	"8b675a0e2303db0a5dd2a63589e4655de451051ee9d691e0b40e008b"
+	"4350f259251364e37a0df0e254511c9befe2415841e24946513a51de"
+	"51b8f1a172ce4162d56353483e78ddf4a524e29b49c27ce7098d6f9e"
+	"02de3ec6cae42e223eb4d63d15a62ec6638f678a9916f75f3e6b27cd"
+	"93fbbb79b475c7ef99807df17f7be5014307423f655909d3a8a10160"
+	"501dab5a0b252e67794a783d25fcb6ab7eed9889fe1aeb41fd086acc"
+	"c6850783b310783fe0e529fe7236b1a5a7f94c1ba3aadbc39fcf1b0a"
+	"aa28d5ec93ff06abcf9217bec408120b57310d7d31f46f6e86786ad5"
+	"24eee06e0a7ec2fd47e23c896cce4b3fc295438858918bef19170e28"
+	"4beef9118aa082d1e0d9d42cb3ac38d87a151564af86fbb032442e82"
+	"c1b9700a15d223c048705a018e5aae8d225c56fd40c0ffe4e7e52735"
+	"1baab65b408328f9130674fe4d6e2e504f06f83c6efb6ee3d2fd43a2"
+	"78ace5d11c79599e8b102bd2fabe9ac5000000055182aa5587f71866"
+	"c434a8296731b71bc6ebf220fead07e68766886ac987ca146454d9c6"
+	"2c42e54f997367cf532176d849c9bfe5bb08163e7954cbb76a528d5c"
+	"4887de398c6e6f26236fa02ae71c0801553bd5154a2f6d4f9cb62baa"
+	"fd53e869a9c817dfb1dd173b4d2fed4ee904e96dead16b30908c80df"
+	"5e28560e8c8e03ecd7dbfea1e8022f4c293c3a41348c8da7e7b0a404"
+	"e7e065e1513b733776ebcbe9";
+
+
+
+static const char* const GOLDEN_HSS_H10W8_L2 =
+	"00000001000000000000000485b427da751e759e58c97322cae09261"
+	"fef87fae314fe139531b808dc41eece5a1a45935c94cdf2d794a61db"
+	"f523467376636e3188d16172e741ef591222dec0f6c4378ab4f6e42a"
+	"4a9058d18660304421ba6cc2338b9d613ff7f2f9e1d84efe78700dd0"
+	"0635e3c942d0ad8e3689220ea96581fec1fa7141376c4e05a60d9e61"
+	"361043fd4cc013c59a2acec8c195644795c12c0166d3e80a196c1a5d"
+	"9b46798fa23df8344a27e693ecab8a1e6f2d88c6fbbc095357377384"
+	"7fcea0e47a0858e5becc39780bdd091e48a6b7a91306c48c85486ab9"
+	"de66591101b8cc7a7dea5176fd873fd4ead861721ea1516d9e87b80f"
+	"fea9b9be28ea6f5a04c31a6abe333d005d156cc0b5094869ede62ffb"
+	"fec51edb362280a2e3d0b53ef282f2e4c088ea6dd2d1af8c65d67c8b"
+	"09a2d2f766ed8e621021d6bea7b713343693872d5d9654f71416376b"
+	"0189c4d74d4bbe2f0f65a3085759fa1b10aa2ab56f2c63282109532b"
+	"60bdff006dbbeee9a0a57138c9b2ad064f86877e81056328003ed767"
+	"9ac5af7d0124d1283467072efc935929b9025ffd53bafbf8c401e703"
+	"53f64092b887d0896c3898c3ec27531da6c5f6220e6467b8bee61c9b"
+	"76cb109eced4e00048ecb5781c6051ad2c8ba0b7276e74a6dd47ba44"
+	"1740b525770538b2f7397f3145d3ce1eb0e5ac5d3a1d96d15eee5c18"
+	"bb525f44e02c094dd4c934a3ee6feffcb604d712794f9f9f7cd9b392"
+	"2312da138df7bbfecd7f419e4e40be0c9eede97730f2a075861dd435"
+	"8c7fd817911957b3541a8de1b2327469e8cd4b290a5757d5cdb85950"
+	"2eca37cb7767c1d722ee08299fd376387a555a33cb6d8011d7ad27aa"
+	"114a7d2c103b441cbc25fc4c4a5f9d83d4aaa6aea5d80b02960b82bc"
+	"65ff4d909a519c9fc798726f756c8cc8287efa5043e98e392db012b4"
+	"f093c943711294666cf28b1338d4e7ac42965e15ee482ab041fcacda"
+	"c9f585c582f0b296c49fb77ccd8aaf5b0369252c2cab485dd9ae3461"
+	"872e2cf0a384708ea510c0b63d91294fa403a19beb414c8b7939b638"
+	"697460a285949fe1061f70afc00f02b8c86af456b74b6f0fd9657939"
+	"95ceb93e9c92129abdb57a48bc28e8dafe174a6e8f83642c0fde53d2"
+	"b54442dacc95cf60d0f2493a1516ffec94fb0dcf341952442ca9f64f"
+	"a85e8065da583f3ca26922e7d947f173669ba3327f7dcd4fed2c92ff"
+	"e42d9d9f3040d25532aca443f43f63f10e1aae99ba9bf63320bf26a9"
+	"da6748f2826921c9e57265b92e95e94bc9962499613b3932cc3447d2"
+	"380d32eb0b20cae71f0cfd671a39cefe2a47d2a1b40de107c0b805b9"
+	"78d4bef92c2e53236576f2cd4bbe4a1ac62f50bf218062de412a9e1e"
+	"b4e38bed509965412f1c71b265a4037da20f0704b1e6b7f219d76e8b"
+	"a29e2441746ccc727a793740b268abfe8b328a10f58c9681be3c8d83"
+	"9e0d854153d437146dfb6d3a00fec87d396bee9efb161cfb0052e3ec"
+	"d2e755e35f2d8648e76b1ed0c87392de928d8b8c66377e3b337431c2"
+	"b860acab9277d92cac351262a67922c60d966ddf75cf14767b683295"
+	"3e8b21c5cb83abb42cdb27b2000000062c3d07848eab1907d7455b29"
+	"d2233a0f846ec1ff22d1132aaed15f46f3ab79ac97aaa0eb3cdc79a2"
+	"cbd8d95fef317606da28d22f6914f6db73d7408c1a1fafb6a6e5b7ce"
+	"b0cdd2fb61c89023fb26e67a5f6e3d310f3e644342ed7c15185d54d7"
+	"3b0b22fb8073105abc183c5e9ee3f53ee5315e8b8f6a59353a8d0cd7"
+	"08479e9a03b6a25d58b55a53f4db63e12f418a256eca42132f08e789"
+	"66081569881020fae7eba15cc24bb9546927cc0fdacdabbb829985be"
+	"a68a36be1dcb0a3192bf0bbe401d10e6b1330aa23396cebafe26f68d"
+	"462e150c3c3761fff55d3ea28b4ba26593847a6b2d94e51ce4a1c755"
+	"ef0ca4d4fd0ad3cb355366ce97f7e6814b6264e9081af995d5234f71"
+	"823cab23fa01a2ce640490b7922baa9ea0307cd61ed1f89c19e55845"
+	"773d80bfac8e9842eeb0404b4f267ffb054bc5787604ed35538574aa"
+	"000000060000000402545e693ffdddaf81de3fd7535e2cd0fc857278"
+	"ace529528209888b19436a3877a8975bd993d9723997327c805cb339"
+	"0000000000000004c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5"
+	"c5c5c5c5c5c5c5c5c5c5c5c50d3f7dc8658b1c7173574193d38b1c2d"
+	"e0a3f51b7abc2b31445d044f2d2393d3f09be21d2c44028917b904a1"
+	"5beaf451f20bb345618e24b3a92e0c32cb09e0e0989d1893dc362b93"
+	"3cefbcdf1e1a6c5c686661b22299b5b5c721b30693b876e5135b25ea"
+	"ce90b9a3ea1a648d18d11302502f1ff9ce492293ed03c5db9bf4952f"
+	"56989d6efee8140136842e7d1c8a1d431685c06594335cf62fbdbc89"
+	"7a48ba6d540fb16eb236e1732c333da9358acd12841fb31d3e21e59e"
+	"d168e04b68ab1a0ba01794b33ed992f3b7102ecff4eef84a0f1f6892"
+	"95351932aeb5d9bfcc85590556e87c7b0789f70b1e66fed03a8de0ca"
+	"9c912613e7685c34a2c73f640c3197028dbae53c9a5dae13df3b2609"
+	"76fce5c5542c35b731b6c5d59568bd691f3f34807265dc78f9181392"
+	"63a0ead75ae4cbe8f7d83df33184ef258a6c5ccd7cac39cb34c926bc"
+	"1a01b641114d998b561c619a1e75b15ab3964c2031a1cc9b7d65e769"
+	"405df78ea3fefe27dd45e2e8001efb1ae9f3adec86008e12ce2c8552"
+	"bd9527ee8aea8bb099166611de740a0dc33689f056841cd2ff715e59"
+	"99c2ea015985c50192cf62527ebc86c5a1beb8483560b09c5e066d07"
+	"f15c0436dd5654fcf73357e8f5f715ece06646a3460d9000adff3894"
+	"290c09d431e7c607e5873315e1db3edf93d074090788018d82842662"
+	"47803390eb0549ea4c73b8a747dc082b5075a31b518fe7e6e7ce437f"
+	"1d5df71185b869e63c715befb79695f0497c4427ece710aa2a99df29"
+	"b1b84068225f127383f64d3484b4f48029a70685e086174d1f56a05a"
+	"58b7fe5e0759efa9144036813d2a31513db5050cc757a6e0a4cc2381"
+	"7703f04243c04b004b52f493b35e8fb5d731c8014411c8001226155f"
+	"b984a14e43801c8ee6f4a746cb63f3a0a753258a7f17abe135193378"
+	"e9fe975f396ac51f288f1ec119753ee6097a22fc1da3f678753a3d6e"
+	"c6f74cb6610599208dc7d58655c581f9032ca935823a76fd6a715e1f"
+	"44373df132bf1968381f34e72b63ecbe571d795b8b675a0e2303db0a"
+	"5dd2a63589e4655de451051ee9d691e0b40e008b4350f259251364e3"
+	"7a0df0e254511c9befe2415841e24946513a51de51b8f1a172ce4162"
+	"d56353483e78ddf4a524e29b49c27ce7098d6f9e02de3ec6cae42e22"
+	"3eb4d63d15a62ec6638f678a9916f75f3e6b27cd93fbbb79b475c7ef"
+	"99807df17f7be5014307423f655909d3a8a10160501dab5a0b252e67"
+	"794a783d25fcb6ab7eed9889fe1aeb41fd086accc6850783b310783f"
+	"e0e529fe7236b1a5a7f94c1ba3aadbc39fcf1b0aaa28d5ec93ff06ab"
+	"cf9217bec408120b57310d7d31f46f6e86786ad524eee06e0a7ec2fd"
+	"47e23c896cce4b3fc295438858918bef19170e284beef9118aa082d1"
+	"e0d9d42cb3ac38d87a151564af86fbb032442e82c1b9700a15d223c0"
+	"48705a018e5aae8d225c56fd40c0ffe4e7e527351baab65b408328f9"
+	"130674fe4d6e2e504f06f83c6efb6ee3d2fd43a278ace5d11c79599e"
+	"8b102bd2fabe9ac50000000616427aa3b0876537ad20bac206b343c1"
+	"f7a24e6ba043f4a9f5c0b34fb805c5b6192c4656c1ba29ddd72444d0"
+	"949ab0735d4fb12e1fc74e0f1f21ae653ae4248d148745bb5a2ac4d7"
+	"6159649be022d7d2d88e4d569122ef9db06cb04cca320374698623ab"
+	"4f2e271b7efbfd0c97177582adca19c116e5f96823047e5ad872ebf0"
+	"a884afc366993a8a3d9e3212fcbeabe0d9a5c0ac6eb11ce30f3592fb"
+	"bccf154c93c01c20b9588abe5c17e2f4a69a85b03d1bab8ab5d5a85b"
+	"ad4b1a127af408aa42b17bb8153a9599cb68e919bb9c17c8787e22f9"
+	"ec32c6a66cf517440a2b03fa10f72b8fd8e6c1ef7aec7bdf3ca5cbdc"
+	"e2bab6b149c56f5e55b400bffdaa9fae5b76a5e771fcb8fab2bac2f2"
+	"66a65330787542806a58b0238250514abd228c6124d7d1cc7c0f2cb4"
+	"0cae3c6a649c856647a53077eef4e3c3d1314189fa858d64";
+
+// Strict byte-identity against a regression fixture captured from this
+// implementation. Full byte fixtures are kept to the L2 configurations to
+// limit test data.
+template <class PARAMS>
+static bool TestHSSDeterministicOutput(const char *name, const char *goldenHex)
+{
+	try {
+		SecByteBlock sig;
+		std::string err;
+		if (!HSSDeterministicSign<PARAMS>(sig, err)) {
+			std::cout << "FAILED:  " << name << " - " << err << std::endl;
+			return false;
+		}
+
+		std::string golden;
+		StringSource(goldenHex, true, new HexDecoder(new StringSink(golden)));
+
+		if (sig.size() != golden.size() ||
+		    std::memcmp(sig.begin(), golden.data(), sig.size()) != 0) {
+			std::string got;
+			StringSource(sig.begin(), sig.size(), true,
+				new HexEncoder(new StringSink(got)));
+			std::cout << "FAILED:  " << name << " signature does not match golden vector" << std::endl;
+			std::cout << "  got: " << got << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " deterministic output ("
+			<< sig.size() << " bytes)" << std::endl;
+		return true;
+	}
+	catch (const Exception &e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// Coverage for the deeper hierarchies without full byte fixtures: L3 and L4
+// check deterministic signing, size consistency and round-trip verification.
+template <class PARAMS>
+static bool TestHSSDeterministicRoundTrip(const char *name)
+{
+	try {
+		SecByteBlock sig;
+		std::string err;
+		if (!HSSDeterministicSign<PARAMS>(sig, err)) {
+			std::cout << "FAILED:  " << name << " - " << err << std::endl;
+			return false;
+		}
+		std::cout << "passed:  " << name << " deterministic round-trip ("
+			<< sig.size() << " bytes)" << std::endl;
+		return true;
+	}
+	catch (const Exception &e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 static bool TestHSSMalformedSignatures()
 {
 	AutoSeededRandomPool rng;
@@ -3356,23 +3683,33 @@ static bool TestHSSL4MalformedSignatures()
 	}
 }
 
-// Check that the variadic HSS typedefs keep the existing uniform sizes.
-static_assert(HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<0>() ==
+// Lock the aggregate parameters of the shipped uniform HSS typedefs: capacity,
+// signature and public-key sizes, and identical per-level sizes. The recursive
+// HSS_Params machinery must keep resolving these to the same fixed constants.
+static_assert(HSS_SHA256_H5_W8_L2_Params::TotalSignatures() == 1024u &&
+              HSS_SHA256_H5_W8_L2_Params::SignatureSize() == 2644 &&
+              HSS_SHA256_H5_W8_L2_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<0>() ==
               HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<1>() &&
               HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<0>() ==
               HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<1>(),
-              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L2)");
-static_assert(HSS_SHA256_H5_W8_L2_Params::SignatureSize() == 2644 &&
-              HSS_SHA256_H5_W8_L2_Params::PublicKeySize() == 60,
-              "HSS H5/W8 L2 signature and public key sizes are fixed");
-static_assert(HSS_SHA256_H10_W8_L2_Params::SignatureSize() == 2964,
-              "HSS H10/W8 L2 signature size is fixed");
-static_assert(HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<0>() ==
+              "HSS H5/W8 L2 aggregates");
+static_assert(HSS_SHA256_H10_W8_L2_Params::TotalSignatures() == 1048576u &&
+              HSS_SHA256_H10_W8_L2_Params::SignatureSize() == 2964 &&
+              HSS_SHA256_H10_W8_L2_Params::PublicKeySize() == 60,
+              "HSS H10/W8 L2 aggregates");
+static_assert(HSS_SHA256_H5_W8_L3_Params::TotalSignatures() == 32768u &&
+              HSS_SHA256_H5_W8_L3_Params::SignatureSize() == 3992 &&
+              HSS_SHA256_H5_W8_L3_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<0>() ==
               HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<2>(),
-              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L3)");
-static_assert(HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
+              "HSS H5/W8 L3 aggregates");
+static_assert(HSS_SHA256_H5_W8_L4_Params::TotalSignatures() == 1048576u &&
+              HSS_SHA256_H5_W8_L4_Params::SignatureSize() == 5340 &&
+              HSS_SHA256_H5_W8_L4_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
               HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
-              "uniform HSS levels must resolve to identical per-level sizes (H5/W8 L4)");
+              "HSS H5/W8 L4 aggregates");
 
 // Mixed-height L=2: an H10 root over an H5 bottom tree, uniform W8.
 // Signature sizes differ, so this catches level-0 sizing assumptions.
@@ -3551,6 +3888,17 @@ bool ValidateHSS()
 	pass = TestHSSCrossKeyNegative<HSS_Mixed_H10H5_W8_L2_Params>(
 		"HSS mixed H10/H5 L2") && pass;
 	pass = TestHSSMixedHeights() && pass;
+
+	// Deterministic output against L=2 regression fixtures, and round-trip
+	// coverage for the deeper hierarchies.
+	pass = TestHSSDeterministicOutput<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/H5/W8", GOLDEN_HSS_H5W8_L2) && pass;
+	pass = TestHSSDeterministicOutput<HSS_SHA256_H10_W8_L2_Params>(
+		"HSS[2]/H10/W8", GOLDEN_HSS_H10W8_L2) && pass;
+	pass = TestHSSDeterministicRoundTrip<HSS_SHA256_H5_W8_L3_Params>(
+		"HSS[3]/H5/W8") && pass;
+	pass = TestHSSDeterministicRoundTrip<HSS_SHA256_H5_W8_L4_Params>(
+		"HSS[4]/H5/W8") && pass;
 
 	return pass;
 }
