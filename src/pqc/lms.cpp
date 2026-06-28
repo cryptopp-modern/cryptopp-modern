@@ -1675,6 +1675,13 @@ template class HSSPrivateKey<HSS_SHA256_H5_W8_L4_Params>;
 template class HSSVerifier<HSS_SHA256_H5_W8_L4_Params>;
 template class HSSSigner<HSS_SHA256_H5_W8_L4_Params>;
 
+// RFC 8554 Appendix F TC2: H10/W4 root over H5/W8 bottom. Instantiate the
+// public mixed-HSS typedef so all four HSS class templates link.
+template class HSSPublicKey<HSS_SHA256_H10W4_H5W8_L2_Params>;
+template class HSSPrivateKey<HSS_SHA256_H10W4_H5W8_L2_Params>;
+template class HSSVerifier<HSS_SHA256_H10W4_H5W8_L2_Params>;
+template class HSSSigner<HSS_SHA256_H10W4_H5W8_L2_Params>;
+
 // Mixed-height coverage: H10 root over H5 bottom, uniform W8.
 typedef HSS_Params<
     HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
