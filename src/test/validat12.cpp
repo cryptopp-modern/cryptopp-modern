@@ -3889,6 +3889,17 @@ bool ValidateHSS()
 		"HSS mixed H10/H5 L2") && pass;
 	pass = TestHSSMixedHeights() && pass;
 
+	// TC2 already checks verification for this mixed-W typedef. Add the usual
+	// signing tests as well, so the H10/W4 over H5/W8 path is covered both ways.
+	pass = TestHSSSignVerify<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSMultipleSignatures<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSSerialization<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSCrossKeyNegative<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+
 	// Deterministic output against L=2 regression fixtures, and round-trip
 	// coverage for the deeper hierarchies.
 	pass = TestHSSDeterministicOutput<HSS_SHA256_H5_W8_L2_Params>(
