@@ -32,7 +32,7 @@ set(META_PROJECT_NAME "cryptopp-modern")
 set(META_PROJECT_DESCRIPTION "Modern C++ cryptography library - fork of Crypto++")
 set(META_GITHUB_REPO "https://github.com/cryptopp-modern/cryptopp-modern")
 set(META_VERSION_MAJOR "2026")
-set(META_VERSION_MINOR "6")
+set(META_VERSION_MINOR "7")
 set(META_VERSION_PATCH "0")
 set(META_VERSION_REVISION "${GIT_REV}")
 set(META_VERSION
