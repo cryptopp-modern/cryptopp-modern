@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.6.0 - June 2026
+Version 2026.7.0 - July 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -308,6 +308,23 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.7.0 - July 2026
+      - minor release (SLH-DSA external interface, stateful-signing hardening)
+      - changed SLH-DSA to the FIPS 205 external pure signature interface
+        * restores interoperability with OpenSSL, X.509, and CMS
+        * empty context by default; SLHDSA_MessageAccumulator gains SetContext
+        * signatures from 2026.3.0 through 2026.6.0 used the internal
+          message form and will not verify under 2026.7.0, or vice versa
+        * fixes issue 40
+      - hardened LMS/HSS stateful signing
+        * signing fails closed on invalid state reservations
+        * StateReservation bound to its issuing store; cross-store use rejected
+        * null state-store access throws SignerStateIntegrityFailure
+      - hardened FileStateStore
+        * validates the state-file size on open and rejects zero-capacity stores
+        * POSIX exclusive locking with retry on interrupted I/O
+      - fixed HSS capacity helpers and public-header hygiene for the C++11 baseline
 
 2026.6.0 - June 2026
       - minor release (LMS/HSS stateful hash-based signatures)

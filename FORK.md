@@ -26,6 +26,15 @@
 
 ### cryptopp-modern Releases
 
+**2026.7.0** (July 2026) - SLH-DSA External Interface and Stateful-Signing Hardening (Minor)
+- Changed SLH-DSA to the FIPS 205 external pure signature interface; restores interoperability with OpenSSL, X.509, and CMS (fixes #40)
+- SLH-DSA signatures from 2026.3.0 through 2026.6.0 used the internal message form and are not interoperable with 2026.7.0 in either direction
+- Added `SetContext` on `SLHDSA_MessageAccumulator` for explicit-context signing; empty context by default
+- Hardened LMS/HSS signing to fail closed on invalid state reservations
+- Bound `StateReservation` to its issuing store; cross-store use is rejected
+- Hardened `FileStateStore`: state-file size validation on open, zero-capacity rejection, POSIX exclusive locking, retry on interrupted I/O
+- Fixed HSS capacity helpers and public-header hygiene for the C++11 baseline
+
 **2026.6.0** (June 2026) - LMS/HSS Stateful Signatures (Minor)
 - Added LMS single-tree signatures (`LMS_SHA256_H5_W8`, `LMS_SHA256_H10_W8`) following NIST SP 800-208 and RFC 8554
 - Added HSS hierarchical signatures (`HSS_SHA256_H5_W8_L2`, `HSS_SHA256_H10_W8_L2`, `HSS_SHA256_H5_W8_L3`) with uniform parameter sets

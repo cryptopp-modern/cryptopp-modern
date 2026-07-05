@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.6.0 (current release)
+- 2026.7.0 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
