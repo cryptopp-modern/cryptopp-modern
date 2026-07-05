@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.6.0
+**Current Version:** 2026.7.0
 
 ---
 
@@ -155,16 +155,16 @@
 
 ---
 
-## Phase 7: Stateful Hash Signatures (In Progress)
+## Phase 7: Stateful Hash Signatures ✅ COMPLETE
 
 **Goal:** NIST SP 800-208 stateful hash-based signatures, primarily for
 firmware and code-signing use cases where one-time signing keys are
 acceptable.
 
-### In Progress
-- **LMS / HSS** - Leighton-Micali Signatures and Hierarchical Signature
-  System per RFC 8554 / SP 800-208
-- **Signer state store** - File-backed durable state for one-time-key safety
+### Completed
+- ✅ **LMS / HSS** - Leighton-Micali Signatures and Hierarchical Signature
+  System per RFC 8554 / SP 800-208 (shipped 2026.6.0)
+- ✅ **Signer state store** - File-backed durable state for one-time-key safety (shipped 2026.6.0)
 
 ---
 
@@ -184,6 +184,12 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.7.0 (July 2026) - SLH-DSA External Interface and Stateful-Signing Hardening
+- **SLH-DSA external interface** - FIPS 205 external pure signatures, interoperable with OpenSSL, X.509, and CMS; `SLHDSA_MessageAccumulator::SetContext` for explicit context. Signatures are not compatible with 2026.3.0 through 2026.6.0
+- **Stateful-signing hardening** - LMS/HSS sign paths fail closed on invalid state reservations; `StateReservation` bound to its issuing store
+- **FileStateStore hardening** - State-file size validation on open, zero-capacity rejection, POSIX exclusive locking with retry on interrupted I/O
+- **C++11 baseline** - HSS capacity helpers and public-header hygiene fixed; LMS internals moved out of the public header
 
 ### 2026.6.0 (June 2026) - LMS/HSS Stateful Signatures
 - **LMS/HSS stateful hash-based signatures** - LMS single-tree (H5, H10 with W=8) and HSS hierarchical (L=2, L=3) signatures following NIST SP 800-208 and RFC 8554
