@@ -164,14 +164,14 @@ TEST_SRCS = \
     src\test\validat8.cpp src\test\validat9.cpp src\test\validat10.cpp \
     src\test\regtest1.cpp src\test\regtest2.cpp src\test\regtest3.cpp \
     src\test\regtest4.cpp src\test\validat_cve_2024_28285.cpp \
-    src\test\validat11.cpp
+    src\test\validat11.cpp src\test\validat12.cpp
 
 TEST_OBJS = \
     test.obj bench1.obj bench2.obj bench3.obj datatest.obj \
     dlltest.obj fipsalgt.obj validat0.obj validat1.obj validat2.obj \
     validat3.obj validat4.obj validat5.obj validat6.obj validat7.obj \
     validat8.obj validat9.obj validat10.obj regtest1.obj regtest2.obj \
-    regtest3.obj regtest4.obj validat_cve_2024_28285.obj validat11.obj
+    regtest3.obj regtest4.obj validat_cve_2024_28285.obj validat11.obj validat12.obj
 
 CXX = cl.exe
 LD = link.exe
