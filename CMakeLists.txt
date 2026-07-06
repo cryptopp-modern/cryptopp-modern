@@ -1272,21 +1272,22 @@ set_source_files_properties(
 # Compiler: MSVC
 # ------------------------------------------------------------------------------
 if(MSVC AND NOT CRYPTOPP_DISABLE_ASM)
-    if(${CMAKE_GENERATOR_PLATFORM} MATCHES "ARM" OR CRYPTOPP_ARM32 OR CRYPTOPP_ARMV8)
+    # Bare variable names so an unset CMAKE_GENERATOR_PLATFORM fails the match
+    # instead of expanding to an empty token. CMAKE_VS_PLATFORM_NAME backs it up.
+    if(
+        CMAKE_GENERATOR_PLATFORM MATCHES "ARM"
+        OR CMAKE_VS_PLATFORM_NAME MATCHES "ARM"
+        OR CRYPTOPP_ARM32
+        OR CRYPTOPP_ARMV8
+    )
         message(
             STATUS
-            "[cryptopp-modern] Disabling ASM because ARM is specified as target platform."
+            "[cryptopp-modern] Disabling ASM for ARM target."
         )
     else()
         enable_language(ASM_MASM)
         if(NOT CRYPTOPP_DISABLE_RDRAND)
             list(APPEND cryptopp_SOURCES_ASM ${cryptopp_SOURCE_DIR}/src/random/rdrand.asm)
-            if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
-                set_source_files_properties(
-                    ${cryptopp_SOURCE_DIR}/src/random/rdrand.asm
-                    PROPERTIES COMPILE_OPTIONS "/Fo\$(IntDir)rdrand.asm.obj"
-                )
-            endif()
         endif()
         if(NOT CRYPTOPP_DISABLE_RDSEED)
             list(APPEND cryptopp_SOURCES_ASM ${cryptopp_SOURCE_DIR}/src/random/rdseed.asm)
@@ -1319,6 +1320,15 @@ if(MSVC AND NOT CRYPTOPP_DISABLE_ASM)
             ${cryptopp_SOURCES_ASM}
             PROPERTIES LANGUAGE ASM_MASM
         )
+        # The Visual Studio generator can place MASM objects under source-tree
+        # subdirs (src/random) that ml64 may not create, failing with A1000.
+        # Keep them flat under $(IntDir) via ObjectFileName metadata.
+        if(CMAKE_GENERATOR MATCHES "Visual Studio")
+            set_source_files_properties(
+                ${cryptopp_SOURCES_ASM}
+                PROPERTIES VS_SETTINGS "ObjectFileName=\$(IntDir)%(Filename).asm.obj"
+            )
+        endif()
     endif()
 endif()
 
