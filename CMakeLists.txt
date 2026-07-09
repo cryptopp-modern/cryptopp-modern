@@ -1563,7 +1563,7 @@ if(CRYPTOPP_INSTALL)
 
     install(
         EXPORT ${TARGETS_EXPORT_NAME}
-        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cmake/cryptopp-modern"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cryptopp-modern"
         NAMESPACE cryptopp::
         FILE cryptopp-modern-${type}-targets.cmake
         COMPONENT ${dev}
@@ -1574,12 +1574,12 @@ if(CRYPTOPP_INSTALL)
         FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cryptopp-modernConfig.cmake
             ${CMAKE_CURRENT_BINARY_DIR}/cryptopp-modernConfigVersion.cmake
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/cryptopp-modern
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cryptopp-modern
         COMPONENT ${dev}
     )
     install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/cryptopp-modern.pc
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
         COMPONENT ${dev}
     )
 
