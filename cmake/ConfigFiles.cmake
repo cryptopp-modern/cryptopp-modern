@@ -19,7 +19,6 @@ endfunction()
 
 function(_module_pkgconfig_files)
     message(STATUS "[cryptopp-modern] Generating pkgconfig files")
-    set(MODULE_PKGCONFIG_FILE cryptopp-modern.pc)
 
     if(CMAKE_BUILD_TYPE EQUAL "Debug")
         get_target_property(target_debug_postfix cryptopp DEBUG_POSTFIX)
@@ -29,9 +28,19 @@ function(_module_pkgconfig_files)
     endif()
     set(MODULE_LINK_LIBS "-lcryptopp${target_debug_postfix}")
 
+    # Primary file is named libcryptopp.pc to match upstream Crypto++, so
+    # `pkg-config libcryptopp` keeps working for existing consumers.
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.pc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_PKGCONFIG_FILE}
+        ${CMAKE_CURRENT_BINARY_DIR}/libcryptopp.pc
+        @ONLY
+    )
+
+    # Alias for consumers that adopted the fork's cryptopp-modern name; it
+    # forwards to libcryptopp rather than repeating the flags.
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config-alias.pc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/cryptopp-modern.pc
         @ONLY
     )
 endfunction()

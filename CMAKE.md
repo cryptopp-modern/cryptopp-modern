@@ -198,8 +198,8 @@ cmake --install build
 |-----------|----------|
 | `include/cryptopp/` | All header files |
 | `lib/` | Static library (`libcryptopp.a` or `cryptopp.lib`) |
-| `lib/pkgconfig/` | pkg-config file (`cryptopp.pc`) |
-| `share/cmake/cryptopp-modern/` | CMake config files for `find_package()` |
+| `lib/pkgconfig/` | pkg-config files (`libcryptopp.pc` and the `cryptopp-modern.pc` alias) |
+| `lib/cmake/cryptopp-modern/` | CMake config files for `find_package()` |
 | `share/cryptopp/` | TestData and TestVectors |
 | `bin/` | Test executable (`cryptest.exe`) |
 
@@ -296,6 +296,7 @@ cryptopp-modern/
 │   ├── cmake_minimum_required.cmake
 │   ├── ConfigFiles.cmake    # Package config generation
 │   ├── config.pc.in         # pkg-config template
+│   ├── config-alias.pc.in   # pkg-config compatibility alias
 │   ├── cryptopp-modernConfig.cmake  # find_package() config
 │   ├── GetGitRevisionDescription.cmake
 │   ├── GetGitRevisionDescription.cmake.in
