@@ -7,13 +7,32 @@ Currently supported:
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
+## Verifying Releases
+
+Release archives are signed with the CoraleSoft release key:
+
+- Fingerprint: `844D CFC4 4A5D E9C1 4C3A  2F62 497A 4CFB B700 543E`
+- User ID: `CoraleSoft (CoraleSoft Releases) <releases@coralesoft.nz>`
+
+The public key is in the [`KEYS`](KEYS) file at the repository root and is available from `keys.openpgp.org` and `keyserver.ubuntu.com`.
+
+Check the fingerprint, import the key, then verify the archive:
+
+```sh
+gpg --show-keys --with-fingerprint KEYS
+gpg --import KEYS
+gpg --verify cryptopp-modern-2026.7.0.zip.sig cryptopp-modern-2026.7.0.zip
+```
+
+Make sure the fingerprint matches the value above before trusting the archive.
+
 ## Reporting a Vulnerability
 
-You can report a security related bug in the [cryptopp-modern GitHub Issues](https://github.com/cryptopp-modern/cryptopp-modern/issues) or [GitHub Discussions](https://github.com/cryptopp-modern/cryptopp-modern/discussions).
+You can report a security-related bug in the [cryptopp-modern GitHub Issues](https://github.com/cryptopp-modern/cryptopp-modern/issues) or [GitHub Discussions](https://github.com/cryptopp-modern/cryptopp-modern/discussions).
 
 For sensitive security issues, you may also contact the maintainer directly through GitHub.
 
-If we receive a report of a security related bug then we will:
+If we receive a report of a security-related bug then we will:
 1. Open a GitHub issue (unless the issue requires private disclosure initially)
 2. Investigate and develop a fix
 3. Release a patched version as soon as possible
