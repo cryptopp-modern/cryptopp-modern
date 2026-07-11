@@ -1,0 +1,7 @@
+# cryptopp-modern pkg-config compatibility alias for libcryptopp
+
+Name: cryptopp-modern
+URL: https://github.com/cryptopp-modern/cryptopp-modern
+Description: Compatibility alias for libcryptopp
+Version: @cryptopp-modern_VERSION@
+Requires: libcryptopp = @cryptopp-modern_VERSION@

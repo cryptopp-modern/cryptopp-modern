@@ -191,6 +191,22 @@ jobs:
         test -d build/install/include/cryptopp
         test -f build/install/include/cryptopp/aes.h
         test -f build/install/lib/cmake/cryptopp-modern/cryptopp-modernConfig.cmake
+        # Both pkg-config names must resolve and yield usable flags; the
+        # cryptopp-modern alias forwards to libcryptopp through Requires.
+        export PKG_CONFIG_PATH="$PWD/build/install/lib/pkgconfig"
+        pkg-config --exists libcryptopp
+        pkg-config --exists cryptopp-modern
+        pkg-config --cflags --libs libcryptopp
+        pkg-config --cflags --libs cryptopp-modern
+        test "$(pkg-config --libs cryptopp-modern)" = "$(pkg-config --libs libcryptopp)"
+        # A mismatched libcryptopp.pc earlier in the path must not satisfy the
+        # version-pinned alias; the lookup should fail rather than resolve to it.
+        mkdir -p "$RUNNER_TEMP/fakepc"
+        printf 'Name: libcryptopp\nDescription: mismatched\nVersion: 0.0.0\nCflags: -I/nonexistent\n' > "$RUNNER_TEMP/fakepc/libcryptopp.pc"
+        if PKG_CONFIG_PATH="$RUNNER_TEMP/fakepc:$PWD/build/install/lib/pkgconfig" pkg-config --exists cryptopp-modern; then
+          echo "ERROR: alias resolved through a mismatched libcryptopp.pc" >&2
+          exit 1
+        fi
         ls -la build/install/include/cryptopp/ | head -20
 
     - name: Test find_package integration

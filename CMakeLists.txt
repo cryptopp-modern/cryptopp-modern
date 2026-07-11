@@ -1578,7 +1578,9 @@ if(CRYPTOPP_INSTALL)
         COMPONENT ${dev}
     )
     install(
-        FILES ${CMAKE_CURRENT_BINARY_DIR}/cryptopp-modern.pc
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/libcryptopp.pc
+            ${CMAKE_CURRENT_BINARY_DIR}/cryptopp-modern.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
         COMPONENT ${dev}
     )
