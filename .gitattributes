@@ -1,1 +1,15 @@
+# Normalise text files to LF in the repository. Working-tree endings follow
+# the checkout's Git configuration unless overridden below.
+* text=auto
+
+# Shell scripts must stay LF even when checked out on Windows.
 *.sh eol=lf
+
+# Visual Studio and Windows command files are checked out with CRLF.
+*.sln              text eol=crlf
+*.vcxproj          text eol=crlf
+*.vcxproj.filters  text eol=crlf
+*.vcxproj.user     text eol=crlf
+*.rc               text eol=crlf
+*.cmd              text eol=crlf
+*.nmake            text eol=crlf
