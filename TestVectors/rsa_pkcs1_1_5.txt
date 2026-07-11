@@ -47,7 +47,7 @@ PublicKey: \
          05 00                             #parameters = NULL\
       03 4a         #subjectPublicKey = RSAPublicKey encoding\
          00\
- 		 30 47\
+		 30 47\
 		    02 40                                         #modulus = n\
 			   0a 66 79 1d c6 98 81 68 de 7a b7 74 19 bb 7f b0\
 			   c0 01 c6 27 10 27 00 75 14 29 42 e1 9a 8d 8c 51\
