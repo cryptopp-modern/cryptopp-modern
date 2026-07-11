@@ -51,7 +51,7 @@ project(
     VERSION "${META_VERSION}"
     DESCRIPTION "${META_PROJECT_DESCRIPTION}"
     HOMEPAGE_URL "${META_GITHUB_REPO}"
-    LANGUAGES CXX C ASM
+    LANGUAGES CXX C
 )
 
 message(STATUS "=> Project : ${PROJECT_NAME} v${cryptopp-modern_VERSION}")
@@ -1267,6 +1267,11 @@ set_source_files_properties(
     ${cryptopp_SOURCE_DIR}/src/core/sse_simd.cpp
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_SSE2_FLAGS}"
 )
+
+# CryptoGAMS ARM sources use GNU assembler syntax.
+if((CRYPTOPP_ARM32 OR CRYPTOPP_ARMV8) AND NOT MSVC AND NOT CRYPTOPP_DISABLE_ASM)
+    enable_language(ASM)
+endif()
 
 # ------------------------------------------------------------------------------
 # Compiler: MSVC
