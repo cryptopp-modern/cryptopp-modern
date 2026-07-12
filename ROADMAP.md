@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.7.0
+**Current Version:** 2026.7.1
 
 ---
 
@@ -151,8 +151,6 @@
   - RFC 8554 Appendix F interop verified
 - ✅ **X-Wing** - Hybrid KEM combining X25519 + ML-KEM-768 (IETF draft)
 
-**Note:** Post-quantum algorithms provide security against both classical and quantum computer attacks, preparing applications for the post-quantum era.
-
 ---
 
 ## Phase 7: Stateful Hash Signatures ✅ COMPLETE
@@ -185,8 +183,14 @@ See [FORK.md](FORK.md) for project details and direction.
 
 ## Version History
 
+### 2026.7.1 (July 2026) - Packaging
+- **Install locations** - CMake and pkg-config files install under `${CMAKE_INSTALL_LIBDIR}` (#47)
+- **pkg-config name** - `libcryptopp.pc` restored, with a `cryptopp-modern.pc` alias (#51)
+- **Archives** - `.tar.gz` releases added and repository line endings normalised (#49)
+- **Release signing** - Signing key and verification steps published (#46)
+
 ### 2026.7.0 (July 2026) - SLH-DSA External Interface and Stateful-Signing Hardening
-- **SLH-DSA external interface** - FIPS 205 external pure signatures, interoperable with OpenSSL, X.509, and CMS; `SLHDSA_MessageAccumulator::SetContext` for explicit context. Signatures are not compatible with 2026.3.0 through 2026.6.0
+- **SLH-DSA external interface** - FIPS 205 external pure signatures, interoperable with OpenSSL, X.509, and CMS; `SLHDSA_MessageAccumulator::SetContext` for explicit context. Signatures from 2026.3.0 through 2026.6.0 use the internal message form and are not interoperable with the external-interface format introduced in 2026.7.0
 - **Stateful-signing hardening** - LMS/HSS sign paths fail closed on invalid state reservations; `StateReservation` bound to its issuing store
 - **FileStateStore hardening** - State-file size validation on open, zero-capacity rejection, POSIX exclusive locking with retry on interrupted I/O
 - **C++11 baseline** - HSS capacity helpers and public-header hygiene fixed; LMS internals moved out of the public header

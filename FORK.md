@@ -8,13 +8,13 @@
 
 **Upstream Crypto++ Status:**
 - Last release: 8.9.0 (October 1, 2023)
-- Development pace: Very slow (14+ months since last release)
+- Development pace: No release since October 2023
 - Version encoding limitation: Cannot represent version 8.10.0 without ambiguity
 - Modern algorithms: Missing (BLAKE3, Argon2, post-quantum)
 
 **cryptopp-modern Goals:**
 - Active maintenance with regular releases
-- Modern cryptographic algorithms (BLAKE3, Argon2, post-quantum planned)
+- Modern cryptographic algorithms (BLAKE3, Argon2, post-quantum cryptography)
 - Better code organization (Phase 2 complete - categorized src/ directories)
 - Calendar versioning (YEAR.MONTH.INCREMENT)
 - Improved documentation and organisation
@@ -26,9 +26,15 @@
 
 ### cryptopp-modern Releases
 
+**2026.7.1** (July 2026) - Packaging (Patch)
+- Moved the CMake package config and pkg-config files under `${CMAKE_INSTALL_LIBDIR}` (#47)
+- Restored `libcryptopp.pc` for pkg-config compatibility; kept `cryptopp-modern.pc` as a version-pinned alias (#51)
+- Added `.tar.gz` release archives and normalised repository line endings to LF (#49)
+- Published the release-signing key in `KEYS` and documented verification in `Security.md` (#46)
+
 **2026.7.0** (July 2026) - SLH-DSA External Interface and Stateful-Signing Hardening (Minor)
 - Changed SLH-DSA to the FIPS 205 external pure signature interface; restores interoperability with OpenSSL, X.509, and CMS (fixes #40)
-- SLH-DSA signatures from 2026.3.0 through 2026.6.0 used the internal message form and are not interoperable with 2026.7.0 in either direction
+- SLH-DSA signatures from 2026.3.0 through 2026.6.0 use the internal message form and are not interoperable with the external-interface format introduced in 2026.7.0
 - Added `SetContext` on `SLHDSA_MessageAccumulator` for explicit-context signing; empty context by default
 - Hardened LMS/HSS signing to fail closed on invalid state reservations
 - Bound `StateReservation` to its issuing store; cross-store use is rejected
@@ -163,10 +169,10 @@ This is a maintained fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.6.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.7.1 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | June 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.6.0) |
+| **Last Release** | October 1, 2023 | July 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.7.1) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
@@ -201,6 +207,6 @@ This is a maintained fork to:
 
 ---
 
-**Last Updated:** 2026-06-03
+**Last Updated:** 2026-07-12
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.6.0
+**Current Version:** 2026.7.1

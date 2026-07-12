@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.6.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.7.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -19,25 +19,24 @@
 - **Security Patches** - Marvin attack fix (CVE-2023-50979), fault injection fix (CVE-2024-28285), F(2^m) and Rabin/ModularSquareRoot hardening (CVE-2023-50980, CVE-2023-50981), ESIGN improvements
 - **Calendar Versioning** - Clear release dates (YEAR.MONTH.INCREMENT format)
 - **Active Maintenance** - Regular updates and improvements
-- **Drop-in Compatible** - Uses same `CryptoPP` namespace
+- **Crypto++ Compatibility** - Uses the same `CryptoPP` namespace and preserves most existing APIs
 
 ---
 
 
-## What's New in 2026.6.0
+## What's New in 2026.7.1
 
-- **LMS/HSS stateful hash-based signatures** - Adds LMS single-tree (H5, H10 with W=8) and HSS hierarchical (L=2, L=3) signatures following NIST SP 800-208 and RFC 8554. New stateful signing API deliberately separate from `PK_Signer`. ASN.1 wiring uses RFC 8708 `id-alg-hss-lms-hashsig`.
-- **FileStateStore** - Durable file-backed `SignerStateStore` with write-ahead persistence, HMAC-SHA256 integrity, and fail-closed poisoning. Platform support for Win32, POSIX, and macOS `F_FULLFSYNC`.
-- **PQC Save/Load tests** - Round-trip test coverage for ML-KEM, ML-DSA, and SLH-DSA key encoding.
-- **Android x86 CI** - Build coverage added for Android `x86_64` and `x86` targets.
-- **Sanitizer CI fix** - `cryptest tv` output is now included in the checked sanitizer log so errors there are no longer hidden.
-- **Legacy compiler CI** - GCC 9-10 and Clang 11-14 lanes added.
+Packaging patch; no cryptographic code changed.
 
-### Previously in 2026.5.2
+- CMake and pkg-config files install under `${CMAKE_INSTALL_LIBDIR}` (#47).
+- `libcryptopp.pc` restored, with a `cryptopp-modern.pc` alias (#51).
+- `.tar.gz` releases and normalised line endings (#49).
+- Release-signing key and verification steps published (#46).
 
-- **ASN.1 DERReencode depth cap** - Caps `DERReencode` recursion at 32 levels, matching OpenSSL's `ASN1_MAX_CONSTRUCTED_NEST`. Prevents stack exhaustion on crafted nested constructed indefinite BER input. Addresses upstream Crypto++ issue 1353.
-- **Ed25519 signature scalar canonicality** - Both the Donna verifier and the NaCl C API verifier now reject signatures where `S >= L`. Addresses the signature-scalar part of upstream Crypto++ issue 1352. Conformance fix, not a forgery.
-- **Ed25519 small-order public key rejection** - `ed25519PublicKey::Validate` rejects small-order public keys at validation level 2 or higher. Level 0 behaviour is unchanged.
+### Previously in 2026.7.0
+
+- **SLH-DSA external interface** - FIPS 205 external pure signatures, interoperable with OpenSSL, X.509, and CMS. SLH-DSA signatures from 2026.3.0 through 2026.6.0 use the internal message form and are not interoperable with the external-interface format introduced in 2026.7.0.
+- **Stateful-signing hardening** - Additional one-time-key safety checks for LMS/HSS.
 
 ---
 
@@ -134,7 +133,7 @@ See [Readme.txt](Readme.txt) for complete algorithm list.
 **Good news:** Most code works unchanged!
 
 ### Compatible
-- All existing algorithms and APIs
+- Most existing Crypto++ 8.9.0 algorithms and APIs
 - Same `CryptoPP` namespace
 - Version checks: `#if CRYPTOPP_VERSION >= N`
 
