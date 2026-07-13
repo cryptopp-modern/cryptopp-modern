@@ -144,6 +144,28 @@ jobs:
     - name: Run test vectors
       run: ./build/ci-windows/Release/cryptest.exe tv all
 
+  cmake-windows-arm64:
+    # ARM64 Windows host with the Visual Studio generator, covering issue #43:
+    # MASM (ml64) A1000 when the generator writes ASM objects under a source
+    # subdir. Builds for x64 (MASM active) and ARM64 (ASM disabled). Runners
+    # ship Visual Studio 2022; the reporter hit it on 2026, so a pass here
+    # covers the ARM64 host path but not the 2026-specific toolset.
+    name: CMake Windows ARM64 host (MSVC, ${{ matrix.target }})
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x64, ARM64]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Configure (Visual Studio generator, ${{ matrix.target }} target)
+      run: cmake -S . -B build/ci-win-arm -G "Visual Studio 17 2022" -A ${{ matrix.target }} -DCMAKE_BUILD_TYPE=Release -DCRYPTOPP_BUILD_TESTING=ON
+
+    - name: Build
+      run: cmake --build build/ci-win-arm --config Release
+
   cmake-no-asm:
     name: CMake No-ASM (Pure C++)
     runs-on: ubuntu-24.04
