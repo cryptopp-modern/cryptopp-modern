@@ -19,6 +19,16 @@
 #include <cstdio>
 #include <limits>
 
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
+# endif
+# ifndef NOMINMAX
+#  define NOMINMAX
+# endif
+# include <windows.h>
+#endif
+
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
 # pragma strict_gs_check (on)
@@ -3178,11 +3188,6 @@ bool ValidateHSS()
 // Mirror FileStateStore path handling for non-ASCII test paths.
 
 #ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-#  define WIN32_LEAN_AND_MEAN
-# endif
-# include <windows.h>
-
 static std::wstring TestUtf8PathToWide(const std::string &path)
 {
 	if (path.empty()) return std::wstring();
