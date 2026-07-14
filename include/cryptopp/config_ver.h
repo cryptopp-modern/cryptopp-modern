@@ -59,6 +59,13 @@
 /// \since Crypto++ 5.6
 #define CRYPTOPP_VERSION 20260701
 
+/// \brief Shared library ABI version
+/// \details CRYPTOPP_ABI_VERSION is the shared library SONAME and the macOS
+///  compatibility version. It is independent of CRYPTOPP_VERSION and the
+///  calendar release cycle, and increments only for ABI-incompatible
+///  changes. The CMake and GNUmakefile builds both read this value.
+#define CRYPTOPP_ABI_VERSION 1
+
 // Compiler version macros
 
 // Apple and LLVM Clang versions. Apple Clang version 7.0 roughly equals
