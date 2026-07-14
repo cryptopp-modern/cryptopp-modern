@@ -1432,7 +1432,7 @@ void HSSSigner<HSS_PARAMS>::SignMessage(
     if (!m_store)
         throw SignerStateIntegrityFailure(AlgorithmName() + ": state store is null");
 
-    // Reserve the next signing index.
+    // Reserve global signing index (authoritative safety boundary)
     StateReservation reservation = m_store->ReserveNext();
 
     if (!reservation.IsValid())

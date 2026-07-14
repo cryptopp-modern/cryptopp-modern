@@ -1730,7 +1730,7 @@ static bool TestHSSSubtreeBoundary()
 		SecByteBlock signature(signer.SignatureLength());
 
 		// Sign 32 messages (exhausts bottom-level subtree 0)
-		for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++)
+		for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++)
 		{
 			std::string msg = "Subtree boundary test msg " + std::to_string(i);
 			signer.SignMessage(rng,
@@ -1857,7 +1857,7 @@ static bool TestHSSReconstructionAtBoundary()
 		// Sign up to the subtree boundary (32 sigs = exhaust subtree 0)
 		{
 			HSSSigner<Params> signer1(privKey, store);
-			for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++)
+			for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++)
 			{
 				std::string msg = "Boundary recon msg " + std::to_string(i);
 				signer1.SignMessage(rng,
@@ -4551,7 +4551,7 @@ static bool TestFileStoreHSSSubtreeBoundaryRestart()
 			FileStateStore store = FileStateStore::Create(path, Params::TotalSignatures());
 			HSSSigner<Params> signer(privKey, store);
 
-			for (unsigned int i = 0; i < Params::LeavesAt<0>(); i++) {
+			for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++) {
 				std::string msg = "Boundary restart msg " + std::to_string(i);
 				signer.SignMessage(rng,
 					reinterpret_cast<const byte*>(msg.data()), msg.size(),
