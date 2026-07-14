@@ -1682,14 +1682,4 @@ template class HSSPrivateKey<HSS_SHA256_H10W4_H5W8_L2_Params>;
 template class HSSVerifier<HSS_SHA256_H10W4_H5W8_L2_Params>;
 template class HSSSigner<HSS_SHA256_H10W4_H5W8_L2_Params>;
 
-// Mixed-height coverage: H10 root over H5 bottom, uniform W8.
-typedef HSS_Params<
-    HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
-    HSSLevel<LMS_SHA256_M32_H5,  LMOTS_SHA256_N32_W8> > HSS_Mixed_H10H5_W8_L2_Params;
-
-template class HSSPublicKey<HSS_Mixed_H10H5_W8_L2_Params>;
-template class HSSPrivateKey<HSS_Mixed_H10H5_W8_L2_Params>;
-template class HSSVerifier<HSS_Mixed_H10H5_W8_L2_Params>;
-template class HSSSigner<HSS_Mixed_H10H5_W8_L2_Params>;
-
 NAMESPACE_END  // CryptoPP

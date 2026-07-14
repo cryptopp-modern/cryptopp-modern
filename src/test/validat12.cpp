@@ -3711,22 +3711,19 @@ static_assert(HSS_SHA256_H5_W8_L4_Params::TotalSignatures() == 1048576u &&
               HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
               "HSS H5/W8 L4 aggregates");
 
-// Mixed-height L=2: an H10 root over an H5 bottom tree, uniform W8.
-// Signature sizes differ, so this catches level-0 sizing assumptions.
-typedef HSS_Params<
-	HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
-	HSSLevel<LMS_SHA256_M32_H5,  LMOTS_SHA256_N32_W8> > HSS_Mixed_H10H5_W8_L2_Params;
-
+// Mixed-parameter boundary coverage on the public TC2 type: an H10/W4 root
+// over an H5/W8 bottom tree, so signature sizes differ at every level and
+// level-0 sizing assumptions fail loudly.
 static bool TestHSSMixedHeights()
 {
 	AutoSeededRandomPool rng;
-	const char* name = "HSS mixed H10/H5 L2";
+	const char* name = "HSS mixed H10/W4 over H5/W8 L2";
 
 	try {
-		typedef HSS_Mixed_H10H5_W8_L2_Params Params;
+		typedef HSS_SHA256_H10W4_H5W8_L2_Params Params;
 
 		const std::string expectedName =
-			"HSS[2]/(LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8,"
+			"HSS[2]/(LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W4,"
 			"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8)";
 		if (Params::StaticAlgorithmName() != expectedName)
 		{
@@ -3880,13 +3877,8 @@ bool ValidateHSS()
 	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L4_Params>(
 		"HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
-	// Mixed-height coverage: per-level dispatch with different tree heights
-	pass = TestHSSSignVerify<HSS_Mixed_H10H5_W8_L2_Params>(
-		"HSS mixed H10/H5 L2") && pass;
-	pass = TestHSSSerialization<HSS_Mixed_H10H5_W8_L2_Params>(
-		"HSS mixed H10/H5 L2") && pass;
-	pass = TestHSSCrossKeyNegative<HSS_Mixed_H10H5_W8_L2_Params>(
-		"HSS mixed H10/H5 L2") && pass;
+	// Mixed-parameter coverage: per-level dispatch with different tree heights
+	// and W values, all on the public TC2 typedef.
 	pass = TestHSSMixedHeights() && pass;
 
 	// TC2 already checks verification for this mixed-W typedef. Add the usual
