@@ -140,6 +140,17 @@ struct LMS_SHA256_M32_H10
     static std::string StaticAlgorithmName() { return "LMS-SHA256-M32-H10"; }
 };
 
+/// \brief True when an LMS and LM-OTS parameter pair is internally consistent
+/// \details The LMS tree hash output size M must match the LM-OTS hash output
+///  size N. Every template that composes the pair asserts this.
+template <class LMS_PARAMS, class OTS_PARAMS>
+struct CompatibleLMSParams
+{
+    static const bool value =
+        static_cast<size_t>(LMS_PARAMS::M) ==
+        static_cast<size_t>(OTS_PARAMS::N);
+};
+
 // ******************** LMS Message Accumulator ************************* //
 
 /// \brief LMS message accumulator
@@ -148,6 +159,8 @@ struct LMS_SHA256_M32_H10
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMS_MessageAccumulator : public PK_MessageAccumulator
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     // LMS signature: q(4) + OTS sig(4+n+p*n) + LMS type(4) + auth path(h*m)
     CRYPTOPP_CONSTANT(SIGNATURE_LENGTH =
         4 + OTS_PARAMS::SIG_LEN + 4 +
@@ -204,6 +217,8 @@ protected:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSPublicKey : public PublicKey
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     // Public key: LMS type(4) + OTS type(4) + I(16) + T[1](m)
     CRYPTOPP_CONSTANT(PUBLIC_KEY_SIZE = 4 + 4 + 16 + LMS_PARAMS::M);
 
@@ -273,6 +288,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSPrivateKey : public PrivateKey
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     CRYPTOPP_CONSTANT(SEED_SIZE = OTS_PARAMS::N);
     CRYPTOPP_CONSTANT(I_SIZE = 16);
 
@@ -353,6 +370,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSVerifier : public PK_Verifier
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMS_PARAMS LMSParameters;
     typedef OTS_PARAMS OTSParameters;
     typedef LMSPublicKey<LMS_PARAMS, OTS_PARAMS> PublicKeyType;
@@ -433,6 +452,8 @@ protected:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSSigner : public PK_StatefulSigner
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMS_PARAMS LMSParameters;
     typedef OTS_PARAMS OTSParameters;
     typedef LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> PrivateKeyType;
@@ -499,6 +520,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMS
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMSSigner<LMS_PARAMS, OTS_PARAMS> Signer;
     typedef LMSVerifier<LMS_PARAMS, OTS_PARAMS> Verifier;
     typedef LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> PrivateKey;

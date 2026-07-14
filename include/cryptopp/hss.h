@@ -145,6 +145,26 @@ struct SameN<First, Second, Tail...>
         SameN<Second, Tail...>::value;
 };
 
+// True when every level's LMS hash output size M matches its LM-OTS N.
+// Each level defers to the pair-level CompatibleLMSParams trait.
+template <class... Levels>
+struct MatchingMN;
+
+template <>
+struct MatchingMN<>
+{
+    static const bool value = true;
+};
+
+template <class Head, class... Tail>
+struct MatchingMN<Head, Tail...>
+{
+    static const bool value =
+        CompatibleLMSParams<typename Head::LMSParams,
+                            typename Head::OTSParams>::value &&
+        MatchingMN<Tail...>::value;
+};
+
 // Append each level's "<LMSname>/<OTSname>" to out, top level first.
 template <class... Levels>
 struct LevelNames;
@@ -185,7 +205,8 @@ struct HSSLevel
 /// \brief HSS parameter set with per-level LMS and LM-OTS choices
 /// \tparam Levels two to four HSSLevel descriptors, top (root) level first
 /// \details Uniform configurations repeat the same HSSLevel at every level.
-///  All levels must share one LM-OTS hash output size N.
+///  All levels must share one LM-OTS hash output size N, and each level's
+///  LMS hash output size M must match its LM-OTS N.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-6">RFC 8554 Section 6</A>
 template <class... Levels>
 struct HSS_Params
@@ -194,6 +215,8 @@ struct HSS_Params
     static_assert(sizeof...(Levels) <= 4, "HSS supports up to 4 levels");
     static_assert(HSS_Internal::SameN<Levels...>::value,
         "HSS levels must share one LM-OTS hash output size N");
+    static_assert(HSS_Internal::MatchingMN<Levels...>::value,
+        "HSS level LMS M must match its LM-OTS N");
 
     CRYPTOPP_CONSTANT(L = sizeof...(Levels));
 
