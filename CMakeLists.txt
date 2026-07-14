@@ -115,17 +115,16 @@ option(CRYPTOPP_BUILD_TESTING "Build library tests" ON)
 # install/no-install behavior for cryptopp module.
 option(CRYPTOPP_INSTALL "Generate the install target for this project." ON)
 
-# Crypto++ DOES NOT properly support DLL builds. The old DLL was the FIPS one,
-# which is being abandoned. Therefore, we only allow static builds.
+# Windows DLL builds are not supported. The old DLL was the FIPS one, which is
+# abandoned, and its hand-maintained export set is gone. Shared builds are
+# allowed on Unix-like platforms, where the library exports the full API.
 option(CRYPTOPP_BUILD_SHARED "Build shared library" OFF)
-if(${CRYPTOPP_BUILD_SHARED})
+if(CRYPTOPP_BUILD_SHARED AND WIN32)
     message(
         FATAL_ERROR
-        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-        "Crypto++ DOES NOT properly support DLL builds. The old DLL was the FIPS "
-        "one which is being abandoned.\nTherefore, we only allow static builds "
-        "until that situation changes.\n"
-        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        "Shared (DLL) builds are not supported on Windows. The old DLL was the "
+        "FIPS one, which is abandoned. Build a static library on Windows, or "
+        "build shared on a non-Windows target."
     )
 endif()
 
@@ -1381,20 +1380,50 @@ if(
     set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
 endif()
 
+# Shared library ABI version, read from config_ver.h so the CMake and
+# GNUmakefile builds share one source. It is independent of the release
+# version. Fail closed if it is missing, duplicated, or not a positive integer.
+file(STRINGS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/cryptopp/config_ver.h"
+    _cryptopp_abi_lines
+    REGEX "define[ ]+CRYPTOPP_ABI_VERSION[ ]+[0-9]+[ ]*$"
+)
+list(LENGTH _cryptopp_abi_lines _cryptopp_abi_count)
+if(NOT _cryptopp_abi_count EQUAL 1)
+    message(FATAL_ERROR
+        "CRYPTOPP_ABI_VERSION must be defined exactly once in config_ver.h")
+endif()
+string(REGEX MATCH "[0-9]+" CRYPTOPP_ABI_VERSION "${_cryptopp_abi_lines}")
+if(NOT CRYPTOPP_ABI_VERSION MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR
+        "CRYPTOPP_ABI_VERSION in config_ver.h must be a positive integer")
+endif()
+
 set(cryptopp_LIBRARY_SOURCES ${cryptopp_SOURCES_ASM})
 list(APPEND cryptopp_LIBRARY_SOURCES ${cryptopp_SOURCES})
 
 add_library(cryptopp ${cryptopp_LIBRARY_SOURCES})
 add_library(cryptopp::cryptopp ALIAS cryptopp)
+# VERSION is the release version (full filename, macOS current_version).
+# SOVERSION is the ABI version (SONAME, macOS compatibility_version).
 set_target_properties(
     cryptopp
     PROPERTIES
         VERSION ${cryptopp-modern_VERSION}
-        SOVERSION ${cryptopp-modern_VERSION_MAJOR}
+        SOVERSION ${CRYPTOPP_ABI_VERSION}
 )
 set_target_properties(cryptopp PROPERTIES LINKER_LANGUAGE CXX)
-if(${CRYPTOPP_BUILD_SHARED})
-    target_compile_definitions(cryptopp PRIVATE "CRYPTOPP_EXPORTS")
+# CRYPTOPP_EXPORTS belongs to the legacy Windows DLL machinery and is
+# deliberately not defined for Unix shared builds, which export through
+# default visibility.
+if(CRYPTOPP_BUILD_SHARED AND NOT WIN32)
+    # Export the full API from the shared library. Crypto++ does not annotate
+    # public symbols for GCC/Clang, so the project-wide hidden default would
+    # otherwise produce a .so that exports almost nothing.
+    set_target_properties(cryptopp PROPERTIES
+        CXX_VISIBILITY_PRESET default
+        VISIBILITY_INLINES_HIDDEN OFF
+    )
 endif()
 target_compile_definitions(
     cryptopp

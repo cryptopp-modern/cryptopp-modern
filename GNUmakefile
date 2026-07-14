@@ -1180,9 +1180,18 @@ ifeq ($(strip $(LIB_PATCH)),)
   LIB_PATCH := 0
 endif
 
+# Shared library ABI version. Read from the same header so this makefile and
+# CMake agree. Independent of the release version: the SONAME uses it, while the
+# full library filename keeps the release version.
+LIB_ABI_VERSION := $(shell $(GREP) "define CRYPTOPP_ABI_VERSION" include/cryptopp/config_ver.h | cut -d" " -f 3)
+LIB_ABI_VALID := $(shell echo "$(LIB_ABI_VERSION)" | $(GREP) -E '^[1-9][0-9]*$$')
+ifeq ($(strip $(LIB_ABI_VALID)),)
+  $(error CRYPTOPP_ABI_VERSION in include/cryptopp/config_ver.h must be a positive integer, got '$(LIB_ABI_VERSION)')
+endif
+
 ifeq ($(HAS_SOLIB_VERSION),1)
-# Different patchlevels and minors are compatible since 6.1
-SOLIB_COMPAT_SUFFIX=.$(LIB_MAJOR)
+# The SONAME carries the ABI version, not the release version.
+SOLIB_COMPAT_SUFFIX=.$(LIB_ABI_VERSION)
 # Linux uses -Wl,-soname
 ifneq ($(IS_LINUX)$(IS_HURD),00)
 # Linux uses full version suffix for shared library
@@ -1556,7 +1565,7 @@ ifeq ($(HAS_SOLIB_VERSION),1)
 endif
 
 libcryptopp.dylib: $(LIBOBJS) | osx_warning
-	$(CXX) -dynamiclib -o $@ $(CXXFLAGS) -install_name "$@" -current_version "$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)" -compatibility_version "$(LIB_MAJOR).$(LIB_MINOR)" -headerpad_max_install_names $(LDFLAGS) $(LIBOBJS)
+	$(CXX) -dynamiclib -o $@ $(CXXFLAGS) -install_name "$@" -current_version "$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)" -compatibility_version "$(LIB_ABI_VERSION)" -headerpad_max_install_names $(LDFLAGS) $(LIBOBJS)
 
 cryptest.exe: $(LINK_LIBRARY) $(TESTOBJS) | osx_warning
 	$(CXX) -o $@ $(CXXFLAGS) $(TESTOBJS) $(LINK_LIBRARY_PATH)$(LINK_LIBRARY) $(LDFLAGS) $(LDLIBS)

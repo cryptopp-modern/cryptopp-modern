@@ -261,6 +261,131 @@ jobs:
         cmake --build build
         ./build/test-app
 
+  cmake-shared:
+    name: CMake Shared Library Test
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Ninja
+      run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+    - name: Configure (shared, tests on)
+      run: >
+        cmake -S . -B build/shared -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
+        -DCRYPTOPP_BUILD_SHARED=ON
+        -DCRYPTOPP_BUILD_TESTING=ON
+        -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/shared-install
+
+    - name: Build
+      run: cmake --build build/shared -j"$(nproc)"
+
+    - name: Validate against the shared library
+      run: |
+        # cryptest links the .so, so a passing run proves the API is exported,
+        # and cryptest itself must record a NEEDED entry for the ABI SONAME.
+        cd build/shared
+        LD_LIBRARY_PATH="$PWD" ./cryptest.exe v
+        readelf -d ./cryptest.exe | grep -qE 'NEEDED.*libcryptopp\.so\.[0-9]+\]' \
+          || { echo "ERROR: cryptest is not linked against the shared library"; exit 1; }
+
+    - name: Install
+      run: cmake --install build/shared
+
+    - name: Verify SONAME, symlink chain and downstream consumers
+      run: |
+        INST="${{ github.workspace }}/build/shared-install"
+        ABI=$(grep -oE 'define[ ]+CRYPTOPP_ABI_VERSION[ ]+[0-9]+' include/cryptopp/config_ver.h | grep -oE '[0-9]+$')
+        REAL=$(find "$INST" -name 'libcryptopp.so.*' -type f | head -1)
+        LIBDIR=$(dirname "$REAL")
+        PCDIR=$(dirname "$(find "$INST" -name libcryptopp.pc | head -1)")
+        SONAME=$(readelf -d "$REAL" | grep -oE 'libcryptopp\.so\.[0-9.]+' | head -1)
+        echo "SONAME=$SONAME  file=$(basename "$REAL")  ABI=$ABI"
+        # SONAME must be exactly the ABI version, not the release version.
+        test "$SONAME" = "libcryptopp.so.$ABI" \
+          || { echo "ERROR: SONAME $SONAME != libcryptopp.so.$ABI"; exit 1; }
+        # Symlink chain: libcryptopp.so -> libcryptopp.so.$ABI -> real file.
+        test "$(readlink "$LIBDIR/libcryptopp.so")" = "$SONAME"
+        test "$(readlink "$LIBDIR/$SONAME")" = "$(basename "$REAL")"
+        # The consumer calls an out-of-line longstanding symbol (SHA256) and an
+        # out-of-line fork-added symbol (BLAKE3); a header-only call would not
+        # prove the symbols are exported. Built at the project C++11 baseline.
+        cat > consumer.cpp << 'EOF'
+        #include <cryptopp/sha.h>
+        #include <cryptopp/blake3.h>
+        #include <cryptopp/cryptlib.h>
+        #include <vector>
+        using namespace CryptoPP;
+        int main() {
+            const byte msg[3] = {'a','b','c'};
+            SHA256 sha; std::vector<byte> d1(sha.DigestSize());
+            sha.CalculateDigest(d1.data(), msg, 3);
+            BLAKE3 b3; std::vector<byte> d2(b3.DigestSize());
+            b3.CalculateDigest(d2.data(), msg, 3);
+            return (d1[0] == 0xba && d2[0] == 0x64) ? 0 : 1;  // digests of "abc"
+        }
+        EOF
+        # Consumer A: pkg-config libcryptopp
+        g++ -std=c++11 consumer.cpp \
+          $(PKG_CONFIG_PATH="$PCDIR" pkg-config --cflags --libs libcryptopp) -o consumer_pc
+        readelf -d consumer_pc | grep -qE "NEEDED.*$SONAME" \
+          || { echo "ERROR: pkg-config consumer is not linked against $SONAME"; exit 1; }
+        LD_LIBRARY_PATH="$LIBDIR" ./consumer_pc
+        # Consumer B: find_package(cryptopp-modern)
+        mkdir -p fp && cp consumer.cpp fp/ && cd fp
+        cat > CMakeLists.txt << 'EOF'
+        cmake_minimum_required(VERSION 3.20)
+        project(consumer CXX)
+        set(CMAKE_CXX_STANDARD 11)
+        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+        set(CMAKE_CXX_EXTENSIONS OFF)
+        find_package(cryptopp-modern REQUIRED)
+        add_executable(consumer_fp consumer.cpp)
+        target_link_libraries(consumer_fp PRIVATE cryptopp::cryptopp)
+        EOF
+        cmake -S . -B b -DCMAKE_PREFIX_PATH="$INST" > /dev/null
+        cmake --build b > /dev/null
+        readelf -d b/consumer_fp | grep -qE "NEEDED.*$SONAME" \
+          || { echo "ERROR: find_package consumer is not linked against $SONAME"; exit 1; }
+        LD_LIBRARY_PATH="$LIBDIR" ./b/consumer_fp
+        echo "shared library consumers OK ($SONAME)"
+
+    - name: GNUmakefile shared build SONAME parity
+      run: |
+        # The GNUmakefile is the other build system; its SONAME must match the
+        # CMake one, since both derive from CRYPTOPP_ABI_VERSION.
+        ABI=$(grep -oE 'define[ ]+CRYPTOPP_ABI_VERSION[ ]+[0-9]+' include/cryptopp/config_ver.h | grep -oE '[0-9]+$')
+        make -j"$(nproc)" shared
+        MK_REAL=$(find . -maxdepth 1 -name 'libcryptopp.so.*' -type f | head -1)
+        MK_SONAME=$(readelf -d "$MK_REAL" | grep -oE 'libcryptopp\.so\.[0-9.]+' | head -1)
+        echo "GNUmakefile SONAME=$MK_SONAME (file $(basename "$MK_REAL"))  ABI=$ABI"
+        test "$MK_SONAME" = "libcryptopp.so.$ABI" \
+          || { echo "ERROR: GNUmakefile SONAME $MK_SONAME != libcryptopp.so.$ABI"; exit 1; }
+
+  makefile-macos-dylib:
+    name: Makefile macOS dylib
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: make dylib and check versions
+      run: |
+        # compatibility_version must be the ABI version; current_version keeps
+        # the release version. macOS pads a bare version to X.Y.Z.
+        ABI=$(grep -oE 'define[ ]+CRYPTOPP_ABI_VERSION[ ]+[0-9]+' include/cryptopp/config_ver.h | grep -oE '[0-9]+$')
+        make -j"$(sysctl -n hw.ncpu)" dylib
+        otool -l libcryptopp.dylib | grep -A5 LC_ID_DYLIB
+        COMPAT=$(otool -l libcryptopp.dylib | awk '/LC_ID_DYLIB/{f=1} f&&/compatibility version/{print $3; exit}')
+        CURRENT=$(otool -l libcryptopp.dylib | awk '/LC_ID_DYLIB/{f=1} f&&/current version/{print $3; exit}')
+        echo "compatibility_version=$COMPAT  current_version=$CURRENT  ABI=$ABI"
+        case "$COMPAT" in
+          "$ABI"|"$ABI.0"|"$ABI.0.0") echo "compatibility_version matches ABI" ;;
+          *) echo "ERROR: compatibility_version $COMPAT != ABI $ABI"; exit 1 ;;
+        esac
+
   # =============================================================================
   # CMake Android Cross-compile (build-only, no emulator)
   # =============================================================================
