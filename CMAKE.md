@@ -93,7 +93,7 @@ cmake --build --preset=debug
 |--------|---------|-------------|
 | `CRYPTOPP_BUILD_TESTING` | `ON` | Build the test executable (cryptest.exe) |
 | `CRYPTOPP_INSTALL` | `ON` | Generate install targets |
-| `CRYPTOPP_BUILD_SHARED` | `OFF` | Build shared library (NOT supported - Crypto++ doesn't properly support DLLs) |
+| `CRYPTOPP_BUILD_SHARED` | `OFF` | Build a shared library (Unix-like platforms only; not supported on Windows) |
 | `CRYPTOPP_USE_OPENMP` | `OFF` | Enable OpenMP for parallel algorithms |
 | `CRYPTOPP_INCLUDE_PREFIX` | `cryptopp` | Header installation directory name |
 
@@ -140,6 +140,33 @@ cmake -B build -DCRYPTOPP_BUILD_TESTING=OFF
 # Build with OpenMP
 cmake -B build -DCRYPTOPP_USE_OPENMP=ON
 ```
+
+## Shared Library (Unix)
+
+On Linux, macOS and other Unix-like platforms the library can be built shared:
+
+```bash
+cmake -B build -DCRYPTOPP_BUILD_SHARED=ON
+cmake --build build
+```
+
+Windows remains static-only; requesting a shared build there fails at configure time. The old Windows DLL was the FIPS module, which is abandoned, and its hand-maintained export set is gone.
+
+Unix shared builds compile with default symbol visibility, so the full API is exported. When tests are enabled, cryptest links against the shared library and the validation suite runs against it.
+
+### SONAME and ABI version
+
+The SONAME carries an ABI version that is independent of the calendar release version. It comes from the `CRYPTOPP_ABI_VERSION` macro in `include/cryptopp/config_ver.h`, is read by both the CMake and GNUmakefile builds, and increments only for ABI-incompatible changes. On Linux the installed files look like:
+
+```
+libcryptopp.so            -> libcryptopp.so.1
+libcryptopp.so.1          -> libcryptopp.so.2026.7.1    (SONAME)
+libcryptopp.so.2026.7.1                                 (real file)
+```
+
+On macOS the ABI version sets the dylib `compatibility_version` and the release version sets `current_version`.
+
+The ABI series is independent of upstream Crypto++'s (`libcryptopp.so.8`). The two runtime libraries can be installed side by side, and a binary linked against one never binds to the other.
 
 ## Using cryptopp-modern in Your CMake Project
 
