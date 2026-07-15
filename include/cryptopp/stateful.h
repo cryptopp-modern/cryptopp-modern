@@ -19,7 +19,6 @@
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/config_int.h>
 #include <cryptopp/secblock.h>
-
 #include <string>
 
 NAMESPACE_BEGIN(CryptoPP)
@@ -208,11 +207,11 @@ public:
 
     /// \brief Returns the current view of remaining signing capacity
     /// \return number of remaining signatures
-    /// \details Implementations must never overcount. Undercounting is
-    ///  acceptable when indices have been burned by aborted reservations
-    ///  or when the backend cannot safely determine exact capacity.
-    ///  Callers should treat this as a planning signal, not an absolute
-    ///  guarantee.
+    /// \details Implementations must never overcount. Burned reservations
+    ///  are consumed capacity, so excluding them is the exact count. A
+    ///  conservative underestimate is acceptable when the backend cannot
+    ///  safely determine exact capacity. Callers should treat this as a
+    ///  planning signal, not an absolute guarantee.
     virtual uint64_t RemainingSignatures() const = 0;
 };
 
@@ -245,18 +244,18 @@ public:
 
     /// \brief Returns the current view of remaining signing capacity
     /// \return number of remaining signatures
-    /// \details Implementations must never overcount. Undercounting is
-    ///  acceptable when indices have been burned by aborted reservations
-    ///  or when the backend cannot safely determine exact capacity.
-    ///  Callers should treat this as a planning signal, not an absolute
-    ///  guarantee.
+    /// \details Implementations must never overcount. Burned reservations
+    ///  are consumed capacity, so excluding them is the exact count. A
+    ///  conservative underestimate is acceptable when the backend cannot
+    ///  safely determine exact capacity. Callers should treat this as a
+    ///  planning signal, not an absolute guarantee.
     virtual uint64_t RemainingSignatures() const = 0;
 
     /// \brief Sign a message
     /// \param rng a RandomNumberGenerator
     /// \param message pointer to the message to sign
     /// \param messageLen length of the message in bytes
-    /// \param signature pointer to output buffer of exactly SignatureLength() bytes
+    /// \param signature pointer to at least SignatureLength() writable bytes
     /// \details This is a non-const operation that consumes one signing
     ///  index. Internally this performs: reserve, sign, commit. On
     ///  signing failure, the reserved index is burned.
@@ -308,7 +307,10 @@ private:
 /// \brief File-backed durable state store for stateful signing schemes
 /// \details Write-ahead persistence for the signing index counter.
 ///  The index advances on disk before the reservation is returned.
-///  On crash, at most one index is lost. No index is ever reused.
+///  With one signing operation in flight, a crash loses at most that
+///  reservation. Crash recovery does not reissue an index. External
+///  rollback, replacement, or duplication of the state file is outside
+///  this guarantee.
 ///  Single-writer only. The backend rejects concurrent opens where
 ///  supported, but POSIX locking is advisory and only protects
 ///  cooperating users of this API.
@@ -361,7 +363,8 @@ public:
 
     /// \brief Reserve the next signing index (write-ahead)
     /// \details Advances nextIndex on disk via a single positioned write
-    ///  of the mutable tail [16..64), then fsync, before returning.
+    ///  of the mutable tail [16..64), flushed with the platform's
+    ///  durability primitive, before returning.
     ///  If the process crashes between the write and return, one index
     ///  is lost. That is safe capacity loss, not index reuse.
     /// \throw SignerExhausted if no indices remain
