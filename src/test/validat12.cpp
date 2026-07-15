@@ -10,7 +10,6 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/filters.h>
-
 #include <cryptopp/lms.h>
 #include <cryptopp/hss.h>
 
@@ -3710,6 +3709,12 @@ static_assert(HSS_SHA256_H5_W8_L4_Params::TotalSignatures() == 1048576u &&
               HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
               HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
               "HSS H5/W8 L4 aggregates");
+static_assert(HSS_SHA256_H10W4_H5W8_L2_Params::TotalSignatures() == 32768u &&
+              HSS_SHA256_H10W4_H5W8_L2_Params::SignatureSize() == 3860 &&
+              HSS_SHA256_H10W4_H5W8_L2_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H10W4_H5W8_L2_Params::LMSSignatureSizeAt<0>() !=
+              HSS_SHA256_H10W4_H5W8_L2_Params::LMSSignatureSizeAt<1>(),
+              "HSS mixed H10/W4 over H5/W8 L2 aggregates");
 
 // Mixed-parameter boundary coverage on the public TC2 type: an H10/W4 root
 // over an H5/W8 bottom tree, so signature sizes differ at every level and
