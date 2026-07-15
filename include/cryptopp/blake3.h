@@ -20,9 +20,9 @@ NAMESPACE_BEGIN(CryptoPP)
 
 /// \brief BLAKE3 hash information
 /// \since Crypto++ 8.9
-struct BLAKE3_Info : public VariableKeyLength<32,0,32,1,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE>
+struct BLAKE3_Info : public FixedKeyLength<32,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE>
 {
-	typedef VariableKeyLength<32,0,32,1,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE> KeyBase;
+	typedef FixedKeyLength<32,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE> KeyBase;
 	CRYPTOPP_CONSTANT(MIN_KEYLENGTH = KeyBase::MIN_KEYLENGTH);
 	CRYPTOPP_CONSTANT(MAX_KEYLENGTH = KeyBase::MAX_KEYLENGTH);
 	CRYPTOPP_CONSTANT(DEFAULT_KEYLENGTH = KeyBase::DEFAULT_KEYLENGTH);
@@ -125,19 +125,23 @@ public:
 
 	/// \brief Construct a BLAKE3 hash
 	/// \param digestSize the digest size, in bytes (default 32)
+	/// \throw InvalidArgument if digestSize is 0 or larger than 1024
 	/// \since Crypto++ 8.9
 	BLAKE3(unsigned int digestSize = DIGESTSIZE);
 
 	/// \brief Construct a BLAKE3 keyed hash (MAC)
 	/// \param key a byte array used to key the hash
-	/// \param keyLength the size of the byte array (must be 32 bytes)
+	/// \param keyLength the size of the byte array (must be exactly 32 bytes)
 	/// \param digestSize the digest size, in bytes (default 32)
+	/// \throw InvalidKeyLength if keyLength is not 32
+	/// \throw InvalidArgument if key is null, or if digestSize is 0 or larger than 1024
 	/// \since Crypto++ 8.9
 	BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize = DIGESTSIZE);
 
 	/// \brief Construct a BLAKE3 key derivation function
-	/// \param context a string identifying the KDF context
+	/// \param context a string identifying the KDF context; a fixed, globally unique application string
 	/// \param digestSize the digest size, in bytes (default 32)
+	/// \throw InvalidArgument if context is null, or if digestSize is 0 or larger than 1024
 	/// \since Crypto++ 8.9
 	BLAKE3(const char* context, unsigned int digestSize = DIGESTSIZE);
 
@@ -167,6 +171,7 @@ public:
 	/// \param size the size of the truncated hash, in bytes
 	/// \details TruncatedFinal() calls Final() and then copies size bytes to hash.
 	///   The hash algorithm will be restarted ready for a new message.
+	/// \throw InvalidArgument if size is larger than the configured digest size
 	void TruncatedFinal(byte *hash, size_t size);
 
 	std::string AlgorithmProvider() const;
