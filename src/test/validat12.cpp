@@ -1121,7 +1121,8 @@ static bool TestLMSMalformedSignatures(const char* name)
 
 		// Test 6: Corrupted OTS y value (middle of signature)
 		SecByteBlock corruptedY(validSig);
-		size_t yOffset = 4 + 4 + 32 + 16 * 32;  // middle of y array
+		size_t yOffset = 4 + 4 + OTS_PARAMS::N +
+			static_cast<size_t>(OTS_PARAMS::P / 2) * OTS_PARAMS::N;  // middle of y array
 		corruptedY[yOffset] ^= 0x01;
 		bool corruptedYAccepted = verifier.VerifyMessage(
 			reinterpret_cast<const byte*>(message.data()), message.size(),
@@ -1460,6 +1461,20 @@ bool ValidateLMS()
 	pass = TestLMSSerialization<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W8") && pass;
 
+	// SHA-256/N32 LM-OTS family at H5: W1, W2, W4
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W1") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W1>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W1") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W2") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W2>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W2") && pass;
+	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W4") && pass;
+	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W4>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W4") && pass;
+
 	// Exhaustion test (H5 = 32 signatures)
 	pass = TestLMSExhaustion() && pass;
 	pass = TestLMSOutOfRangeReservation() && pass;
@@ -1715,7 +1730,7 @@ static bool TestHSSSubtreeBoundary()
 		SecByteBlock signature(signer.SignatureLength());
 
 		// Sign 32 messages (exhausts bottom-level subtree 0)
-		for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+		for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++)
 		{
 			std::string msg = "Subtree boundary test msg " + std::to_string(i);
 			signer.SignMessage(rng,
@@ -1842,7 +1857,7 @@ static bool TestHSSReconstructionAtBoundary()
 		// Sign up to the subtree boundary (32 sigs = exhaust subtree 0)
 		{
 			HSSSigner<Params> signer1(privKey, store);
-			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++)
+			for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++)
 			{
 				std::string msg = "Boundary recon msg " + std::to_string(i);
 				signer1.SignMessage(rng,
@@ -2289,6 +2304,536 @@ static bool TestHSSRFCAppendixFTC1()
 	}
 }
 
+static bool TestHSSRFCAppendixFTC2()
+{
+	// RFC 8554 Appendix F, Test Case 2 (mixed parameters across levels)
+	// L=2, level 0 LMS_SHA256_M32_H10 / LMOTS_SHA256_N32_W4,
+	// level 1 LMS_SHA256_M32_H5 / LMOTS_SHA256_N32_W8
+	const char* name = "HSS RFC 8554 Appendix F TC2";
+
+	try {
+		typedef HSS_SHA256_H10W4_H5W8_L2_Params Params;
+
+		// Public key (60 bytes)
+		const char* pkHex =
+				"000000020000000600000003d08fabd4a2091ff0a8cb4ed834e74534"
+				"32a58885cd9ba0431235466bff9651c6c92124404d45fa53cf161c28"
+				"f1ad5a8e";
+
+		// Message: "The enumeration in the Constitution, of certain rights..."
+		const char* msgHex =
+				"54686520656e756d65726174696f6e20696e2074686520436f6e7374"
+				"69747574696f6e2c206f66206365727461696e207269676874732c20"
+				"7368616c6c206e6f7420626520636f6e73747275656420746f206465"
+				"6e79206f7220646973706172616765206f7468657273207265746169"
+				"6e6564206279207468652070656f706c652e0a";
+
+		// Signature (3860 bytes), transcribed from RFC 8554 Appendix F
+		const char* sigHex =
+				"0000000100000003000000033d46bee8660f8f215d3f96408a7a64cf"
+				"1c4da02b63a55f62c666ef5707a914ce0674e8cb7a55f0c48d484f31"
+				"f3aa4af9719a74f22cf823b94431d01c926e2a76bb71226d279700ec"
+				"81c9e95fb11a0d10d065279a5796e265ae17737c44eb8c594508e126"
+				"a9a7870bf4360820bdeb9a01d9693779e416828e75bddd7d8c70d50a"
+				"0ac8ba39810909d445f44cb5bb58de737e60cb4345302786ef2c6b14"
+				"af212ca19edeaa3bfcfe8baa6621ce88480df2371dd37add732c9de4"
+				"ea2ce0dffa53c92649a18d39a50788f4652987f226a1d48168205df6"
+				"ae7c58e049a25d4907edc1aa90da8aa5e5f7671773e941d805536021"
+				"5c6b60dd35463cf2240a9c06d694e9cb54e7b1e1bf494d0d1a28c0d3"
+				"1acc75161f4f485dfd3cb9578e836ec2dc722f37ed30872e07f2b8bd"
+				"0374eb57d22c614e09150f6c0d8774a39a6e168211035dc52988ab46"
+				"eaca9ec597fb18b4936e66ef2f0df26e8d1e34da28cbb3af75231372"
+				"0c7b345434f72d65314328bbb030d0f0f6d5e47b28ea91008fb11b05"
+				"017705a8be3b2adb83c60a54f9d1d1b2f476f9e393eb5695203d2ba6"
+				"ad815e6a111ea293dcc21033f9453d49c8e5a6387f588b1ea4f70621"
+				"7c151e05f55a6eb7997be09d56a326a32f9cba1fbe1c07bb49fa04ce"
+				"cf9df1a1b815483c75d7a27cc88ad1b1238e5ea986b53e087045723c"
+				"e16187eda22e33b2c70709e53251025abde8939645fc8c0693e97763"
+				"928f00b2e3c75af3942d8ddaee81b59a6f1f67efda0ef81d11873b59"
+				"137f67800b35e81b01563d187c4a1575a1acb92d087b517a8833383f"
+				"05d357ef4678de0c57ff9f1b2da61dfde5d88318bcdde4d9061cc75c"
+				"2de3cd4740dd7739ca3ef66f1930026f47d9ebaa713b07176f76f953"
+				"e1c2e7f8f271a6ca375dbfb83d719b1635a7d8a13891957944b1c29b"
+				"b101913e166e11bd5f34186fa6c0a555c9026b256a6860f4866bd6d0"
+				"b5bf90627086c6149133f8282ce6c9b3622442443d5eca959d6c14ca"
+				"8389d12c4068b503e4e3c39b635bea245d9d05a2558f249c9661c042"
+				"7d2e489ca5b5dde220a90333f4862aec793223c781997da98266c12c"
+				"50ea28b2c438e7a379eb106eca0c7fd6006e9bf612f3ea0a454ba3bd"
+				"b76e8027992e60de01e9094fddeb3349883914fb17a9621ab929d970"
+				"d101e45f8278c14b032bcab02bd15692d21b6c5c204abbf077d46555"
+				"3bd6eda645e6c3065d33b10d518a61e15ed0f092c32226281a29c8a0"
+				"f50cde0a8c66236e29c2f310a375cebda1dc6bb9a1a01dae6c7aba8e"
+				"bedc6371a7d52aacb955f83bd6e4f84d2949dcc198fb77c7e5cdf604"
+				"0b0f84faf82808bf985577f0a2acf2ec7ed7c0b0ae8a270e951743ff"
+				"23e0b2dd12e9c3c828fb5598a22461af94d568f29240ba2820c4591f"
+				"71c088f96e095dd98beae456579ebbba36f6d9ca2613d1c26eee4d8c"
+				"73217ac5962b5f3147b492e8831597fd89b64aa7fde82e1974d2f677"
+				"9504dc21435eb3109350756b9fdabe1c6f368081bd40b27ebcb9819a"
+				"75d7df8bb07bb05db1bab705a4b7e37125186339464ad8faaa4f052c"
+				"c1272919fde3e025bb64aa8e0eb1fcbfcc25acb5f718ce4f7c2182fb"
+				"393a1814b0e942490e52d3bca817b2b26e90d4c9b0cc38608a6cef5e"
+				"b153af0858acc867c9922aed43bb67d7b33acc519313d28d41a5c6fe"
+				"6cf3595dd5ee63f0a4c4065a083590b275788bee7ad875a7f88dd737"
+				"20708c6c6c0ecf1f43bbaadae6f208557fdc07bd4ed91f88ce4c0de8"
+				"42761c70c186bfdafafc444834bd3418be4253a71eaf41d718753ad0"
+				"7754ca3effd5960b0336981795721426803599ed5b2b7516920efcbe"
+				"32ada4bcf6c73bd29e3fa152d9adeca36020fdeeee1b739521d3ea8c"
+				"0da497003df1513897b0f54794a873670b8d93bcca2ae47e64424b74"
+				"23e1f078d9554bb5232cc6de8aae9b83fa5b9510beb39ccf4b4e1d9c"
+				"0f19d5e17f58e5b8705d9a6837a7d9bf99cd13387af256a8491671f1"
+				"f2f22af253bcff54b673199bdb7d05d81064ef05f80f0153d0be7919"
+				"684b23da8d42ff3effdb7ca0985033f389181f47659138003d712b5e"
+				"c0a614d31cc7487f52de8664916af79c98456b2c94a8038083db5539"
+				"1e3475862250274a1de2584fec975fb09536792cfbfcf6192856cc76"
+				"eb5b13dc4709e2f7301ddff26ec1b23de2d188c999166c74e1e14bbc"
+				"15f457cf4e471ae13dcbdd9c50f4d646fc6278e8fe7eb6cb5c94100f"
+				"a870187380b777ed19d7868fd8ca7ceb7fa7d5cc861c5bdac98e7495"
+				"eb0a2ceec1924ae979f44c5390ebedddc65d6ec11287d978b8df0642"
+				"19bc5679f7d7b264a76ff272b2ac9f2f7cfc9fdcfb6a51428240027a"
+				"fd9d52a79b647c90c2709e060ed70f87299dd798d68f4fadd3da6c51"
+				"d839f851f98f67840b964ebe73f8cec41572538ec6bc131034ca2894"
+				"eb736b3bda93d9f5f6fa6f6c0f03ce43362b8414940355fb54d3dfdd"
+				"03633ae108f3de3ebc85a3ff51efeea3bc2cf27e1658f1789ee612c8"
+				"3d0f5fd56f7cd071930e2946beeecaa04dccea9f97786001475e0294"
+				"bc2852f62eb5d39bb9fbeef75916efe44a662ecae37ede27e9d6eadf"
+				"deb8f8b2b2dbccbf96fa6dbaf7321fb0e701f4d429c2f4dcd153a274"
+				"2574126e5eaccc77686acf6e3ee48f423766e0fc466810a905ff5453"
+				"ec99897b56bc55dd49b991142f65043f2d744eeb935ba7f4ef23cf80"
+				"cc5a8a335d3619d781e7454826df720eec82e06034c44699b5f0c44a"
+				"8787752e057fa3419b5bb0e25d30981e41cb1361322dba8f69931cf4"
+				"2fad3f3bce6ded5b8bfc3d20a2148861b2afc14562ddd27f12897abf"
+				"0685288dcc5c4982f826026846a24bf77e383c7aacab1ab692b29ed8"
+				"c018a65f3dc2b87ff619a633c41b4fadb1c78725c1f8f922f6009787"
+				"b1964247df0136b1bc614ab575c59a16d089917bd4a8b6f04d95c581"
+				"279a139be09fcf6e98a470a0bceca191fce476f9370021cbc05518a7"
+				"efd35d89d8577c990a5e19961ba16203c959c91829ba7497cffcbb4b"
+				"294546454fa5388a23a22e805a5ca35f956598848bda678615fec28a"
+				"fd5da61a00000006b326493313053ced3876db9d237148181b7173bc"
+				"7d042cefb4dbe94d2e58cd21a769db4657a103279ba8ef3a629ca84e"
+				"e836172a9c50e51f45581741cf8083150b491cb4ecbbabec128e7c81"
+				"a46e62a67b57640a0a78be1cbf7dd9d419a10cd8686d16621a80816b"
+				"fdb5bdc56211d72ca70b81f1117d129529a7570cf79cf52a7028a485"
+				"38ecdd3b38d3d5d62d26246595c4fb73a525a5ed2c30524ebb1d8cc8"
+				"2e0c19bc4977c6898ff95fd3d310b0bae71696cef93c6a552456bf96"
+				"e9d075e383bb7543c675842bafbfc7cdb88483b3276c29d4f0a341c2"
+				"d406e40d4653b7e4d045851acf6a0a0ea9c710b805cced4635ee8c10"
+				"7362f0fc8d80c14d0ac49c516703d26d14752f34c1c0d2c4247581c1"
+				"8c2cf4de48e9ce949be7c888e9caebe4a415e291fd107d21dc1f084b"
+				"1158208249f28f4f7c7e931ba7b3bd0d824a45700000000500000004"
+				"215f83b7ccb9acbcd08db97b0d04dc2ba1cd035833e0e90059603f26"
+				"e07ad2aad152338e7a5e5984bcd5f7bb4eba40b70000000400000004"
+				"0eb1ed54a2460d512388cad533138d240534e97b1e82d33bd927d201"
+				"dfc24ebb11b3649023696f85150b189e50c00e98850ac343a77b3638"
+				"319c347d7310269d3b7714fa406b8c35b021d54d4fdada7b9ce5d4ba"
+				"5b06719e72aaf58c5aae7aca057aa0e2e74e7dcfd17a0823429db629"
+				"65b7d563c57b4cec942cc865e29c1dad83cac8b4d61aacc457f336e6"
+				"a10b66323f5887bf3523dfcadee158503bfaa89dc6bf59daa82afd2b"
+				"5ebb2a9ca6572a6067cee7c327e9039b3b6ea6a1edc7fdc3df927aad"
+				"e10c1c9f2d5ff446450d2a3998d0f9f6202b5e07c3f97d2458c69d3c"
+				"8190643978d7a7f4d64e97e3f1c4a08a7c5bc03fd55682c017e2907e"
+				"ab07e5bb2f190143475a6043d5e6d5263471f4eecf6e2575fbc6ff37"
+				"edfa249d6cda1a09f797fd5a3cd53a066700f45863f04b6c8a58cfd3"
+				"41241e002d0d2c0217472bf18b636ae547c1771368d9f317835c9b0e"
+				"f430b3df4034f6af00d0da44f4af7800bc7a5cf8a5abdb12dc718b55"
+				"9b74cab9090e33cc58a955300981c420c4da8ffd67df540890a062fe"
+				"40dba8b2c1c548ced22473219c534911d48ccaabfb71bc71862f4a24"
+				"ebd376d288fd4e6fb06ed8705787c5fedc813cd2697e5b1aac1ced45"
+				"767b14ce88409eaebb601a93559aae893e143d1c395bc326da821d79"
+				"a9ed41dcfbe549147f71c092f4f3ac522b5cc57290706650487bae9b"
+				"b5671ecc9ccc2ce51ead87ac01985268521222fb9057df7ed41810b5"
+				"ef0d4f7cc67368c90f573b1ac2ce956c365ed38e893ce7b2fae15d36"
+				"85a3df2fa3d4cc098fa57dd60d2c9754a8ade980ad0f93f6787075c3"
+				"f680a2ba1936a8c61d1af52ab7e21f416be09d2a8d64c3d3d8582968"
+				"c2839902229f85aee297e717c094c8df4a23bb5db658dd377bf0f4ff"
+				"3ffd8fba5e383a48574802ed545bbe7a6b4753533353d73706067640"
+				"135a7ce517279cd683039747d218647c86e097b0daa2872d54b8f3e5"
+				"085987629547b830d8118161b65079fe7bc59a99e9c3c7380e3e70b7"
+				"138fe5d9be2551502b698d09ae193972f27d40f38dea264a0126e637"
+				"d74ae4c92a6249fa103436d3eb0d4029ac712bfc7a5eacbdd7518d6d"
+				"4fe903a5ae65527cd65bb0d4e9925ca24fd7214dc617c150544e423f"
+				"450c99ce51ac8005d33acd74f1bed3b17b7266a4a3bb86da7eba80b1"
+				"01e15cb79de9a207852cf91249ef480619ff2af8cabca83125d1faa9"
+				"4cbb0a03a906f683b3f47a97c871fd513e510a7a25f283b196075778"
+				"496152a91c2bf9da76ebe089f4654877f2d586ae7149c406e663eade"
+				"b2b5c7e82429b9e8cb4834c83464f079995332e4b3c8f5a72bb4b8c6"
+				"f74b0d45dc6c1f79952c0b7420df525e37c15377b5f0984319c39939"
+				"21e5ccd97e097592064530d33de3afad5733cbe7703c5296263f7734"
+				"2efbf5a04755b0b3c997c4328463e84caa2de3ffdcd297baaaacd7ae"
+				"646e44b5c0f16044df38fabd296a47b3a838a913982fb2e370c078ed"
+				"b042c84db34ce36b46ccb76460a690cc86c302457dd1cde197ec8075"
+				"e82b393d542075134e2a17ee70a5e187075d03ae3c853cff60729ba4"
+				"000000054de1f6965bdabc676c5a4dc7c35f97f82cb0e31c68d04f1d"
+				"ad96314ff09e6b3de96aeee300d1f68bf1bca9fc58e4032336cd819a"
+				"af578744e50d1357a0e4286704d341aa0a337b19fe4bc43c2e79964d"
+				"4f351089f2e0e41c7c43ae0d49e7f404b0f75be80ea3af098c975242"
+				"0a8ac0ea2bbb1f4eeba05238aef0d8ce63f0c6e5e4041d95398a6f7f"
+				"3e0ee97cc1591849d4ed236338b147abde9f51ef9fd4e1c1";
+
+		// Decode hex to bytes
+		std::string pkStr, msgStr, sigStr;
+		StringSource(pkHex, true, new HexDecoder(new StringSink(pkStr)));
+		StringSource(msgHex, true, new HexDecoder(new StringSink(msgStr)));
+		StringSource(sigHex, true, new HexDecoder(new StringSink(sigStr)));
+
+		if (pkStr.size() != Params::PublicKeySize()) {
+			std::cout << "FAILED:  " << name << " public key size " << pkStr.size()
+				<< " != " << Params::PublicKeySize() << std::endl;
+			return false;
+		}
+		if (sigStr.size() != Params::SignatureSize()) {
+			std::cout << "FAILED:  " << name << " signature size " << sigStr.size()
+				<< " != " << Params::SignatureSize() << std::endl;
+			return false;
+		}
+
+		HSSVerifier<Params> verifier(
+			reinterpret_cast<const byte*>(pkStr.data()), pkStr.size());
+
+		bool valid = verifier.VerifyMessage(
+			reinterpret_cast<const byte*>(msgStr.data()), msgStr.size(),
+			reinterpret_cast<const byte*>(sigStr.data()), sigStr.size());
+
+		if (!valid) {
+			std::cout << "FAILED:  " << name << " signature verification" << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " verification" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// Deterministic RNG for the regression fixtures. A fixed fill byte makes
+// the bottom-level LM-OTS randomiser a known constant, so for fixed SEED, I,
+// and message the produced signature is a pure SHA-256 function of those inputs
+// and reproduces byte-for-byte on every platform. Not for production use.
+class HSSFixedFillRNG : public RandomNumberGenerator
+{
+public:
+	explicit HSSFixedFillRNG(byte fill) : m_fill(fill) {}
+	void GenerateBlock(byte *output, size_t size) { if (size) std::memset(output, m_fill, size); }
+private:
+	byte m_fill;
+};
+
+// Sign a fixed message under a fixed SEED/I and the fixed-fill randomiser, then
+// verify the round-trip. Returns the produced signature. SetPrivateKey seeds
+// the key directly so no RNG counters are consumed before signing; the only
+// RNG draw is the bottom-level randomiser, which the fixed-fill RNG pins.
+template <class PARAMS>
+static bool HSSDeterministicSign(SecByteBlock &sigOut, std::string &err)
+{
+	static const byte seed[32] = {
+		0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
+		0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,
+		0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
+		0x18,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F };
+	static const byte ident[16] = {
+		0xA0,0xA1,0xA2,0xA3,0xA4,0xA5,0xA6,0xA7,
+		0xA8,0xA9,0xAA,0xAB,0xAC,0xAD,0xAE,0xAF };
+	// Signed fixture input; changing these bytes invalidates the golden values.
+	static const byte kMsg[] = "cryptopp-modern HSS byte-equivalence fixture";
+	const size_t kMsgLen = sizeof(kMsg) - 1;
+
+	HSSPrivateKey<PARAMS> privKey;
+	privKey.SetPrivateKey(seed, sizeof(seed), ident, sizeof(ident));
+
+	HSSPublicKey<PARAMS> pubKey;
+	privKey.MakePublicKey(pubKey);
+
+	InsecureMemoryStateStore store(PARAMS::TotalSignatures());
+	HSSSigner<PARAMS> signer(privKey, store);
+
+	HSSFixedFillRNG rng(0xC5);
+	sigOut.resize(signer.SignatureLength());
+	signer.SignMessage(rng, kMsg, kMsgLen, sigOut.begin());
+
+	if (sigOut.size() != PARAMS::SignatureSize()) {
+		err = "produced length does not match SignatureSize()";
+		return false;
+	}
+
+	HSSVerifier<PARAMS> verifier(
+		pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+	if (!verifier.VerifyMessage(kMsg, kMsgLen, sigOut.begin(), sigOut.size())) {
+		err = "round-trip verification failed";
+		return false;
+	}
+	return true;
+}
+
+// Golden deterministic signatures for the L=2 regression fixtures, captured
+// from the current build with fixed SEED/I and the 0xC5 OTS randomiser.
+static const char* const GOLDEN_HSS_H5W8_L2 =
+	"00000001000000000000000485b427da751e759e58c97322cae09261"
+	"fef87fae314fe139531b808dc41eece501e1795e572268409423d05f"
+	"d4a62219ac524eccf732e613a0266a31374969c34568228b03544913"
+	"954e5192beab7479172ba0510ba1b2ae36e2a9d74aeed16b8933d5fc"
+	"c97ba6d0a75b7f2b588b8f45eb85dbb005145cc3b1ae994f1faae53f"
+	"6722e89d4e2c3e98ac32e08e02f0f1cc7e8db0df3b3313dd60b585b3"
+	"4871ab5c039ca35b7a88e2b3c96f25f0caf2c89c231f5c8a59da08e7"
+	"9c22accfc6da2536cdcb59d3afc35e1764da283f6e83c9be4b5f1c47"
+	"531b0a514a1e04905b1b66fbd762091418d9457047f673de40a83c24"
+	"a821c6784d2b022c369a03df60d46f2f7df69b121b826f5b384a7b77"
+	"fcc952632f5ccd5a5c1c42d3d48eae2caaa9e46e571dd525fd31ada1"
+	"f6649346d4e17b9d93b95ed0a14822d6b2361125abb661307c9aa1cc"
+	"d698f8d94bbdeec73efe32dbbeae24bd93575645c276432e2c1159a6"
+	"2f4cf50b120e26130405cf493e2cf816393777835c3c746cf764752e"
+	"30d2b79735a3e3b6895be7a752f05fd3251b9e5c2fb9886d966535af"
+	"5d019cf4ce137afdc4db1a40deec51369351a381e42370b5340aa16c"
+	"ee280d63373b47afe92f7c3c7b0df9a1bfb30ac6d23833451b1b44b2"
+	"e42abcbd1914c099a4eb05a330619fd9eaea6d5bf3d4d9433302e1bf"
+	"092b03548cfa0e5d115e0be84eb3996fe915cfe317882885f0d89687"
+	"5083f9c39510f075a39a69cabdf7b70e205d8d7066cc08497c7773fc"
+	"1bc694227c3b15c46844c3afc37535a0a436a01ad79dcd36af5ef942"
+	"3b1b2dd584e11becec64f6ae92c51ac0956ac34f3659a24b56396edc"
+	"262963bd08ff5f7de222217eedd2eaf482dd78fb1da08f08c3d7c313"
+	"b86e634dd8916a3f33d1eb805830386504359ef8ac91eb084933ba5c"
+	"98041beb45ab0439860384fa88c09e32e00f6a319c4459aad67ee784"
+	"31c2e35d927f9f0ae057bd1c779650d7e120ba4dac0dd0b8d56dc57f"
+	"fd33208cea52dbd1e8796e09a2bea58363e19c6a295bb537adaa29b3"
+	"b383290e9b60d54a7d7c1ac97bad3c35f3231351f100c9d31b5f4fd9"
+	"96ab33bc43c75e81c1fa23f5843d2140b677c36f357c902eec74c432"
+	"5ddaa81543d3cdfde1ab617143b98d7a6a9f31b6a9a8d04c4b44be9b"
+	"cab9f4ba724583990f3616c213051b2a3312968533c3da6d27666f22"
+	"cb87c14130c94ca4fede61fc607c9942e4ca31058c021a4e09756ab1"
+	"ae78db46150fcc09bfa318eca2d0d9c26b6210d2e67fcf8415d71522"
+	"1a378e474bd4e095ce9eedc4dea2d02bcff8b018febea7e06cc82e1f"
+	"7954410f3c26bb2396c5f4fa77f8ab022ea85a619d9d3af8f54917b6"
+	"a4ba1fd1b61cd1422cbf1476628e47c9597a4c3cd94bca4d1655bb69"
+	"9cfb0644fcfde6e11143be8c6199f1ee04cc89f5ed608fd02808b115"
+	"11d0bffa49209766214475e2cd2c4478ed2ef80b26d3f5070f75661c"
+	"0f44d3ff5f2d8648e76b1ed0c87392de928d8b8c66377e3b337431c2"
+	"b860acab9277d92cf8a8822224d5a5bbca95b00642d4d680c1b4a047"
+	"eb39f01459340afebbea2c1c00000005a762e77ff2f8274e1615e98b"
+	"a922a1c7709c09288a24cddcf7127e9b507e5f36b8fc9783a75086be"
+	"e84a42bd8a2edb8a7f580f2544864b8255e782bef5fd0152ee505236"
+	"1ca1f420b48191c9b6e5293af53e9d54e121296b843ae40e3176a1ba"
+	"a3825ceae9807e944b753d440c44ea05091b0d8e06eca0ff25aaa8d1"
+	"45828f29494b47fa45e7d689409d92157524f7ad8b4777da34df101d"
+	"873cbd997ffdfa7d000000050000000402545e693ffdddaf81de3fd7"
+	"535e2cd04ba5f0d374dba7274247e34d2fb1778e474d8ab6e2a515f5"
+	"8494dc1a5cf0db8e0000000000000004c5c5c5c5c5c5c5c5c5c5c5c5"
+	"c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c50d3f7dc8658b1c71"
+	"73574193d38b1c2de0a3f51b7abc2b31445d044f2d2393d3f09be21d"
+	"2c44028917b904a15beaf451f20bb345618e24b3a92e0c32cb09e0e0"
+	"989d1893dc362b933cefbcdf1e1a6c5c686661b22299b5b5c721b306"
+	"93b876e5135b25eace90b9a3ea1a648d18d11302502f1ff9ce492293"
+	"ed03c5db9bf4952f56989d6efee8140136842e7d1c8a1d431685c065"
+	"94335cf62fbdbc897a48ba6d540fb16eb236e1732c333da9358acd12"
+	"841fb31d3e21e59ed168e04b68ab1a0ba01794b33ed992f3b7102ecf"
+	"f4eef84a0f1f689295351932aeb5d9bfcc85590556e87c7b0789f70b"
+	"1e66fed03a8de0ca9c912613e7685c34a2c73f640c3197028dbae53c"
+	"9a5dae13df3b260976fce5c5542c35b731b6c5d59568bd691f3f3480"
+	"7265dc78f918139263a0ead75ae4cbe8f7d83df33184ef258a6c5ccd"
+	"7cac39cb34c926bc1a01b641114d998b561c619a1e75b15ab3964c20"
+	"31a1cc9b7d65e769405df78ea3fefe27dd45e2e8001efb1ae9f3adec"
+	"86008e12ce2c8552bd9527ee8aea8bb099166611de740a0dc33689f0"
+	"56841cd2ff715e5999c2ea015985c50192cf62527ebc86c5a1beb848"
+	"3560b09c5e066d07f15c0436dd5654fcf73357e8f5f715ece06646a3"
+	"460d9000adff3894290c09d431e7c607e5873315e1db3edf93d07409"
+	"0788018d8284266247803390eb0549ea4c73b8a747dc082b5075a31b"
+	"518fe7e6e7ce437f1d5df71185b869e63c715befb79695f0497c4427"
+	"ece710aa2a99df29b1b84068225f127383f64d3484b4f48029a70685"
+	"e086174d1f56a05a58b7fe5e0759efa9144036813d2a31513db5050c"
+	"c757a6e0a4cc23817703f04243c04b004b52f493b35e8fb5d731c801"
+	"4411c8001226155fb984a14e43801c8ee6f4a746cb63f3a0a753258a"
+	"7f17abe135193378e9fe975f396ac51f288f1ec119753ee6097a22fc"
+	"1da3f678753a3d6ec6f74cb6610599208dc7d58655c581f9032ca935"
+	"823a76fd6a715e1f44373df132bf1968381f34e72b63ecbe571d795b"
+	"8b675a0e2303db0a5dd2a63589e4655de451051ee9d691e0b40e008b"
+	"4350f259251364e37a0df0e254511c9befe2415841e24946513a51de"
+	"51b8f1a172ce4162d56353483e78ddf4a524e29b49c27ce7098d6f9e"
+	"02de3ec6cae42e223eb4d63d15a62ec6638f678a9916f75f3e6b27cd"
+	"93fbbb79b475c7ef99807df17f7be5014307423f655909d3a8a10160"
+	"501dab5a0b252e67794a783d25fcb6ab7eed9889fe1aeb41fd086acc"
+	"c6850783b310783fe0e529fe7236b1a5a7f94c1ba3aadbc39fcf1b0a"
+	"aa28d5ec93ff06abcf9217bec408120b57310d7d31f46f6e86786ad5"
+	"24eee06e0a7ec2fd47e23c896cce4b3fc295438858918bef19170e28"
+	"4beef9118aa082d1e0d9d42cb3ac38d87a151564af86fbb032442e82"
+	"c1b9700a15d223c048705a018e5aae8d225c56fd40c0ffe4e7e52735"
+	"1baab65b408328f9130674fe4d6e2e504f06f83c6efb6ee3d2fd43a2"
+	"78ace5d11c79599e8b102bd2fabe9ac5000000055182aa5587f71866"
+	"c434a8296731b71bc6ebf220fead07e68766886ac987ca146454d9c6"
+	"2c42e54f997367cf532176d849c9bfe5bb08163e7954cbb76a528d5c"
+	"4887de398c6e6f26236fa02ae71c0801553bd5154a2f6d4f9cb62baa"
+	"fd53e869a9c817dfb1dd173b4d2fed4ee904e96dead16b30908c80df"
+	"5e28560e8c8e03ecd7dbfea1e8022f4c293c3a41348c8da7e7b0a404"
+	"e7e065e1513b733776ebcbe9";
+
+
+
+static const char* const GOLDEN_HSS_H10W8_L2 =
+	"00000001000000000000000485b427da751e759e58c97322cae09261"
+	"fef87fae314fe139531b808dc41eece5a1a45935c94cdf2d794a61db"
+	"f523467376636e3188d16172e741ef591222dec0f6c4378ab4f6e42a"
+	"4a9058d18660304421ba6cc2338b9d613ff7f2f9e1d84efe78700dd0"
+	"0635e3c942d0ad8e3689220ea96581fec1fa7141376c4e05a60d9e61"
+	"361043fd4cc013c59a2acec8c195644795c12c0166d3e80a196c1a5d"
+	"9b46798fa23df8344a27e693ecab8a1e6f2d88c6fbbc095357377384"
+	"7fcea0e47a0858e5becc39780bdd091e48a6b7a91306c48c85486ab9"
+	"de66591101b8cc7a7dea5176fd873fd4ead861721ea1516d9e87b80f"
+	"fea9b9be28ea6f5a04c31a6abe333d005d156cc0b5094869ede62ffb"
+	"fec51edb362280a2e3d0b53ef282f2e4c088ea6dd2d1af8c65d67c8b"
+	"09a2d2f766ed8e621021d6bea7b713343693872d5d9654f71416376b"
+	"0189c4d74d4bbe2f0f65a3085759fa1b10aa2ab56f2c63282109532b"
+	"60bdff006dbbeee9a0a57138c9b2ad064f86877e81056328003ed767"
+	"9ac5af7d0124d1283467072efc935929b9025ffd53bafbf8c401e703"
+	"53f64092b887d0896c3898c3ec27531da6c5f6220e6467b8bee61c9b"
+	"76cb109eced4e00048ecb5781c6051ad2c8ba0b7276e74a6dd47ba44"
+	"1740b525770538b2f7397f3145d3ce1eb0e5ac5d3a1d96d15eee5c18"
+	"bb525f44e02c094dd4c934a3ee6feffcb604d712794f9f9f7cd9b392"
+	"2312da138df7bbfecd7f419e4e40be0c9eede97730f2a075861dd435"
+	"8c7fd817911957b3541a8de1b2327469e8cd4b290a5757d5cdb85950"
+	"2eca37cb7767c1d722ee08299fd376387a555a33cb6d8011d7ad27aa"
+	"114a7d2c103b441cbc25fc4c4a5f9d83d4aaa6aea5d80b02960b82bc"
+	"65ff4d909a519c9fc798726f756c8cc8287efa5043e98e392db012b4"
+	"f093c943711294666cf28b1338d4e7ac42965e15ee482ab041fcacda"
+	"c9f585c582f0b296c49fb77ccd8aaf5b0369252c2cab485dd9ae3461"
+	"872e2cf0a384708ea510c0b63d91294fa403a19beb414c8b7939b638"
+	"697460a285949fe1061f70afc00f02b8c86af456b74b6f0fd9657939"
+	"95ceb93e9c92129abdb57a48bc28e8dafe174a6e8f83642c0fde53d2"
+	"b54442dacc95cf60d0f2493a1516ffec94fb0dcf341952442ca9f64f"
+	"a85e8065da583f3ca26922e7d947f173669ba3327f7dcd4fed2c92ff"
+	"e42d9d9f3040d25532aca443f43f63f10e1aae99ba9bf63320bf26a9"
+	"da6748f2826921c9e57265b92e95e94bc9962499613b3932cc3447d2"
+	"380d32eb0b20cae71f0cfd671a39cefe2a47d2a1b40de107c0b805b9"
+	"78d4bef92c2e53236576f2cd4bbe4a1ac62f50bf218062de412a9e1e"
+	"b4e38bed509965412f1c71b265a4037da20f0704b1e6b7f219d76e8b"
+	"a29e2441746ccc727a793740b268abfe8b328a10f58c9681be3c8d83"
+	"9e0d854153d437146dfb6d3a00fec87d396bee9efb161cfb0052e3ec"
+	"d2e755e35f2d8648e76b1ed0c87392de928d8b8c66377e3b337431c2"
+	"b860acab9277d92cac351262a67922c60d966ddf75cf14767b683295"
+	"3e8b21c5cb83abb42cdb27b2000000062c3d07848eab1907d7455b29"
+	"d2233a0f846ec1ff22d1132aaed15f46f3ab79ac97aaa0eb3cdc79a2"
+	"cbd8d95fef317606da28d22f6914f6db73d7408c1a1fafb6a6e5b7ce"
+	"b0cdd2fb61c89023fb26e67a5f6e3d310f3e644342ed7c15185d54d7"
+	"3b0b22fb8073105abc183c5e9ee3f53ee5315e8b8f6a59353a8d0cd7"
+	"08479e9a03b6a25d58b55a53f4db63e12f418a256eca42132f08e789"
+	"66081569881020fae7eba15cc24bb9546927cc0fdacdabbb829985be"
+	"a68a36be1dcb0a3192bf0bbe401d10e6b1330aa23396cebafe26f68d"
+	"462e150c3c3761fff55d3ea28b4ba26593847a6b2d94e51ce4a1c755"
+	"ef0ca4d4fd0ad3cb355366ce97f7e6814b6264e9081af995d5234f71"
+	"823cab23fa01a2ce640490b7922baa9ea0307cd61ed1f89c19e55845"
+	"773d80bfac8e9842eeb0404b4f267ffb054bc5787604ed35538574aa"
+	"000000060000000402545e693ffdddaf81de3fd7535e2cd0fc857278"
+	"ace529528209888b19436a3877a8975bd993d9723997327c805cb339"
+	"0000000000000004c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5"
+	"c5c5c5c5c5c5c5c5c5c5c5c50d3f7dc8658b1c7173574193d38b1c2d"
+	"e0a3f51b7abc2b31445d044f2d2393d3f09be21d2c44028917b904a1"
+	"5beaf451f20bb345618e24b3a92e0c32cb09e0e0989d1893dc362b93"
+	"3cefbcdf1e1a6c5c686661b22299b5b5c721b30693b876e5135b25ea"
+	"ce90b9a3ea1a648d18d11302502f1ff9ce492293ed03c5db9bf4952f"
+	"56989d6efee8140136842e7d1c8a1d431685c06594335cf62fbdbc89"
+	"7a48ba6d540fb16eb236e1732c333da9358acd12841fb31d3e21e59e"
+	"d168e04b68ab1a0ba01794b33ed992f3b7102ecff4eef84a0f1f6892"
+	"95351932aeb5d9bfcc85590556e87c7b0789f70b1e66fed03a8de0ca"
+	"9c912613e7685c34a2c73f640c3197028dbae53c9a5dae13df3b2609"
+	"76fce5c5542c35b731b6c5d59568bd691f3f34807265dc78f9181392"
+	"63a0ead75ae4cbe8f7d83df33184ef258a6c5ccd7cac39cb34c926bc"
+	"1a01b641114d998b561c619a1e75b15ab3964c2031a1cc9b7d65e769"
+	"405df78ea3fefe27dd45e2e8001efb1ae9f3adec86008e12ce2c8552"
+	"bd9527ee8aea8bb099166611de740a0dc33689f056841cd2ff715e59"
+	"99c2ea015985c50192cf62527ebc86c5a1beb8483560b09c5e066d07"
+	"f15c0436dd5654fcf73357e8f5f715ece06646a3460d9000adff3894"
+	"290c09d431e7c607e5873315e1db3edf93d074090788018d82842662"
+	"47803390eb0549ea4c73b8a747dc082b5075a31b518fe7e6e7ce437f"
+	"1d5df71185b869e63c715befb79695f0497c4427ece710aa2a99df29"
+	"b1b84068225f127383f64d3484b4f48029a70685e086174d1f56a05a"
+	"58b7fe5e0759efa9144036813d2a31513db5050cc757a6e0a4cc2381"
+	"7703f04243c04b004b52f493b35e8fb5d731c8014411c8001226155f"
+	"b984a14e43801c8ee6f4a746cb63f3a0a753258a7f17abe135193378"
+	"e9fe975f396ac51f288f1ec119753ee6097a22fc1da3f678753a3d6e"
+	"c6f74cb6610599208dc7d58655c581f9032ca935823a76fd6a715e1f"
+	"44373df132bf1968381f34e72b63ecbe571d795b8b675a0e2303db0a"
+	"5dd2a63589e4655de451051ee9d691e0b40e008b4350f259251364e3"
+	"7a0df0e254511c9befe2415841e24946513a51de51b8f1a172ce4162"
+	"d56353483e78ddf4a524e29b49c27ce7098d6f9e02de3ec6cae42e22"
+	"3eb4d63d15a62ec6638f678a9916f75f3e6b27cd93fbbb79b475c7ef"
+	"99807df17f7be5014307423f655909d3a8a10160501dab5a0b252e67"
+	"794a783d25fcb6ab7eed9889fe1aeb41fd086accc6850783b310783f"
+	"e0e529fe7236b1a5a7f94c1ba3aadbc39fcf1b0aaa28d5ec93ff06ab"
+	"cf9217bec408120b57310d7d31f46f6e86786ad524eee06e0a7ec2fd"
+	"47e23c896cce4b3fc295438858918bef19170e284beef9118aa082d1"
+	"e0d9d42cb3ac38d87a151564af86fbb032442e82c1b9700a15d223c0"
+	"48705a018e5aae8d225c56fd40c0ffe4e7e527351baab65b408328f9"
+	"130674fe4d6e2e504f06f83c6efb6ee3d2fd43a278ace5d11c79599e"
+	"8b102bd2fabe9ac50000000616427aa3b0876537ad20bac206b343c1"
+	"f7a24e6ba043f4a9f5c0b34fb805c5b6192c4656c1ba29ddd72444d0"
+	"949ab0735d4fb12e1fc74e0f1f21ae653ae4248d148745bb5a2ac4d7"
+	"6159649be022d7d2d88e4d569122ef9db06cb04cca320374698623ab"
+	"4f2e271b7efbfd0c97177582adca19c116e5f96823047e5ad872ebf0"
+	"a884afc366993a8a3d9e3212fcbeabe0d9a5c0ac6eb11ce30f3592fb"
+	"bccf154c93c01c20b9588abe5c17e2f4a69a85b03d1bab8ab5d5a85b"
+	"ad4b1a127af408aa42b17bb8153a9599cb68e919bb9c17c8787e22f9"
+	"ec32c6a66cf517440a2b03fa10f72b8fd8e6c1ef7aec7bdf3ca5cbdc"
+	"e2bab6b149c56f5e55b400bffdaa9fae5b76a5e771fcb8fab2bac2f2"
+	"66a65330787542806a58b0238250514abd228c6124d7d1cc7c0f2cb4"
+	"0cae3c6a649c856647a53077eef4e3c3d1314189fa858d64";
+
+// Strict byte-identity against a regression fixture captured from this
+// implementation. Full byte fixtures are kept to the L2 configurations to
+// limit test data.
+template <class PARAMS>
+static bool TestHSSDeterministicOutput(const char *name, const char *goldenHex)
+{
+	try {
+		SecByteBlock sig;
+		std::string err;
+		if (!HSSDeterministicSign<PARAMS>(sig, err)) {
+			std::cout << "FAILED:  " << name << " - " << err << std::endl;
+			return false;
+		}
+
+		std::string golden;
+		StringSource(goldenHex, true, new HexDecoder(new StringSink(golden)));
+
+		if (sig.size() != golden.size() ||
+		    std::memcmp(sig.begin(), golden.data(), sig.size()) != 0) {
+			std::string got;
+			StringSource(sig.begin(), sig.size(), true,
+				new HexEncoder(new StringSink(got)));
+			std::cout << "FAILED:  " << name << " signature does not match golden vector" << std::endl;
+			std::cout << "  got: " << got << std::endl;
+			return false;
+		}
+
+		std::cout << "passed:  " << name << " deterministic output ("
+			<< sig.size() << " bytes)" << std::endl;
+		return true;
+	}
+	catch (const Exception &e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// Coverage for the deeper hierarchies without full byte fixtures: L3 and L4
+// check deterministic signing, size consistency and round-trip verification.
+template <class PARAMS>
+static bool TestHSSDeterministicRoundTrip(const char *name)
+{
+	try {
+		SecByteBlock sig;
+		std::string err;
+		if (!HSSDeterministicSign<PARAMS>(sig, err)) {
+			std::cout << "FAILED:  " << name << " - " << err << std::endl;
+			return false;
+		}
+		std::cout << "passed:  " << name << " deterministic round-trip ("
+			<< sig.size() << " bytes)" << std::endl;
+		return true;
+	}
+	catch (const Exception &e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 static bool TestHSSMalformedSignatures()
 {
 	AutoSeededRandomPool rng;
@@ -2329,8 +2874,8 @@ static bool TestHSSMalformedSignatures()
 		// [4..1295]    intermediate LMS sig (1292 bytes)
 		// [1296..1351] intermediate LMS pub key (56 bytes)
 		// [1352..2643] final LMS sig (1292 bytes)
-		const size_t lmsSigSize = Params::LMSSignatureSize();   // 1292
-		const size_t lmsPubSize = Params::LMSPublicKeySize();   // 56
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();   // 1292
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();   // 56
 		unsigned int rejected = 0;
 
 		// 1. Wrong Nspk (set to 0 instead of 1)
@@ -2887,8 +3432,8 @@ static bool TestHSSL3MalformedSignatures()
 		// sig_1 (L1 -> L2)    at offset 4 + lmsSigSize + lmsPubSize     <-- middle intermediate sig
 		// pubkey_2            at offset 4 + 2*lmsSigSize + lmsPubSize   <-- layer-2 pubkey
 		// final sig (L2 -> M) at offset 4 + 2*lmsSigSize + 2*lmsPubSize
-		const size_t lmsSigSize = Params::LMSSignatureSize();
-		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();
 		unsigned int rejected = 0;
 
 		// Tamper middle intermediate sig (sig_1)
@@ -3092,8 +3637,8 @@ static bool TestHSSL4MalformedSignatures()
 		// sig_2 (L2  -> L3)   at offset 4 + 2*lmsSigSize + 2*lmsPubSize <-- depth-3 intermediate sig
 		// pubkey_3            at offset 4 + 3*lmsSigSize + 2*lmsPubSize
 		// final sig (L3 -> M) at offset 4 + 3*lmsSigSize + 3*lmsPubSize
-		const size_t lmsSigSize = Params::LMSSignatureSize();
-		const size_t lmsPubSize = Params::LMSPublicKeySize();
+		const size_t lmsSigSize = Params::LMSSignatureSizeAt<0>();
+		const size_t lmsPubSize = Params::LMSPublicKeySizeAt<0>();
 		unsigned int rejected = 0;
 
 		// Tamper depth-3 intermediate sig (sig_2)
@@ -3138,6 +3683,157 @@ static bool TestHSSL4MalformedSignatures()
 	}
 }
 
+// Lock the aggregate parameters of the shipped uniform HSS typedefs: capacity,
+// signature and public-key sizes, and identical per-level sizes. The recursive
+// HSS_Params machinery must keep resolving these to the same fixed constants.
+static_assert(HSS_SHA256_H5_W8_L2_Params::TotalSignatures() == 1024u &&
+              HSS_SHA256_H5_W8_L2_Params::SignatureSize() == 2644 &&
+              HSS_SHA256_H5_W8_L2_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSSignatureSizeAt<1>() &&
+              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<0>() ==
+              HSS_SHA256_H5_W8_L2_Params::LMSPublicKeySizeAt<1>(),
+              "HSS H5/W8 L2 aggregates");
+static_assert(HSS_SHA256_H10_W8_L2_Params::TotalSignatures() == 1048576u &&
+              HSS_SHA256_H10_W8_L2_Params::SignatureSize() == 2964 &&
+              HSS_SHA256_H10_W8_L2_Params::PublicKeySize() == 60,
+              "HSS H10/W8 L2 aggregates");
+static_assert(HSS_SHA256_H5_W8_L3_Params::TotalSignatures() == 32768u &&
+              HSS_SHA256_H5_W8_L3_Params::SignatureSize() == 3992 &&
+              HSS_SHA256_H5_W8_L3_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L3_Params::LMSSignatureSizeAt<2>(),
+              "HSS H5/W8 L3 aggregates");
+static_assert(HSS_SHA256_H5_W8_L4_Params::TotalSignatures() == 1048576u &&
+              HSS_SHA256_H5_W8_L4_Params::SignatureSize() == 5340 &&
+              HSS_SHA256_H5_W8_L4_Params::PublicKeySize() == 60 &&
+              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<0>() ==
+              HSS_SHA256_H5_W8_L4_Params::LMSSignatureSizeAt<3>(),
+              "HSS H5/W8 L4 aggregates");
+
+// Mixed-parameter boundary coverage on the public TC2 type: an H10/W4 root
+// over an H5/W8 bottom tree, so signature sizes differ at every level and
+// level-0 sizing assumptions fail loudly.
+static bool TestHSSMixedHeights()
+{
+	AutoSeededRandomPool rng;
+	const char* name = "HSS mixed H10/W4 over H5/W8 L2";
+
+	try {
+		typedef HSS_SHA256_H10W4_H5W8_L2_Params Params;
+
+		const std::string expectedName =
+			"HSS[2]/(LMS-SHA256-M32-H10/LMOTS-SHA256-N32-W4,"
+			"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8)";
+		if (Params::StaticAlgorithmName() != expectedName)
+		{
+			std::cout << "FAILED:  " << name << " algorithm name "
+				<< Params::StaticAlgorithmName() << std::endl;
+			return false;
+		}
+
+		HSSPrivateKey<Params> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+
+		HSSPublicKey<Params> pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(Params::TotalSignatures());
+		HSSVerifier<Params> verifier(
+			pubKey.GetPublicKeyBytePtr(), pubKey.GetPublicKeyByteLength());
+
+		SecByteBlock signature(Params::SignatureSize());
+
+		// Sign across the H5 bottom boundary: index 32 enters root leaf 1, which
+		// forces a bottom-subtree rebuild.
+		const unsigned int count = 34;
+		{
+			HSSSigner<Params> signer(privKey, store);
+			for (unsigned int i = 0; i < count; i++)
+			{
+				std::string msg = "mixed msg " + std::to_string(i);
+				signer.SignMessage(rng,
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin());
+
+				if (!verifier.VerifyMessage(
+						reinterpret_cast<const byte*>(msg.data()), msg.size(),
+						signature.begin(), signature.size()))
+				{
+					std::cout << "FAILED:  " << name << " signature " << i
+						<< " rejected" << std::endl;
+					return false;
+				}
+
+				// Rollover check: index 31 is root 0 / bottom 31, index 32 is
+				// root 1 / bottom 0. A reversed level order would fail here.
+				if (i == 31 || i == 32)
+				{
+					auto be32 = [](const byte* p) -> uint32_t {
+						return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) |
+						       (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+					};
+					const byte* s = signature.begin();
+					const size_t finalSigOff = 4 +
+						Params::LMSSignatureSizeAt<0>() + Params::LMSPublicKeySizeAt<1>();
+					uint32_t rootLeaf = be32(s + 4);
+					uint32_t bottomLeaf = be32(s + finalSigOff);
+					if (rootLeaf != i / 32 || bottomLeaf != i % 32)
+					{
+						std::cout << "FAILED:  " << name << " index " << i
+							<< " decomposed to root " << rootLeaf
+							<< " bottom " << bottomLeaf << std::endl;
+						return false;
+					}
+				}
+			}
+		}
+
+		// Tamper rejection.
+		{
+			HSSSigner<Params> signer(privKey, store);
+			std::string msg = "mixed tamper";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+			signature[signature.size() / 2] ^= 0x01;
+			if (verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin(), signature.size()))
+			{
+				std::cout << "FAILED:  " << name << " accepted tampered signature"
+					<< std::endl;
+				return false;
+			}
+		}
+
+		// Reconstruct from the persisted store.
+		{
+			HSSSigner<Params> signer(privKey, store);
+			std::string msg = "mixed after restart";
+			signer.SignMessage(rng,
+				reinterpret_cast<const byte*>(msg.data()), msg.size(),
+				signature.begin());
+			if (!verifier.VerifyMessage(
+					reinterpret_cast<const byte*>(msg.data()), msg.size(),
+					signature.begin(), signature.size()))
+			{
+				std::cout << "FAILED:  " << name << " signature after restart rejected"
+					<< std::endl;
+				return false;
+			}
+		}
+
+		std::cout << "passed:  " << name
+			<< " sign/verify across boundary, tamper, restart" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateHSS()
 {
 	std::cout << "\nHSS (SP 800-208, RFC 8554) validation suite running...\n\n";
@@ -3153,6 +3849,7 @@ bool ValidateHSS()
 	pass = TestHSSSerialization<HSS_SHA256_H5_W8_L2_Params>(
 		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestHSSRFCAppendixFTC1() && pass;
+	pass = TestHSSRFCAppendixFTC2() && pass;
 	pass = TestHSSMalformedSignatures() && pass;
 	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L2_Params>(
 		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
@@ -3179,6 +3876,32 @@ bool ValidateHSS()
 	pass = TestHSSL4MalformedSignatures() && pass;
 	pass = TestHSSCrossKeyNegative<HSS_SHA256_H5_W8_L4_Params>(
 		"HSS[4]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+
+	// Mixed-parameter coverage: per-level dispatch with different tree heights
+	// and W values, all on the public TC2 typedef.
+	pass = TestHSSMixedHeights() && pass;
+
+	// TC2 already checks verification for this mixed-W typedef. Add the usual
+	// signing tests as well, so the H10/W4 over H5/W8 path is covered both ways.
+	pass = TestHSSSignVerify<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSMultipleSignatures<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSSerialization<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+	pass = TestHSSCrossKeyNegative<HSS_SHA256_H10W4_H5W8_L2_Params>(
+		"HSS mixed H10/W4 over H5/W8 L2") && pass;
+
+	// Deterministic output against L=2 regression fixtures, and round-trip
+	// coverage for the deeper hierarchies.
+	pass = TestHSSDeterministicOutput<HSS_SHA256_H5_W8_L2_Params>(
+		"HSS[2]/H5/W8", GOLDEN_HSS_H5W8_L2) && pass;
+	pass = TestHSSDeterministicOutput<HSS_SHA256_H10_W8_L2_Params>(
+		"HSS[2]/H10/W8", GOLDEN_HSS_H10W8_L2) && pass;
+	pass = TestHSSDeterministicRoundTrip<HSS_SHA256_H5_W8_L3_Params>(
+		"HSS[3]/H5/W8") && pass;
+	pass = TestHSSDeterministicRoundTrip<HSS_SHA256_H5_W8_L4_Params>(
+		"HSS[4]/H5/W8") && pass;
 
 	return pass;
 }
@@ -3828,7 +4551,7 @@ static bool TestFileStoreHSSSubtreeBoundaryRestart()
 			FileStateStore store = FileStateStore::Create(path, Params::TotalSignatures());
 			HSSSigner<Params> signer(privKey, store);
 
-			for (unsigned int i = 0; i < Params::LEAVES_PER_LEVEL; i++) {
+			for (unsigned int i = 0; i < Params::LeavesAt<Params::L - 1>(); i++) {
 				std::string msg = "Boundary restart msg " + std::to_string(i);
 				signer.SignMessage(rng,
 					reinterpret_cast<const byte*>(msg.data()), msg.size(),

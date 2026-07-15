@@ -31,51 +31,232 @@ NAMESPACE_BEGIN(CryptoPP)
 
 namespace HSS_Internal {
 
-// C++11 compile-time Base^N helper with overflow detection.
-template <uint64_t Base, unsigned int N>
-struct HSSCapacity
+// C++11 compile-time type-at-index helper for parameter packs.
+template <unsigned int I, class Head, class... Tail>
+struct TypeAt
 {
-    static const bool fits =
-        HSSCapacity<Base, N - 1>::fits &&
-        HSSCapacity<Base, N - 1>::value <= UINT64_MAX / Base;
-
-    static const uint64_t value =
-        HSSCapacity<Base, N - 1>::value * Base;
+    typedef typename TypeAt<I - 1, Tail...>::type type;
 };
 
-template <uint64_t Base>
-struct HSSCapacity<Base, 0>
+template <class Head, class... Tail>
+struct TypeAt<0, Head, Tail...>
+{
+    typedef Head type;
+};
+
+// Per-level LMS signature size from a level descriptor (RFC 8554 Section 5.4).
+template <class Level>
+constexpr size_t LmsSigSizeOf()
+{
+    return 4 + Level::OTSParams::SIG_LEN + 4 +
+           static_cast<size_t>(Level::LMSParams::H) *
+           static_cast<size_t>(Level::LMSParams::M);
+}
+
+// Per-level LMS public key size from a level descriptor (RFC 8554 Section 5.3).
+template <class Level>
+constexpr size_t LmsPubSizeOf()
+{
+    return 4 + 4 + 16 + Level::LMSParams::M;
+}
+
+// Product of per-level leaf counts. Overflow is checked by
+// division-before-multiplication so the guard cannot itself overflow.
+template <class... Levels>
+struct CapacityOf;
+
+template <>
+struct CapacityOf<>
 {
     static const bool fits = true;
     static const uint64_t value = 1;
+};
+
+template <class Head, class... Tail>
+struct CapacityOf<Head, Tail...>
+{
+    static const uint64_t headLeaves =
+        static_cast<uint64_t>(Head::LMSParams::TOTAL_LEAVES);
+    static const bool fits = CapacityOf<Tail...>::fits &&
+        CapacityOf<Tail...>::value <= UINT64_MAX / headLeaves;
+    static const uint64_t value = headLeaves * CapacityOf<Tail...>::value;
+};
+
+// Sum of per-level LMS signature sizes over all levels.
+template <class... Levels>
+struct SumSigSizes;
+
+template <>
+struct SumSigSizes<>
+{
+    static constexpr size_t value() { return 0; }
+};
+
+template <class Head, class... Tail>
+struct SumSigSizes<Head, Tail...>
+{
+    static constexpr size_t value()
+    {
+        return LmsSigSizeOf<Head>() + SumSigSizes<Tail...>::value();
+    }
+};
+
+// Sum of per-level LMS public key sizes over all levels.
+template <class... Levels>
+struct SumPubSizes;
+
+template <>
+struct SumPubSizes<>
+{
+    static constexpr size_t value() { return 0; }
+};
+
+template <class Head, class... Tail>
+struct SumPubSizes<Head, Tail...>
+{
+    static constexpr size_t value()
+    {
+        return LmsPubSizeOf<Head>() + SumPubSizes<Tail...>::value();
+    }
+};
+
+// True when every level shares one LM-OTS hash output size N.
+template <class... Levels>
+struct SameN;
+
+template <>
+struct SameN<>
+{
+    static const bool value = true;
+};
+
+template <class Head>
+struct SameN<Head>
+{
+    static const bool value = true;
+};
+
+template <class First, class Second, class... Tail>
+struct SameN<First, Second, Tail...>
+{
+    static const bool value =
+        (static_cast<size_t>(First::OTSParams::N) ==
+         static_cast<size_t>(Second::OTSParams::N)) &&
+        SameN<Second, Tail...>::value;
+};
+
+// True when every level's LMS hash output size M matches its LM-OTS N.
+// Each level defers to the pair-level CompatibleLMSParams trait.
+template <class... Levels>
+struct MatchingMN;
+
+template <>
+struct MatchingMN<>
+{
+    static const bool value = true;
+};
+
+template <class Head, class... Tail>
+struct MatchingMN<Head, Tail...>
+{
+    static const bool value =
+        CompatibleLMSParams<typename Head::LMSParams,
+                            typename Head::OTSParams>::value &&
+        MatchingMN<Tail...>::value;
+};
+
+// Append each level's "<LMSname>/<OTSname>" to out, top level first.
+template <class... Levels>
+struct LevelNames;
+
+template <>
+struct LevelNames<>
+{
+    static void Append(std::vector<std::string> &) {}
+};
+
+template <class Head, class... Tail>
+struct LevelNames<Head, Tail...>
+{
+    static void Append(std::vector<std::string> &out)
+    {
+        out.push_back(Head::LMSParams::StaticAlgorithmName() + "/" +
+                      Head::OTSParams::StaticAlgorithmName());
+        LevelNames<Tail...>::Append(out);
+    }
 };
 
 } // namespace HSS_Internal
 
 // ******************** HSS Parameter Sets ************************* //
 
-/// \brief HSS parameter set with uniform LMS/OTS types at all levels
-/// \tparam LMS_PARAMS LMS parameter set (used at every level)
-/// \tparam OTS_PARAMS LM-OTS parameter set (used at every level)
-/// \tparam LEVELS number of tree levels (must be >= 2)
-/// \details Uniform parameters only (same LMS/OTS at all levels).
-///  Mixed parameter sets across levels may be added in a future release.
-template <class LMS_PARAMS, class OTS_PARAMS, unsigned int LEVELS>
+/// \brief One level descriptor in an HSS hierarchy
+/// \tparam LMS_PARAMS LMS parameter set for this level
+/// \tparam OTS_PARAMS LM-OTS parameter set for this level
+/// \details Levels are ordered top (root) first. A uniform configuration
+///  repeats the same descriptor at every level.
+template <class LMS_PARAMS, class OTS_PARAMS>
+struct HSSLevel
+{
+    typedef LMS_PARAMS LMSParams;
+    typedef OTS_PARAMS OTSParams;
+};
+
+/// \brief HSS parameter set with per-level LMS and LM-OTS choices
+/// \tparam Levels two to four HSSLevel descriptors, top (root) level first
+/// \details Uniform configurations repeat the same HSSLevel at every level.
+///  All levels must share one LM-OTS hash output size N, and each level's
+///  LMS hash output size M must match its LM-OTS N.
+/// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-6">RFC 8554 Section 6</A>
+template <class... Levels>
 struct HSS_Params
 {
-    static_assert(LEVELS >= 2, "HSS requires at least 2 levels");
-    static_assert(LEVELS <= 4, "HSS supports up to 4 levels");
+    static_assert(sizeof...(Levels) >= 2, "HSS requires at least 2 levels");
+    static_assert(sizeof...(Levels) <= 4, "HSS supports up to 4 levels");
+    static_assert(HSS_Internal::SameN<Levels...>::value,
+        "HSS levels must share one LM-OTS hash output size N");
+    static_assert(HSS_Internal::MatchingMN<Levels...>::value,
+        "HSS level LMS M must match its LM-OTS N");
 
-    CRYPTOPP_CONSTANT(L = LEVELS);
-    typedef LMS_PARAMS LMSParameters;
-    typedef OTS_PARAMS OTSParameters;
+    CRYPTOPP_CONSTANT(L = sizeof...(Levels));
 
-    CRYPTOPP_CONSTANT(LEAVES_PER_LEVEL = LMS_PARAMS::TOTAL_LEAVES);
+    /// \brief Level descriptor at level I
+    template <unsigned int I>
+    using LevelAt = typename HSS_Internal::TypeAt<I, Levels...>::type;
+
+    /// \brief LMS parameter set at level I
+    template <unsigned int I>
+    using LMSParamsAt = typename LevelAt<I>::LMSParams;
+
+    /// \brief LM-OTS parameter set at level I
+    template <unsigned int I>
+    using OTSParamsAt = typename LevelAt<I>::OTSParams;
+
+    /// \brief LMS signature size at level I
+    template <unsigned int I>
+    static constexpr size_t LMSSignatureSizeAt()
+    {
+        return HSS_Internal::LmsSigSizeOf<LevelAt<I> >();
+    }
+
+    /// \brief LMS public key size at level I
+    template <unsigned int I>
+    static constexpr size_t LMSPublicKeySizeAt()
+    {
+        return HSS_Internal::LmsPubSizeOf<LevelAt<I> >();
+    }
+
+    /// \brief Leaf count of the level-I tree
+    template <unsigned int I>
+    static constexpr uint64_t LeavesAt()
+    {
+        return static_cast<uint64_t>(LMSParamsAt<I>::TOTAL_LEAVES);
+    }
 
     /// \brief Check if total capacity fits in uint64_t
     static constexpr bool CapacityFitsUint64()
     {
-        return HSS_Internal::HSSCapacity<LEAVES_PER_LEVEL, LEVELS>::fits;
+        return HSS_Internal::CapacityOf<Levels...>::fits;
     }
 
     static_assert(CapacityFitsUint64(), "HSS capacity exceeds uint64_t");
@@ -83,44 +264,49 @@ struct HSS_Params
     /// \brief Total signing capacity
     static constexpr uint64_t TotalSignatures()
     {
-        return HSS_Internal::HSSCapacity<LEAVES_PER_LEVEL, LEVELS>::value;
-    }
-
-    /// \brief LMS signature size for one level
-    static constexpr size_t LMSSignatureSize()
-    {
-        return 4 + OTS_PARAMS::SIG_LEN + 4 +
-               static_cast<size_t>(LMS_PARAMS::H) * static_cast<size_t>(LMS_PARAMS::M);
-    }
-
-    /// \brief LMS public key size
-    static constexpr size_t LMSPublicKeySize()
-    {
-        return 4 + 4 + 16 + LMS_PARAMS::M;
+        return HSS_Internal::CapacityOf<Levels...>::value;
     }
 
     /// \brief HSS signature size
-    /// \details u32(Nspk) + (L-1) * (lms_sig + lms_pub) + lms_sig
+    /// \details u32(Nspk) + an LMS signature at every level + the embedded
+    ///  child public key at every level below the root (RFC 8554 Section 6).
     static constexpr size_t SignatureSize()
     {
-        return 4 +
-               (LEVELS - 1) * (LMSSignatureSize() + LMSPublicKeySize()) +
-               LMSSignatureSize();
+        return 4 + HSS_Internal::SumSigSizes<Levels...>::value()
+                 + HSS_Internal::SumPubSizes<Levels...>::value()
+                 - LMSPublicKeySizeAt<0>();
     }
 
     /// \brief HSS public key size
-    /// \details u32(L) + lms_pub
+    /// \details u32(L) + root LMS public key
     static constexpr size_t PublicKeySize()
     {
-        return 4 + LMSPublicKeySize();
+        return 4 + LMSPublicKeySizeAt<0>();
     }
 
     /// \brief Algorithm name
+    /// \details Uniform configurations keep the HSS[L]/<lms>/<ots> form. Mixed
+    ///  configurations list each level: HSS[L]/(<l0>,<l1>,...).
     static std::string StaticAlgorithmName()
     {
-        return "HSS[" + std::to_string(LEVELS) + "]/" +
-               LMS_PARAMS::StaticAlgorithmName() + "/" +
-               OTS_PARAMS::StaticAlgorithmName();
+        std::vector<std::string> names;
+        HSS_Internal::LevelNames<Levels...>::Append(names);
+
+        bool uniform = true;
+        for (size_t i = 1; i < names.size(); i++)
+            if (names[i] != names[0]) { uniform = false; break; }
+
+        const std::string prefix = "HSS[" + std::to_string(sizeof...(Levels)) + "]/";
+        if (uniform)
+            return prefix + names[0];
+
+        std::string out = prefix + "(";
+        for (size_t i = 0; i < names.size(); i++)
+        {
+            if (i) out += ",";
+            out += names[i];
+        }
+        return out + ")";
     }
 };
 
@@ -218,7 +404,7 @@ template <class HSS_PARAMS>
 class HSSPrivateKey : public PrivateKey
 {
 public:
-    CRYPTOPP_CONSTANT(SEED_SIZE = HSS_PARAMS::OTSParameters::N);
+    CRYPTOPP_CONSTANT(SEED_SIZE = HSS_PARAMS::template OTSParamsAt<0>::N);
     CRYPTOPP_CONSTANT(I_SIZE = 16);
 
     HSSPrivateKey() : m_seed(SEED_SIZE), m_I(I_SIZE) {}
@@ -431,20 +617,37 @@ struct HSS
 //@{
 
 /// 2-level HSS with H5/W8: 1,024 signatures
-typedef HSS_Params<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8, 2> HSS_SHA256_H5_W8_L2_Params;
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> > HSS_SHA256_H5_W8_L2_Params;
 typedef HSS<HSS_SHA256_H5_W8_L2_Params> HSS_SHA256_H5_W8_L2;
 
 /// 2-level HSS with H10/W8: 1,048,576 signatures
-typedef HSS_Params<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8, 2> HSS_SHA256_H10_W8_L2_Params;
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W8> > HSS_SHA256_H10_W8_L2_Params;
 typedef HSS<HSS_SHA256_H10_W8_L2_Params> HSS_SHA256_H10_W8_L2;
 
 /// 3-level HSS with H5/W8: 32,768 signatures
-typedef HSS_Params<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8, 3> HSS_SHA256_H5_W8_L3_Params;
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> > HSS_SHA256_H5_W8_L3_Params;
 typedef HSS<HSS_SHA256_H5_W8_L3_Params> HSS_SHA256_H5_W8_L3;
 
 /// 4-level HSS with H5/W8: 1,048,576 signatures
-typedef HSS_Params<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8, 4> HSS_SHA256_H5_W8_L4_Params;
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>,
+    HSSLevel<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> > HSS_SHA256_H5_W8_L4_Params;
 typedef HSS<HSS_SHA256_H5_W8_L4_Params> HSS_SHA256_H5_W8_L4;
+
+/// 2-level mixed HSS with H10/W4 over H5/W8: 32,768 signatures (RFC 8554 Appendix F TC2)
+typedef HSS_Params<
+    HSSLevel<LMS_SHA256_M32_H10, LMOTS_SHA256_N32_W4>,
+    HSSLevel<LMS_SHA256_M32_H5,  LMOTS_SHA256_N32_W8> > HSS_SHA256_H10W4_H5W8_L2_Params;
+typedef HSS<HSS_SHA256_H10W4_H5W8_L2_Params> HSS_SHA256_H10W4_H5W8_L2;
 
 //@}
 

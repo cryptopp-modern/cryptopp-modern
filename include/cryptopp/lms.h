@@ -1,6 +1,6 @@
 // lms.h - written and placed in the public domain by Colin Brown
 //         LMS (Leighton-Micali Signatures) - RFC 8554, NIST SP 800-208
-//         SHA-256 parameter sets (H5, H10 with W8)
+//         SHA-256 parameter sets (H5, H10; LM-OTS W1, W2, W4, W8)
 
 /// \file lms.h
 /// \brief LMS stateful hash-based signature scheme (RFC 8554)
@@ -10,9 +10,9 @@
 /// \details The signer uses PK_StatefulSigner (not PK_Signer) to make
 ///  the stateful nature explicit. The verifier uses the conventional
 ///  PK_Verifier interface.
-/// \details Supports SHA-256 parameter sets with tree heights
-///  H=5 (32 signatures) and H=10 (1024 signatures) using Winternitz
-///  parameter W=8.
+/// \details Supports SHA-256 LMS tree heights H=5 (32 signatures) and
+///  H=10 (1024 signatures) with SHA-256/N32 LM-OTS Winternitz parameters
+///  W=1, W=2, W=4, and W=8.
 /// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554">RFC 8554</A>,
 ///  <A HREF="https://csrc.nist.gov/pubs/sp/800/208/final">NIST SP 800-208</A>
 /// \since cryptopp-modern 2026.6.0
@@ -34,6 +34,60 @@
 NAMESPACE_BEGIN(CryptoPP)
 
 // ******************** LM-OTS Parameter Sets ************************* //
+
+/// \brief LM-OTS SHA256/N32/W1 parameters
+/// \details Winternitz W=1, 8516-byte OTS signatures.
+/// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-4">RFC 8554 Section 4</A>
+struct LMOTS_SHA256_N32_W1
+{
+    CRYPTOPP_CONSTANT(TYPE_ID = 0x01);
+    CRYPTOPP_CONSTANT(N = 32);
+    CRYPTOPP_CONSTANT(W = 1);
+    CRYPTOPP_CONSTANT(P = 265);
+    CRYPTOPP_CONSTANT(U = 256);    // ceil(8*N/W) = message coefficients
+    CRYPTOPP_CONSTANT(LS = 7);
+    CRYPTOPP_CONSTANT(SIG_LEN = 4 + 32 + 265 * 32);  // 8516
+    static_assert(SIG_LEN == 4 + N + P * N, "LMOTS W1 SIG_LEN mismatch");
+
+    /// \brief Algorithm name
+    static std::string StaticAlgorithmName() { return "LMOTS-SHA256-N32-W1"; }
+};
+
+/// \brief LM-OTS SHA256/N32/W2 parameters
+/// \details Winternitz W=2, 4292-byte OTS signatures.
+/// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-4">RFC 8554 Section 4</A>
+struct LMOTS_SHA256_N32_W2
+{
+    CRYPTOPP_CONSTANT(TYPE_ID = 0x02);
+    CRYPTOPP_CONSTANT(N = 32);
+    CRYPTOPP_CONSTANT(W = 2);
+    CRYPTOPP_CONSTANT(P = 133);
+    CRYPTOPP_CONSTANT(U = 128);    // ceil(8*N/W) = message coefficients
+    CRYPTOPP_CONSTANT(LS = 6);
+    CRYPTOPP_CONSTANT(SIG_LEN = 4 + 32 + 133 * 32);  // 4292
+    static_assert(SIG_LEN == 4 + N + P * N, "LMOTS W2 SIG_LEN mismatch");
+
+    /// \brief Algorithm name
+    static std::string StaticAlgorithmName() { return "LMOTS-SHA256-N32-W2"; }
+};
+
+/// \brief LM-OTS SHA256/N32/W4 parameters
+/// \details Winternitz W=4, 2180-byte OTS signatures.
+/// \sa <A HREF="https://www.rfc-editor.org/rfc/rfc8554#section-4">RFC 8554 Section 4</A>
+struct LMOTS_SHA256_N32_W4
+{
+    CRYPTOPP_CONSTANT(TYPE_ID = 0x03);
+    CRYPTOPP_CONSTANT(N = 32);
+    CRYPTOPP_CONSTANT(W = 4);
+    CRYPTOPP_CONSTANT(P = 67);
+    CRYPTOPP_CONSTANT(U = 64);    // ceil(8*N/W) = message coefficients
+    CRYPTOPP_CONSTANT(LS = 4);
+    CRYPTOPP_CONSTANT(SIG_LEN = 4 + 32 + 67 * 32);  // 2180
+    static_assert(SIG_LEN == 4 + N + P * N, "LMOTS W4 SIG_LEN mismatch");
+
+    /// \brief Algorithm name
+    static std::string StaticAlgorithmName() { return "LMOTS-SHA256-N32-W4"; }
+};
 
 /// \brief LM-OTS SHA256/N32/W8 parameters
 /// \details LMOTS_SHA256_N32_W8 uses SHA-256 with a 32-byte hash output
@@ -86,6 +140,17 @@ struct LMS_SHA256_M32_H10
     static std::string StaticAlgorithmName() { return "LMS-SHA256-M32-H10"; }
 };
 
+/// \brief True when an LMS and LM-OTS parameter pair is internally consistent
+/// \details The LMS tree hash output size M must match the LM-OTS hash output
+///  size N. Every template that composes the pair asserts this.
+template <class LMS_PARAMS, class OTS_PARAMS>
+struct CompatibleLMSParams
+{
+    static const bool value =
+        static_cast<size_t>(LMS_PARAMS::M) ==
+        static_cast<size_t>(OTS_PARAMS::N);
+};
+
 // ******************** LMS Message Accumulator ************************* //
 
 /// \brief LMS message accumulator
@@ -94,6 +159,8 @@ struct LMS_SHA256_M32_H10
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMS_MessageAccumulator : public PK_MessageAccumulator
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     // LMS signature: q(4) + OTS sig(4+n+p*n) + LMS type(4) + auth path(h*m)
     CRYPTOPP_CONSTANT(SIGNATURE_LENGTH =
         4 + OTS_PARAMS::SIG_LEN + 4 +
@@ -150,6 +217,8 @@ protected:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSPublicKey : public PublicKey
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     // Public key: LMS type(4) + OTS type(4) + I(16) + T[1](m)
     CRYPTOPP_CONSTANT(PUBLIC_KEY_SIZE = 4 + 4 + 16 + LMS_PARAMS::M);
 
@@ -219,6 +288,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSPrivateKey : public PrivateKey
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     CRYPTOPP_CONSTANT(SEED_SIZE = OTS_PARAMS::N);
     CRYPTOPP_CONSTANT(I_SIZE = 16);
 
@@ -299,6 +370,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSVerifier : public PK_Verifier
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMS_PARAMS LMSParameters;
     typedef OTS_PARAMS OTSParameters;
     typedef LMSPublicKey<LMS_PARAMS, OTS_PARAMS> PublicKeyType;
@@ -379,6 +452,8 @@ protected:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMSSigner : public PK_StatefulSigner
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMS_PARAMS LMSParameters;
     typedef OTS_PARAMS OTSParameters;
     typedef LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> PrivateKeyType;
@@ -445,6 +520,8 @@ private:
 template <class LMS_PARAMS, class OTS_PARAMS>
 struct LMS
 {
+    static_assert(CompatibleLMSParams<LMS_PARAMS, OTS_PARAMS>::value,
+        "LMS M must match LM-OTS N");
     typedef LMSSigner<LMS_PARAMS, OTS_PARAMS> Signer;
     typedef LMSVerifier<LMS_PARAMS, OTS_PARAMS> Verifier;
     typedef LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> PrivateKey;
