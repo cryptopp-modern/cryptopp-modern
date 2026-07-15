@@ -729,7 +729,12 @@ int main() {
 |--------------|--------|------------------|------------|-----------|
 | `HSS_SHA256_H5_W8_L2` | 2 | 1,024 | 60 bytes | 2,644 bytes |
 | `HSS_SHA256_H10_W8_L2` | 2 | 1,048,576 | 60 bytes | 2,964 bytes |
-| `HSS_SHA256_H5_W8_L3` | 3 | 32,768 | 60 bytes | 3,996 bytes |
+| `HSS_SHA256_H5_W8_L3` | 3 | 32,768 | 60 bytes | 3,992 bytes |
+| `HSS_SHA256_H5_W8_L4` | 4 | 1,048,576 | 60 bytes | 5,340 bytes |
+| `HSS_SHA256_H10W4_H5W8_L2` | 2 | 32,768 | 60 bytes | 3,860 bytes |
+
+Levels may mix LMS heights and LM-OTS Winternitz parameters. `HSS_SHA256_H10W4_H5W8_L2` pairs an H10/W4 root with an H5/W8 bottom tree, matching RFC 8554 Appendix F Test Case 2, and is used exactly like the uniform typedefs. Single-tree LMS accepts any of the LM-OTS W=1, W=2, W=4 or W=8 sets as template arguments.
+Other HSS level combinations require adding matching explicit instantiations in `src/pqc/lms.cpp` and rebuilding the library.
 
 ---
 
@@ -922,7 +927,7 @@ g++ crypto_utils.o main.o -o myapp -lcryptopp
 Visit **https://cryptopp-modern.com** for comprehensive guides:
 
 - **[Beginner's Guide](https://cryptopp-modern.com/docs/guides/beginners-guide)** - Detailed examples with wrapper classes
-- **[Algorithm Reference](https://cryptopp-modern.com/docs/algorithms/reference)** - Complete list of all supported algorithms
+- **[Algorithm Selection Guide](https://cryptopp-modern.com/docs/algorithms/reference)** - Choosing between the commonly used algorithms
 - **[BLAKE3 Documentation](https://cryptopp-modern.com/docs/algorithms/blake3)** - Modern hash function
 - **[Argon2 Guide](https://cryptopp-modern.com/docs/algorithms/argon2)** - Password hashing best practices
 - **[Symmetric Encryption](https://cryptopp-modern.com/docs/algorithms/symmetric)** - AES, ChaCha20, modes of operation

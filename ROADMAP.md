@@ -144,8 +144,8 @@
   - 128-bit, 192-bit, and 256-bit security levels
   - Small (s) and fast (f) variants
 - ✅ **LMS/HSS (SP 800-208)** - Stateful Hash-Based Signatures
-  - LMS single-tree (H5, H10 parameter sets with SHA-256, W=8)
-  - HSS hierarchical (L=2, L=3 with uniform parameters)
+  - LMS single-tree (H5, H10 parameter sets with SHA-256; LM-OTS W=1, W=2, W=4, W=8)
+  - HSS hierarchical (uniform L=2 to L=4 sets, plus mixed per-level parameter support)
   - PK_StatefulSigner framework (explicit stateful signing API)
   - SignerStateStore backend contract with FileStateStore reference implementation
   - RFC 8554 Appendix F interop verified
