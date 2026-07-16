@@ -7,10 +7,9 @@
 #include <cryptopp/misc.h>
 #include <cryptopp/cpu.h>
 
-// Uncomment for benchmarking C++ against SSE4.1 or NEON.
+// Uncomment for benchmarking C++ against SSE4.1.
 // Do so in both blake3.cpp and blake3_simd.cpp.
 // #undef CRYPTOPP_SSE41_AVAILABLE
-// #undef CRYPTOPP_ARM_NEON_AVAILABLE
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -325,10 +324,6 @@ unsigned int BLAKE3::OptimalDataAlignment() const
 	if (HasSSE41())
 		return 16;
 #endif
-#if CRYPTOPP_ARM_NEON_AVAILABLE
-	if (HasNEON())
-		return 16;
-#endif
 	return GetAlignmentOf<word32>();
 }
 
@@ -346,10 +341,6 @@ std::string BLAKE3::AlgorithmProvider() const
 	if (HasSSE41())
 		return "SSE4.1";
 #endif
-#if CRYPTOPP_ARM_NEON_AVAILABLE
-	if (HasNEON())
-		return "NEON";
-#endif
 	return "C++";
 }
 
@@ -358,7 +349,8 @@ std::string BLAKE3::AlgorithmProvider() const
 BLAKE3::BLAKE3(unsigned int digestSize)
 	: m_digestSize(digestSize)
 {
-	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
+	if (digestSize < 1 || digestSize > 1024)
+		throw InvalidArgument("BLAKE3: digest size must be 1 to 1024 bytes");
 	m_state.Reset();
 	m_state.m_flags = 0;
 	// Initialize key and chunk CV with IV for unkeyed mode
@@ -370,8 +362,12 @@ BLAKE3::BLAKE3(unsigned int digestSize)
 BLAKE3::BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize)
 	: m_digestSize(digestSize)
 {
-	CRYPTOPP_ASSERT(keyLength == 32);
-	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
+	if (keyLength != 32)
+		throw InvalidKeyLength("BLAKE3", keyLength);
+	if (!key)
+		throw InvalidArgument("BLAKE3: key must not be null");
+	if (digestSize < 1 || digestSize > 1024)
+		throw InvalidArgument("BLAKE3: digest size must be 1 to 1024 bytes");
 
 	m_keyBytes.resize(keyLength);
 	std::memcpy(m_keyBytes.data(), key, keyLength);
@@ -391,7 +387,10 @@ BLAKE3::BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize)
 BLAKE3::BLAKE3(const char* context, unsigned int digestSize)
 	: m_digestSize(digestSize)
 {
-	CRYPTOPP_ASSERT(digestSize >= 1 && digestSize <= 1024);
+	if (!context)
+		throw InvalidArgument("BLAKE3: KDF context must not be null");
+	if (digestSize < 1 || digestSize > 1024)
+		throw InvalidArgument("BLAKE3: digest size must be 1 to 1024 bytes");
 
 	m_state.Reset();
 
@@ -594,7 +593,7 @@ void BLAKE3::Update(const byte *input, size_t length)
 
 void BLAKE3::TruncatedFinal(byte *hash, size_t size)
 {
-	CRYPTOPP_ASSERT(size <= m_digestSize);
+	ThrowIfInvalidTruncatedSize(size);
 
 	// For single chunk (no tree), output from current chunk
 	if (m_state.m_cv_stack_len == 0) {
@@ -703,10 +702,15 @@ void BLAKE3::Restart()
 void BLAKE3::UncheckedSetKey(const byte* key, unsigned int length, const CryptoPP::NameValuePairs& params)
 {
 	CRYPTOPP_UNUSED(params);
-	CRYPTOPP_ASSERT(length == 32);
+	if (length != 32)
+		throw InvalidKeyLength("BLAKE3", length);
+	if (!key)
+		throw InvalidArgument("BLAKE3: key must not be null");
 
 	m_keyBytes.resize(length);
 	std::memcpy(m_keyBytes.data(), key, length);
+
+	m_state.Reset();
 
 	for (size_t i = 0; i < 8; i++) {
 		m_state.m_key[i] = GetWord<word32>(false, LITTLE_ENDIAN_ORDER, key + i * 4);

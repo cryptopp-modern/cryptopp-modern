@@ -2,7 +2,7 @@
 //                   Colin Brown.
 //
 //    This source file uses intrinsics to gain access to SSE4.1 and
-//    ARM NEON instructions. A separate source file is needed because
+//    AVX2 instructions. A separate source file is needed because
 //    additional CXXFLAGS are required to enable the appropriate
 //    instruction sets in some build configurations.
 //
@@ -14,10 +14,9 @@
 #include <cryptopp/misc.h>
 #include <cryptopp/blake3.h>
 
-// Uncomment for benchmarking C++ against SSE4.1 or NEON.
+// Uncomment for benchmarking C++ against SSE4.1.
 // Do so in both blake3.cpp and blake3_simd.cpp.
 // #undef CRYPTOPP_SSE41_AVAILABLE
-// #undef CRYPTOPP_ARM_NEON_AVAILABLE
 
 #if (CRYPTOPP_SSE41_AVAILABLE)
 # include <emmintrin.h>
@@ -27,15 +26,6 @@
 
 #if (CRYPTOPP_AVX2_AVAILABLE)
 # include <immintrin.h>
-#endif
-
-#if (CRYPTOPP_ARM_NEON_HEADER)
-# include <arm_neon.h>
-#endif
-
-#if (CRYPTOPP_ARM_ACLE_HEADER)
-# include <stdint.h>
-# include <arm_acle.h>
 #endif
 
 // Squash MS LNK4221 and libtool warnings

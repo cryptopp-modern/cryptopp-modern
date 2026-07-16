@@ -2359,6 +2359,142 @@ bool ValidateBLAKE3()
 		std::cout << (fail ? "FAILED   " : "passed   ") << "Empty string\n";
 	}
 
+	// Test 3: Malformed inputs are rejected at runtime
+	{
+		const byte shortKey[16] = {0};
+		const byte fullKey[32] = {0};
+		const byte longKey[33] = {0};
+		bool rejected;
+
+		rejected = false;
+		try { BLAKE3 mac(shortKey, sizeof(shortKey)); }
+		catch (const InvalidKeyLength &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Keyed constructor rejects short key\n";
+
+		rejected = false;
+		try { BLAKE3 mac(longKey, sizeof(longKey)); }
+		catch (const InvalidKeyLength &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Keyed constructor rejects oversize key\n";
+
+		rejected = false;
+		try { BLAKE3 mac(static_cast<const byte*>(NULLPTR), 32); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Keyed constructor rejects null key\n";
+
+		rejected = false;
+		try { BLAKE3 mac(fullKey, sizeof(fullKey)); mac.SetKey(shortKey, sizeof(shortKey)); }
+		catch (const InvalidKeyLength &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "SetKey rejects short key\n";
+
+		rejected = false;
+		try { BLAKE3 mac; mac.SetKey(NULLPTR, 32); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "SetKey rejects null key\n";
+
+		fail = false;
+		try {
+			const byte prior[16] = {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF,0x00};
+			const byte msg[16] = {0xDE,0xAD,0xBE,0xEF,0xCA,0xFE,0xBA,0xBE,0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77};
+			byte rekeyed[32], fresh[32];
+			BLAKE3 h;
+			h.Update(prior, sizeof(prior));
+			h.SetKey(fullKey, sizeof(fullKey));
+			h.Update(msg, sizeof(msg));
+			h.TruncatedFinal(rekeyed, sizeof(rekeyed));
+			BLAKE3 mac(fullKey, sizeof(fullKey));
+			mac.Update(msg, sizeof(msg));
+			mac.TruncatedFinal(fresh, sizeof(fresh));
+			fail = std::memcmp(rekeyed, fresh, sizeof(fresh)) != 0;
+		}
+		catch (const Exception &) { fail = true; }
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "SetKey resets state after prior use\n";
+
+		rejected = false;
+		try { BLAKE3 kdf(static_cast<const char*>(NULLPTR)); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "KDF constructor rejects null context\n";
+
+		rejected = false;
+		try { BLAKE3 kdf(""); byte out[32]; kdf.TruncatedFinal(out, sizeof(out)); }
+		catch (const Exception &) { rejected = true; }
+		fail = rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "KDF constructor accepts empty context\n";
+
+		rejected = false;
+		try { BLAKE3 hash(0u); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Constructor rejects zero digest size\n";
+
+		rejected = false;
+		try { BLAKE3 mac(fullKey, sizeof(fullKey), 0); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Keyed constructor rejects zero digest size\n";
+
+		rejected = false;
+		try { BLAKE3 mac(fullKey, sizeof(fullKey), 1025); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Keyed constructor rejects oversize digest\n";
+
+		rejected = false;
+		try { BLAKE3 kdf("test context", 0); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "KDF constructor rejects zero digest size\n";
+
+		rejected = false;
+		try { BLAKE3 hash(1025u); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Constructor rejects oversize digest\n";
+
+		rejected = false;
+		try { BLAKE3 kdf("test context", 1025); }
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "KDF constructor rejects oversize digest\n";
+
+		rejected = false;
+		try { BLAKE3 h1(1u); BLAKE3 h2(1024u); }
+		catch (const Exception &) { rejected = true; }
+		fail = rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "Constructor accepts boundary digest sizes\n";
+
+		rejected = false;
+		try {
+			BLAKE3 hash;
+			byte out[64];
+			hash.TruncatedFinal(out, sizeof(out));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "TruncatedFinal rejects oversize output\n";
+	}
+
 	// Use test vectors file for comprehensive testing
 	pass = RunTestDataFile("TestVectors/blake3.txt") && pass;
 
