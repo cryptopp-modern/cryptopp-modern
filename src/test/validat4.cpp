@@ -52,6 +52,11 @@
 
 #include <cryptopp/drbg.h>
 #include <cryptopp/aes_ctr_hmac.h>
+#include <cryptopp/gcm.h>
+#include <cryptopp/eax.h>
+#include <cryptopp/ccm.h>
+#include <cryptopp/chachapoly.h>
+#include <cryptopp/filters.h>
 
 #include <iostream>
 #include <iomanip>
@@ -1795,7 +1800,185 @@ bool ValidateGCM()
 	std::cout << "\n2K tables:";
 	bool pass = RunTestDataFile("TestVectors/gcm.txt", MakeParameters(Name::TableSize(), (int)2048));
 	std::cout << "\n64K tables:";
-	return RunTestDataFile("TestVectors/gcm.txt", MakeParameters(Name::TableSize(), (int)64*1024)) && pass;
+	pass = RunTestDataFile("TestVectors/gcm.txt", MakeParameters(Name::TableSize(), (int)64*1024)) && pass;
+
+	// Regression coverage for zero-length AEAD tags (upstream issue #1364).
+	std::cout << "\nAEAD zero-length tag rejection:\n\n";
+	{
+		const byte key[32] = {
+			0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
+			0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,
+			0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
+			0x18,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F
+		};
+		const byte iv[24] = {
+			0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,
+			0x28,0x29,0x2A,0x2B,0x2C,0x2D,0x2E,0x2F,
+			0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37
+		};
+		const byte pt[16] = {
+			0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,
+			0x48,0x49,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F
+		};
+		// Keep decrypt tests independent of the failed encrypt calls.
+		const byte decryptInput[16] = {
+			0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,
+			0x58,0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F
+		};
+		byte ct[16], out[16], tag[16] = {0};
+		bool fail, rejected;
+
+		rejected = false;
+		try {
+			GCM<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, 0, iv, 12, NULLPTR, 0, pt, sizeof(pt));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			GCM<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			dec.DecryptAndVerify(out, tag, 0, iv, 12, NULLPTR, 0, decryptInput, sizeof(decryptInput));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "GCM rejects zero-length tag (encrypt and verify)\n";
+
+		rejected = false;
+		try {
+			EAX<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, 0, iv, 12, NULLPTR, 0, pt, sizeof(pt));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			EAX<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			dec.DecryptAndVerify(out, tag, 0, iv, 12, NULLPTR, 0, decryptInput, sizeof(decryptInput));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "EAX rejects zero-length tag (encrypt and verify)\n";
+
+		rejected = false;
+		try {
+			CCM<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, 0, iv, 12, NULLPTR, 0, pt, sizeof(pt));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			CCM<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			dec.DecryptAndVerify(out, tag, 0, iv, 12, NULLPTR, 0, decryptInput, sizeof(decryptInput));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "CCM rejects zero-length tag (encrypt and verify)\n";
+
+		rejected = false;
+		try {
+			ChaCha20Poly1305::Encryption enc;
+			enc.SetKeyWithIV(key, 32, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, 0, iv, 12, NULLPTR, 0, pt, sizeof(pt));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			ChaCha20Poly1305::Decryption dec;
+			dec.SetKeyWithIV(key, 32, iv, 12);
+			dec.DecryptAndVerify(out, tag, 0, iv, 12, NULLPTR, 0, decryptInput, sizeof(decryptInput));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "ChaCha20-Poly1305 rejects zero-length tag (encrypt and verify)\n";
+
+		rejected = false;
+		try {
+			XChaCha20Poly1305::Encryption enc;
+			enc.SetKeyWithIV(key, 32, iv, 24);
+			enc.EncryptAndAuthenticate(ct, tag, 0, iv, 24, NULLPTR, 0, pt, sizeof(pt));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			XChaCha20Poly1305::Decryption dec;
+			dec.SetKeyWithIV(key, 32, iv, 24);
+			dec.DecryptAndVerify(out, tag, 0, iv, 24, NULLPTR, 0, decryptInput, sizeof(decryptInput));
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "XChaCha20-Poly1305 rejects zero-length tag (encrypt and verify)\n";
+
+		rejected = false;
+		try {
+			GCM<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			AuthenticatedEncryptionFilter ef(enc, NULLPTR, false, 0);
+			ef.Put(pt, sizeof(pt));
+			ef.MessageEnd();
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = !rejected;
+		rejected = false;
+		try {
+			GCM<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			AuthenticatedDecryptionFilter df(dec, NULLPTR, AuthenticatedDecryptionFilter::DEFAULT_FLAGS, 0);
+			df.Put(decryptInput, sizeof(decryptInput));
+			df.MessageEnd();
+		}
+		catch (const InvalidArgument &) { rejected = true; }
+		fail = fail || !rejected;
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "GCM filters reject zero-length tag (encryption and decryption)\n";
+
+		// Preserve existing non-zero truncation behaviour.
+		fail = false;
+		try {
+			GCM<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, 1, iv, 12, NULLPTR, 0, pt, sizeof(pt));
+			GCM<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			fail = !dec.DecryptAndVerify(out, tag, 1, iv, 12, NULLPTR, 0, ct, sizeof(ct));
+			fail = fail || std::memcmp(out, pt, sizeof(pt)) != 0;
+		}
+		catch (const Exception &) { fail = true; }
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "GCM one-byte truncated tag still accepted\n";
+
+		fail = false;
+		try {
+			GCM<AES>::Encryption enc;
+			enc.SetKeyWithIV(key, 16, iv, 12);
+			enc.EncryptAndAuthenticate(ct, tag, sizeof(tag), iv, 12, NULLPTR, 0, pt, sizeof(pt));
+			GCM<AES>::Decryption dec;
+			dec.SetKeyWithIV(key, 16, iv, 12);
+			fail = !dec.DecryptAndVerify(out, tag, sizeof(tag), iv, 12, NULLPTR, 0, ct, sizeof(ct));
+			fail = fail || std::memcmp(out, pt, sizeof(pt)) != 0;
+			ct[0] ^= 1;
+			fail = fail || dec.DecryptAndVerify(out, tag, sizeof(tag), iv, 12, NULLPTR, 0, ct, sizeof(ct));
+		}
+		catch (const Exception &) { fail = true; }
+		pass = !fail && pass;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "GCM full tag verifies and tampering fails\n";
+	}
+
+	return pass;
 }
 
 bool ValidateXTS()
