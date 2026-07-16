@@ -101,8 +101,9 @@ struct CRYPTOPP_NO_VTABLE BLAKE3_State
 
 /// \brief The BLAKE3 cryptographic hash function
 /// \details BLAKE3 can function as a hash, keyed hash (MAC), or key derivation function.
-///   It supports variable-length output. The mode is determined at construction and
-///   cannot be changed. Use Restart() to reset the state while preserving the mode.
+///   It supports variable-length output. The constructor selects the initial
+///   mode; SetKey() switches the object to keyed mode and discards any buffered
+///   input. Restart() preserves the current mode and key.
 /// \sa BLAKE3 specification at <A HREF="https://github.com/BLAKE3-team/BLAKE3-specs">
 ///   BLAKE3-specs</A>
 /// \since Crypto++ 8.9

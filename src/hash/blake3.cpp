@@ -7,10 +7,9 @@
 #include <cryptopp/misc.h>
 #include <cryptopp/cpu.h>
 
-// Uncomment for benchmarking C++ against SSE4.1 or NEON.
+// Uncomment for benchmarking C++ against SSE4.1.
 // Do so in both blake3.cpp and blake3_simd.cpp.
 // #undef CRYPTOPP_SSE41_AVAILABLE
-// #undef CRYPTOPP_ARM_NEON_AVAILABLE
 
 NAMESPACE_BEGIN(CryptoPP)
 
@@ -710,6 +709,8 @@ void BLAKE3::UncheckedSetKey(const byte* key, unsigned int length, const CryptoP
 
 	m_keyBytes.resize(length);
 	std::memcpy(m_keyBytes.data(), key, length);
+
+	m_state.Reset();
 
 	for (size_t i = 0; i < 8; i++) {
 		m_state.m_key[i] = GetWord<word32>(false, LITTLE_ENDIAN_ORDER, key + i * 4);
