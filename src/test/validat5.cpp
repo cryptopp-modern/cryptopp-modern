@@ -45,6 +45,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <limits>
 
 // Aggressive stack checking with VS2005 SP1 and above.
 #if (_MSC_FULL_VER >= 140050727)
@@ -800,6 +801,106 @@ bool ValidatePBKDF()
 
 	std::cout << "\nPKCS #5 PBKDF2 validation suite running...\n\n";
 	pass = TestPBKDF(pbkdf, testSet, COUNTOF(testSet)) && pass;
+	}
+
+	{
+	// PBKDF2-HMAC-SHA-256, from RFC 7914 Section 11
+	PBKDF_TestTuple testSet[] =
+	{
+		{0, 1, "706173737764", "73616C74", "55AC046E56E3089FEC1691C22544B605F94185216DDE0465E68B9D57C20DACBC49CA9CCCF179B645991664B39D77EF317C71B845B1E30BD509112041D3A19783"},
+		{0, 80000, "50617373776F7264", "4E61436C", "4DDCD8F60B98BE21830CEE5EF22701F9641A4418D04C0414AEFF08876B34AB56A1D425A1225833549ADB841B51C9B3176A272BDEBBA1D078478F62B397F33C8D"}
+	};
+
+	PKCS5_PBKDF2_HMAC<SHA256> pbkdf;
+
+	std::cout << "\nPKCS #5 PBKDF2 HMAC-SHA256 validation suite running...\n\n";
+	pass = TestPBKDF(pbkdf, testSet, COUNTOF(testSet)) && pass;
+	}
+
+	{
+	// Zero iteration count without a positive time budget must be rejected
+	// (RFC 8018 defines the count as a positive integer). A zero count with
+	// a positive time budget remains valid; the loop then runs on time. The
+	// sentinel confirms rejection leaves the output buffer untouched.
+	std::cout << "\nPBKDF zero iteration count rejection suite running...\n\n";
+
+	const byte password[] = { 'p','a','s','s','w','o','r','d' };
+	const byte salt[] = { 's','a','l','t' };
+	const double qnan = std::numeric_limits<double>::quiet_NaN();
+	byte derived[32], sentinel[32];
+	std::memset(sentinel, 0xAA, sizeof(sentinel));
+	bool fail, rejected;
+
+	rejected = false;
+	std::memset(derived, 0xAA, sizeof(derived));
+	try {
+		PKCS5_PBKDF1<SHA1> kdf;
+		kdf.DeriveKey(derived, 16, 0, password, sizeof(password), salt, sizeof(salt), 0, 0.0);
+	}
+	catch (const InvalidArgument &) { rejected = true; }
+	fail = !rejected || std::memcmp(derived, sentinel, sizeof(derived)) != 0;
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS5_PBKDF1 rejects 0 iterations without time budget\n";
+
+	rejected = false;
+	std::memset(derived, 0xAA, sizeof(derived));
+	try {
+		PKCS5_PBKDF2_HMAC<SHA256> kdf;
+		kdf.DeriveKey(derived, sizeof(derived), 0, password, sizeof(password), salt, sizeof(salt), 0, 0.0);
+	}
+	catch (const InvalidArgument &) { rejected = true; }
+	fail = !rejected || std::memcmp(derived, sentinel, sizeof(derived)) != 0;
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS5_PBKDF2_HMAC rejects 0 iterations without time budget\n";
+
+	rejected = false;
+	std::memset(derived, 0xAA, sizeof(derived));
+	try {
+		PKCS5_PBKDF2_HMAC<SHA256> kdf;
+		kdf.DeriveKey(derived, sizeof(derived), 0, password, sizeof(password), salt, sizeof(salt), 0, qnan);
+	}
+	catch (const InvalidArgument &) { rejected = true; }
+	fail = !rejected || std::memcmp(derived, sentinel, sizeof(derived)) != 0;
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS5_PBKDF2_HMAC rejects 0 iterations with NaN time budget\n";
+
+	rejected = false;
+	std::memset(derived, 0xAA, sizeof(derived));
+	try {
+		PKCS12_PBKDF<SHA1> kdf;
+		kdf.DeriveKey(derived, 16, 1, password, sizeof(password), salt, sizeof(salt), 0, 0.0);
+	}
+	catch (const InvalidArgument &) { rejected = true; }
+	fail = !rejected || std::memcmp(derived, sentinel, sizeof(derived)) != 0;
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS12_PBKDF rejects 0 iterations without time budget\n";
+
+	fail = false;
+	try {
+		PKCS5_PBKDF1<SHA1> kdf;
+		fail = kdf.DeriveKey(derived, 16, 0, password, sizeof(password), salt, sizeof(salt), 0, 0.01) < 1;
+	}
+	catch (const Exception &) { fail = true; }
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS5_PBKDF1 accepts 0 iterations with time budget\n";
+
+	fail = false;
+	try {
+		PKCS5_PBKDF2_HMAC<SHA256> kdf;
+		fail = kdf.DeriveKey(derived, sizeof(derived), 0, password, sizeof(password), salt, sizeof(salt), 0, 0.01) < 1;
+	}
+	catch (const Exception &) { fail = true; }
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS5_PBKDF2_HMAC accepts 0 iterations with time budget\n";
+
+	fail = false;
+	try {
+		PKCS12_PBKDF<SHA1> kdf;
+		fail = kdf.DeriveKey(derived, 16, 1, password, sizeof(password), salt, sizeof(salt), 0, 0.01) < 1;
+	}
+	catch (const Exception &) { fail = true; }
+	pass = !fail && pass;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "PKCS12_PBKDF accepts 0 iterations with time budget\n";
 	}
 
 	return pass;
