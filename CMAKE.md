@@ -159,14 +159,14 @@ Unix shared builds compile with default symbol visibility, so the full API is ex
 The SONAME carries an ABI version that is independent of the calendar release version. It comes from the `CRYPTOPP_ABI_VERSION` macro in `include/cryptopp/config_ver.h`, is read by both the CMake and GNUmakefile builds, and increments only for ABI-incompatible changes. On Linux the installed files look like:
 
 ```
-libcryptopp.so            -> libcryptopp.so.1
-libcryptopp.so.1          -> libcryptopp.so.2026.7.1    (SONAME)
+libcryptopp.so            -> libcryptopp.so.9
+libcryptopp.so.9          -> libcryptopp.so.2026.7.1    (SONAME)
 libcryptopp.so.2026.7.1                                 (real file)
 ```
 
 On macOS the ABI version sets the dylib `compatibility_version` and the release version sets `current_version`.
 
-The ABI series is independent of upstream Crypto++'s (`libcryptopp.so.8`). The two runtime libraries can be installed side by side, and a binary linked against one never binds to the other.
+The ABI series continues from upstream Crypto++'s `libcryptopp.so.8`: cryptopp-modern is based on the 8.x ABI line and includes public API additions, so `libcryptopp.so.9` identifies it as the next ABI generation. The two runtime libraries can be installed side by side, and a binary linked against one never binds to the other.
 
 ## Using cryptopp-modern in Your CMake Project
 

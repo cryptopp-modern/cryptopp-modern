@@ -64,7 +64,10 @@
 ///  compatibility version. It is independent of CRYPTOPP_VERSION and the
 ///  calendar release cycle, and increments only for ABI-incompatible
 ///  changes. The CMake and GNUmakefile builds both read this value.
-#define CRYPTOPP_ABI_VERSION 1
+/// \details The series starts at 9: cryptopp-modern is based on the
+///  Crypto++ 8.x ABI line (libcryptopp.so.8) with incompatible public API
+///  additions, so its shared library is the next ABI generation.
+#define CRYPTOPP_ABI_VERSION 9
 
 // Compiler version macros
 
