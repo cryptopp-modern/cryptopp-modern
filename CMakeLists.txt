@@ -774,6 +774,8 @@ if(
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX=1")
             elseif(NOT avx2_flag)
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX2=1")
+            elseif(NOT avx512_flag)
+                list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX512=1")
             endif()
             if(NOT shani_flag)
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_SHANI=1")
@@ -1635,6 +1637,7 @@ if(CRYPTOPP_BUILD_TESTING)
         cryptopp-modern-cryptest
         PROPERTIES
             FIXTURES_REQUIRED cryptest-build
+            RESOURCE_LOCK cryptest-data
             LABELS "cryptopp-modern;cryptopp-cryptest"
     )
 
@@ -1646,7 +1649,8 @@ if(CRYPTOPP_BUILD_TESTING)
     set_tests_properties(
         cryptopp-modern-cryptest-extensive
         PROPERTIES
-            FIXTURES_CLEANUP cryptest-build
+            FIXTURES_REQUIRED cryptest-build
+            RESOURCE_LOCK cryptest-data
             LABELS "cryptopp-modern;cryptopp-cryptest"
     )
 
