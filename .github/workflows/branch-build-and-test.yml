@@ -30,6 +30,42 @@ jobs:
     - name: Run test vectors
       run: ./build/ci-linux/cryptest.exe tv all
 
+    - name: Check feature probes under -Werror (configure only)
+      run: |
+        # A -Werror in the incoming flags, plain, configuration-specific or
+        # oddly delimited, and quoted paths must not change the detected
+        # features, and the probe-only -w must not reach the library build.
+        mkdir -p "$RUNNER_TEMP/probe include" "$RUNNER_TEMP/probe -Werror include"
+        : > "$RUNNER_TEMP/probe -Werror include/header.h"
+        check() {
+          dir=$1; shift
+          cmake -S . -B "build/$dir" -DCRYPTOPP_BUILD_TESTING=OFF "$@" > /dev/null
+          for feature in SSE2 SSE41 AVX512; do
+            grep -q "^CRYPTOPP_HAVE_$feature:INTERNAL=1$" "build/$dir/CMakeCache.txt" \
+              || { echo "ERROR: $dir: $feature not detected"; exit 1; }
+          done
+          ninja -C "build/$dir" -t commands cryptopp > "build/$dir/commands.txt"
+          grep -q -- '-Werror' "build/$dir/commands.txt" \
+            || { echo "ERROR: $dir: -Werror missing from the build"; exit 1; }
+          if grep -q -- ' -w ' "build/$dir/commands.txt"; then
+            echo "ERROR: $dir: probe-only -w reached the build"; exit 1
+          fi
+        }
+        check probe-werror -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS="-Wall -Werror"
+        check probe-config-werror -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_FLAGS=-Wall -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -Werror" \
+          -DCMAKE_TRY_COMPILE_CONFIGURATION=Release
+        check probe-multi-config -G "Ninja Multi-Config" \
+          -DCMAKE_CXX_FLAGS=-Wall -DCMAKE_CXX_FLAGS_DEBUG="-g -Werror"
+        check probe-quoted -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          "-DCMAKE_CXX_FLAGS=-I\"$RUNNER_TEMP/probe include\" -Wall -Werror"
+        check probe-include -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          "-DCMAKE_CXX_FLAGS=-include \"$RUNNER_TEMP/probe -Werror include/header.h\" -Wall -Werror"
+        check probe-tab -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          "-DCMAKE_CXX_FLAGS=$(printf -- '-Wall\t-Werror')"
+        echo "feature probes OK"
+
   cmake-linux-gcc14:
     name: CMake Linux (GCC 14)
     runs-on: ubuntu-24.04

@@ -332,6 +332,12 @@ function(check_compile_link_option opt var prog)
     endif()
 
     message(STATUS "[cryptopp-modern] Performing Test ${var}")
+    # The probes ask whether the compiler accepts an instruction set. Silence
+    # warnings for the probe compile so a -Werror in the incoming flags cannot
+    # turn a warning in the probe source into a failed test.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+    endif()
     set(definitions ${CRYPTOPP_COMPILE_DEFINITIONS})
     if(MSVC)
         list(APPEND definitions ${CRYPTOPP_MSVC_COMPILE_DEFINITIONS})
