@@ -66,6 +66,21 @@ jobs:
           "-DCMAKE_CXX_FLAGS=$(printf -- '-Wall\t-Werror')"
         echo "feature probes OK"
 
+    - name: Check the AVX-512 probe fallback
+      run: |
+        # A compiler that fails the AVX-512 probe must get a clean fallback,
+        # not AVX-512 intrinsics compiled without -mavx512f. Seeding the
+        # cache entry skips the probe and records it as failed.
+        cmake -S . -B build/probe-no-avx512 -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCRYPTOPP_BUILD_TESTING=OFF -DCRYPTOPP_HAVE_AVX512=0 > /dev/null
+        ninja -C build/probe-no-avx512 -t commands cryptopp \
+          | grep -q -- '-DCRYPTOPP_DISABLE_AVX512=1' \
+          || { echo "ERROR: CRYPTOPP_DISABLE_AVX512 not defined after a failed probe"; exit 1; }
+        ninja -C build/probe-no-avx512 \
+          CMakeFiles/cryptopp.dir/src/hash/blake3.cpp.o \
+          CMakeFiles/cryptopp.dir/src/hash/blake3_avx512.cpp.o
+        echo "AVX-512 fallback OK"
+
   cmake-linux-gcc14:
     name: CMake Linux (GCC 14)
     runs-on: ubuntu-24.04
