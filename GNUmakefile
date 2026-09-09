@@ -491,6 +491,10 @@ ifeq ($(DETECT_FEATURES),1)
       else
       ifeq ($(AVX2_FLAG),)
         CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_AVX2
+      else
+      ifeq ($(AVX512_FLAG),)
+        CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_AVX512
+      endif # AVX512
       endif # AVX2
       endif # AVX
       # SHANI independent of AVX per GH #1045

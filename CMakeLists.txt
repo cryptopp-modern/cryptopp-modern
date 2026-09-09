@@ -774,6 +774,8 @@ if(
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX=1")
             elseif(NOT avx2_flag)
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX2=1")
+            elseif(NOT avx512_flag)
+                list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_AVX512=1")
             endif()
             if(NOT shani_flag)
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_SHANI=1")
