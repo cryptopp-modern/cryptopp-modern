@@ -1635,6 +1635,7 @@ if(CRYPTOPP_BUILD_TESTING)
         cryptopp-modern-cryptest
         PROPERTIES
             FIXTURES_REQUIRED cryptest-build
+            RESOURCE_LOCK cryptest-data
             LABELS "cryptopp-modern;cryptopp-cryptest"
     )
 
@@ -1646,7 +1647,8 @@ if(CRYPTOPP_BUILD_TESTING)
     set_tests_properties(
         cryptopp-modern-cryptest-extensive
         PROPERTIES
-            FIXTURES_CLEANUP cryptest-build
+            FIXTURES_REQUIRED cryptest-build
+            RESOURCE_LOCK cryptest-data
             LABELS "cryptopp-modern;cryptopp-cryptest"
     )
 
