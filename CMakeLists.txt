@@ -78,6 +78,7 @@ option(CRYPTOPP_USE_OPENMP
     "Enable OpenMP to parallelize some of the algorithms. Note that this isn't always faster, see https://www.cryptopp.com/wiki/OpenMP"
     OFF
 )
+option(CRYPTOPP_WERROR "Treat compiler warnings as errors (GCC and Clang)" OFF)
 
 # IA-32 options
 option(CRYPTOPP_DISABLE_ASM "Disable ASM" OFF)
@@ -561,6 +562,10 @@ if(
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "12"
 )
     list(APPEND CRYPTOPP_COMPILE_OPTIONS "-fno-devirtualize")
+endif()
+
+if(CRYPTOPP_WERROR AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+    list(APPEND CRYPTOPP_COMPILE_OPTIONS "-Werror")
 endif()
 # ------------------------------------------------------------------------------
 

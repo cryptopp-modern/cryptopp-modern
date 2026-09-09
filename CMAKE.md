@@ -97,6 +97,7 @@ cmake --build --preset=debug
 | `CRYPTOPP_BUILD_SHARED` | `BUILD_SHARED_LIBS` if defined, else `OFF` | Build a shared library (Unix-like platforms only; not supported on Windows) |
 | `CRYPTOPP_BUILD_STATIC` | `NOT CRYPTOPP_BUILD_SHARED` | Build a static library. Enable together with `CRYPTOPP_BUILD_SHARED` to build both in one pass |
 | `CRYPTOPP_USE_OPENMP` | `OFF` | Enable OpenMP for parallel algorithms |
+| `CRYPTOPP_WERROR` | `OFF` | Treat compiler warnings as errors (GCC and Clang) |
 | `CRYPTOPP_INCLUDE_PREFIX` | `cryptopp` | Header installation directory name |
 
 `CRYPTOPP_INSTALL_CRYPTEST` takes its default from `CRYPTOPP_BUILD_TESTING` on the first configure of a build directory. Like all CMake options the value is then cached, so changing `CRYPTOPP_BUILD_TESTING` in an existing build directory does not re-derive it; set it explicitly or start from a fresh build directory. Installing cryptest also requires `CRYPTOPP_INSTALL` (which is `ON` by default).
