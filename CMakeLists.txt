@@ -238,10 +238,8 @@ set(TEST_CXX_FILE ${TEST_PROG_DIR}/test_cxx.cpp)
 # Compiler options
 # ============================================================================
 
-# Enable PIC for all target machines except 32-bit i386
-if(NOT CRYPTOPP_I386)
-    set(CMAKE_POSITION_INDEPENDENT_CODE 1)
-endif()
+# Position-independent code for every target, i386 included
+set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 
 set(CRYPTOPP_COMPILE_DEFINITIONS)
 set(CRYPTOPP_COMPILE_OPTIONS)
