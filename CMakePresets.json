@@ -79,7 +79,8 @@
       "inherits": "default",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CRYPTOPP_BUILD_TESTING": "ON"
+        "CRYPTOPP_BUILD_TESTING": "ON",
+        "CMAKE_CXX_FLAGS": "-Wall"
       }
     },
     {
