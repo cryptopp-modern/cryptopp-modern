@@ -4,6 +4,45 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contains the
 last several releases.
 
+2026.9.1 - September 2026
+      - patch release (ARM acceleration restored, Apple arm64 hardware
+        dispatch, HSS error-path fixes, CMake build improvements)
+      - restored ARM CRC32 and PMULL acceleration in default builds (PR 91)
+        * since 2025.12.0 the feature probes could not find arm_simd.h,
+          leaving CRC32 and GCM multiplication on the software paths
+      - enabled hardware AES, PMULL, SHA-1 and SHA-256 on Apple arm64 and
+        detected the optional CRC32, SHA-3 and SHA-512 extensions through
+        sysctl (PR 92, upstream issue 1373)
+      - rebuilt the HSS signer's caches after a failed signing attempt; a
+        retry could otherwise produce an invalid signature and a burned
+        index (PR 99)
+      - kept LMS and HSS keys unchanged when key generation fails partway
+        (PR 99)
+      - fixed GCC -Warray-bounds warnings in HSSSigner for the single-level
+        parameter sets (issue 97, PR 98)
+      - built shared and static libraries in one CMake pass with
+        CRYPTOPP_BUILD_STATIC (issue 66, PR 86)
+      - honoured BUILD_SHARED_LIBS when selecting the CMake library type
+        (PR 90)
+      - exported the configured include directory from the CMake package
+        config (PR 94)
+      - wrote the debug postfix into the pkg-config file for
+        single-configuration Debug builds (PR 95)
+      - generated the pkg-config file per build configuration and fixed
+        ctest under multi-config generators (PR 96)
+      - detected the target architecture once per configure (issue 87, PR 88)
+      - compiled the CMake feature probes with warnings silenced so -Werror
+        no longer disables SSE4.1 and AVX-512; added CRYPTOPP_WERROR (PR 100)
+      - registered the extensive cryptest run as a required CTest fixture
+        with a resource lock shared with the validation run (PR 101)
+      - defined CRYPTOPP_DISABLE_AVX512 when the AVX-512 probe fails (PR 101)
+      - fixed HSS Doxygen placeholders and the ML-KEM reject-flag shift
+        width (PR 89)
+      - added inflate dynamic block header tests (PR 93)
+      - added -Wall to Linux CMake CI with -Werror on GCC 13, and CI checks
+        for the feature probes and the AVX-512 fallback (PR 100, PR 102)
+      - removed the dead i386 PIC check (PR 103)
+
 2026.9.0 - September 2026
       - minor release (PKCS#1 v1.5 security fix, RFC 9802 LMS encoding,
         single-level HSS)

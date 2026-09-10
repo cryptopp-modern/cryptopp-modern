@@ -26,6 +26,14 @@
 
 ### cryptopp-modern Releases
 
+**2026.9.1** (September 2026) - ARM Acceleration, Apple arm64 Dispatch, HSS Error Paths (Patch)
+- Restored ARM CRC32 and PMULL acceleration in default CMake and GNUmakefile builds; since 2025.12.0 the feature probes could not find `arm_simd.h`, leaving CRC32 and GCM multiplication on the software paths (#91)
+- Enabled hardware AES, PMULL, SHA-1 and SHA-256 on Apple arm64 and detected the optional CRC32, SHA-3 and SHA-512 extensions through `sysctl` (#92, weidai11/cryptopp#1373)
+- Rebuilt the HSS signer's caches after a failed signing attempt, where a retry could otherwise produce an invalid signature and a burned index, and left LMS and HSS keys unchanged when key generation fails partway (#99); guarded the starting level in HSS subtree rebuilds (#97, #98)
+- Built shared and static libraries in one CMake pass with `CRYPTOPP_BUILD_STATIC` (#86) and honoured `BUILD_SHARED_LIBS` when selecting the library type (#90)
+- Exported the configured include directory from the CMake package config (#94); generated the pkg-config file per configuration with the Debug postfix and fixed ctest under multi-config generators (#95, #96)
+- Compiled the CMake feature probes with warnings silenced so `-Werror` no longer disables SSE4.1 and AVX-512, added `CRYPTOPP_WERROR` (#100), defined `CRYPTOPP_DISABLE_AVX512` when the AVX-512 probe fails (#101), and detected the target architecture once per configure (#88)
+
 **2026.9.0** (September 2026) - PKCS#1 v1.5 Security Fix, RFC 9802 LMS Encoding (Minor)
 - Fixed a heap buffer overflow in PKCS#1 v1.5 decryption; a malformed ciphertext could write up to nine bytes past the output buffer, present since 2025.11.0 (GHSA-9g8r-h7q5-x8pc)
 - Rejected undersized PKCS#1 v1.5 encryption blocks before unpadding
@@ -192,10 +200,10 @@ This is a maintained fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.9.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.9.1 |
 |--------|----------------|---------------------------|
 | **Last Release** | October 1, 2023 | September 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.9.0) |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.9.1) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
@@ -229,6 +237,6 @@ This is a maintained fork to:
 
 ---
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-09
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.9.0
+**Current Version:** 2026.9.1

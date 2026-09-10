@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.9.0 (current release)
+- 2026.9.1 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -21,8 +21,8 @@ Check the fingerprint, import the key, then verify the archive:
 ```sh
 gpg --show-keys --with-fingerprint KEYS
 gpg --import KEYS
-gpg --verify cryptopp-modern-2026.9.0.zip.sig cryptopp-modern-2026.9.0.zip
-gpg --verify cryptopp-modern-2026.9.0.tar.gz.sig cryptopp-modern-2026.9.0.tar.gz
+gpg --verify cryptopp-modern-2026.9.1.zip.sig cryptopp-modern-2026.9.1.zip
+gpg --verify cryptopp-modern-2026.9.1.tar.gz.sig cryptopp-modern-2026.9.1.tar.gz
 ```
 
 Make sure the fingerprint matches the value above before trusting the archive.
