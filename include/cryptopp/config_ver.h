@@ -44,7 +44,7 @@
 ///  this value. Zero indicates the first release of the month.
 /// \sa CRYPTOPP_VERSION, LibraryVersion(), HeaderVersion()
 /// \since Crypto++ 8.2 (semantic versioning), Crypto++ 2025.11 (calendar versioning)
-#define CRYPTOPP_REVISION 0
+#define CRYPTOPP_REVISION 1
 
 /// \brief Full library version
 /// \details CRYPTOPP_VERSION uses calendar versioning (YEAR.MONTH.INCREMENT)
@@ -57,7 +57,7 @@
 /// \sa <A HREF="https://github.com/weidai11/cryptopp/issues/1239">GitHub Issue 1239</A>
 /// \sa CRYPTOPP_MAJOR, CRYPTOPP_MINOR, CRYPTOPP_REVISION, LibraryVersion(), HeaderVersion()
 /// \since Crypto++ 5.6
-#define CRYPTOPP_VERSION 20260900
+#define CRYPTOPP_VERSION 20260901
 
 /// \brief Shared library ABI version
 /// \details CRYPTOPP_ABI_VERSION is the shared library SONAME and the macOS

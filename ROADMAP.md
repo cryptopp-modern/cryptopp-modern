@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.9.0
+**Current Version:** 2026.9.1
 
 ---
 
@@ -183,6 +183,12 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.9.1 (September 2026) - ARM Acceleration, Apple arm64 Dispatch, HSS Error Paths
+- **ARM acceleration** - CRC32 and PMULL probes could not find `arm_simd.h` since 2025.12.0; hardware paths restored (#91)
+- **Apple arm64** - Hardware AES, PMULL, SHA-1, SHA-256, with optional CRC32, SHA-3 and SHA-512 via `sysctl` (#92)
+- **HSS error paths** - Cache rebuild after a failed signing attempt, transactional LMS/HSS key generation (#99); subtree rebuild guard (#98)
+- **CMake** - Shared and static in one pass (#86), `BUILD_SHARED_LIBS` (#90), exported include directory (#94), per-configuration pkg-config and ctest (#95, #96), `-Werror`-proof probes and `CRYPTOPP_WERROR` (#100), AVX-512 fallback (#101), single target-architecture probe (#88)
 
 ### 2026.9.0 (September 2026) - PKCS#1 v1.5 Security Fix, RFC 9802 LMS Encoding
 - **PKCS#1 v1.5 security fix** - Heap buffer overflow in decryption of malformed ciphertexts, present since 2025.11.0 (GHSA-9g8r-h7q5-x8pc)

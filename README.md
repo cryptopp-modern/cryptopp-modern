@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.9.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.9.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,7 +24,15 @@
 ---
 
 
-## What's New in 2026.9.0
+## What's New in 2026.9.1
+
+- **ARM acceleration restored** - The CRC32 and PMULL feature probes could not find `arm_simd.h` since 2025.12.0, so default CMake and GNUmakefile builds left CRC32 and GCM multiplication on the software paths (#91).
+- **Apple arm64 hardware dispatch** - Hardware AES, PMULL, SHA-1 and SHA-256 on Apple Silicon, with the optional CRC32, SHA-3 and SHA-512 extensions detected through `sysctl` (#92).
+- **HSS error paths** - Signer caches are rebuilt after a failed signing attempt, so a retry no longer produces an invalid signature and a burned index; LMS and HSS key generation leaves the key unchanged on failure (#99).
+- **Shared and static in one pass** - `CRYPTOPP_BUILD_STATIC` alongside `CRYPTOPP_BUILD_SHARED`, and `BUILD_SHARED_LIBS` honoured when selecting the library type (#86, #90).
+- **CMake packaging and detection** - The configured include directory is exported (#94), pkg-config output is per configuration and carries the Debug postfix (#95, #96), the feature probes no longer fail on warnings under `-Werror` (#100), a failed AVX-512 probe falls back cleanly (#101), and a new `CRYPTOPP_WERROR` option turns warnings into errors for the library build (#100).
+
+### Previously in 2026.9.0
 
 - **PKCS#1 v1.5 security fix** - Decrypting a malformed ciphertext could write up to nine bytes past the output buffer; affects 2025.11.0 through 2026.8.1 (GHSA-9g8r-h7q5-x8pc).
 - **RFC 9802 LMS encoding** - Standalone LMS public keys now encode in the RFC 9802 SubjectPublicKeyInfo form, with keys saved by earlier releases still loading; single-level HSS parameter sets pair with them (#75).
@@ -37,13 +45,6 @@
 - **BLAKE3 multi-chunk fixes** - Parent chaining-value byte order on big-endian targets, zero padding of partial final blocks, and an out-of-bounds read in the wide hashing paths (#65). Digests over 1024 bytes from earlier releases may be incorrect; see the release notes.
 - **DEFLATE HLIT rejection** - A malformed stream could trigger an out-of-bounds write in the inflator (#67, weidai11/cryptopp#1368).
 - **Shared-build cryptest fix** - `dynamic_cast` failures against hidden-visibility shared builds, seen on FreeBSD with Clang and libc++ (#64).
-
-### Previously in 2026.8.0
-
-- **Unix shared libraries** - CMake and GNUmakefile build `libcryptopp.so`/`.dylib`; the SONAME starts an independent ABI series at `libcryptopp.so.9` (#48).
-- **Mixed-parameter HSS** - Per-level LMS/LM-OTS parameters, `HSS_SHA256_H10W4_H5W8_L2`, LM-OTS W1/W2/W4 (#56). Source break for direct `HSS_Params` users; named typedefs and wire formats unchanged.
-- **ChaCha SIMD fix** - Counter carry in the NEON, SSE2, and Altivec backends (weidai11/cryptopp#1362).
-- **Input validation** - BLAKE3 public inputs checked at runtime (#57), zero-length AEAD tags rejected (#58), zero PBKDF iterations rejected (#59).
 
 ---
 
