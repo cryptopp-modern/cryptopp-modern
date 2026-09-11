@@ -136,6 +136,10 @@ void lmots_sign(byte *sig, const byte *message, size_t messageLen,
     const unsigned int ls = params.ls;
     const unsigned int u = params.u;
 
+    // Bound n before sizing the hash and checksum buffers.
+    if (n == 0 || n > SHA256::DIGESTSIZE)
+        throw InvalidArgument("LM-OTS: invalid hash output length");
+
     u32str(sig, params.type_id);
     byte *sig_C = sig + 4;
     byte *sig_y = sig + 4 + n;
@@ -196,6 +200,10 @@ void lmots_compute_candidate_key(byte *Kc, const byte *sig,
     const unsigned int ls = params.ls;
     const unsigned int u = params.u;
     const unsigned int maxJ = (1u << w) - 1;
+
+    // Bound n before sizing the hash and checksum buffers.
+    if (n == 0 || n > SHA256::DIGESTSIZE)
+        throw InvalidArgument("LM-OTS: invalid hash output length");
 
     // Parse signature: type(4) + C(n) + y[0..p-1](p*n)
     const byte *sig_C = sig + 4;
