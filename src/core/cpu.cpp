@@ -151,6 +151,7 @@ inline bool IsVIA(const word32 output[4])
 
 #if defined(__APPLE__)
 
+#if defined(__POWERPC__)
 // http://stackoverflow.com/questions/45637888/how-to-determine-armv8-features-at-runtime-on-ios
 class AppleMachineInfo
 {
@@ -280,6 +281,7 @@ void GetAppleMachineInfo(unsigned int& device, unsigned int& version, unsigned i
 	version = info.Version();
 	arch = info.Arch();
 }
+#endif  // __POWERPC__
 
 #if defined(__aarch64__)
 // Apple publishes one hw.optional sysctl per optional Armv8 extension.
