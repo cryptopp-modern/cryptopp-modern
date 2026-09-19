@@ -430,7 +430,7 @@ static bool TestMLKEMEncapsDecaps(const char* name)
 		}
 
 		// Test with modified ciphertext. This is a smoke test over freshly
-		// generated keys; TestMLKEMDecapsKAT checks the FIPS 203 rejection
+		// generated keys; TestMLKEMKAT checks the FIPS 203 rejection
 		// value itself against the ACVP vectors.
 		SecByteBlock modifiedCt(ciphertext);
 		modifiedCt[0] ^= 0xFF;
@@ -555,6 +555,75 @@ static SecByteBlock MLKEMFromHex(const std::string& hex)
 	return SecByteBlock(reinterpret_cast<const byte*>(bin.data()), bin.size());
 }
 
+struct MLKEMKatRecord
+{
+	std::string name, comment, d, z, m, ek, dk, ct, ss;
+};
+
+// Unlike FixedRNG, throws when asked for more bytes than the seed holds.
+class MLKEMKatRNG : public RandomNumberGenerator
+{
+public:
+	explicit MLKEMKatRNG(BufferedTransformation& source) : m_source(source) {}
+	void GenerateBlock(byte *output, size_t size)
+	{
+		if (m_source.MaxRetrievable() < size)
+			throw Exception(Exception::OTHER_ERROR, "MLKEMKatRNG: seed exhausted");
+		m_source.Get(output, size);
+	}
+private:
+	BufferedTransformation& m_source;
+};
+
+// Key generation draws d then z, so a generator holding d || z reproduces
+// the NIST key pair through the public constructor.
+template <class PARAMS>
+static bool MLKEMKeyGenVector(const SecByteBlock& d, const SecByteBlock& z,
+	const SecByteBlock& ek, const SecByteBlock& dk)
+{
+	if (d.size() != 32 || z.size() != 32 ||
+		ek.size() != PARAMS::PUBLIC_KEY_SIZE || dk.size() != PARAMS::SECRET_KEY_SIZE)
+		return false;
+
+	ByteQueue seed;
+	seed.Put(d.begin(), d.size());
+	seed.Put(z.begin(), z.size());
+	MLKEMKatRNG rng(seed);
+
+	MLKEMDecapsulator<PARAMS> decapsulator(rng);
+
+	if (seed.AnyRetrievable())
+		return false;
+
+	return std::memcmp(decapsulator.GetKey().GetPublicKeyBytePtr(), ek.begin(), ek.size()) == 0 &&
+		std::memcmp(decapsulator.GetKey().GetPrivateKeyBytePtr(), dk.begin(), dk.size()) == 0;
+}
+
+// Encapsulation draws only m.
+template <class PARAMS>
+static bool MLKEMEncapsVector(const SecByteBlock& ek, const SecByteBlock& m,
+	const SecByteBlock& ct, const SecByteBlock& expected)
+{
+	if (ek.size() != PARAMS::PUBLIC_KEY_SIZE || m.size() != 32 ||
+		ct.size() != PARAMS::CIPHERTEXT_SIZE || expected.size() != PARAMS::SHARED_SECRET_SIZE)
+		return false;
+
+	ByteQueue seed;
+	seed.Put(m.begin(), m.size());
+	MLKEMKatRNG rng(seed);
+
+	MLKEMEncapsulator<PARAMS> encapsulator(ek.begin(), ek.size());
+
+	SecByteBlock ciphertext(encapsulator.CiphertextLength());
+	SecByteBlock sharedSecret(encapsulator.SharedSecretLength());
+	encapsulator.Encapsulate(rng, ciphertext.begin(), sharedSecret.begin());
+
+	if (seed.AnyRetrievable())
+		return false;
+
+	return ciphertext == ct && sharedSecret == expected;
+}
+
 template <class PARAMS>
 static bool MLKEMDecapsVector(const SecByteBlock& dk, const SecByteBlock& ct,
 	const SecByteBlock& expected)
@@ -571,22 +640,36 @@ static bool MLKEMDecapsVector(const SecByteBlock& dk, const SecByteBlock& ct,
 	return sharedSecret == expected;
 }
 
-static bool MLKEMDispatchDecaps(const std::string& name, const SecByteBlock& dk,
-	const SecByteBlock& ct, const SecByteBlock& expected)
+template <class PARAMS>
+static bool MLKEMKatVector(const std::string& test, const MLKEMKatRecord& r)
 {
-	if (name == "ML-KEM-512")  return MLKEMDecapsVector<MLKEM_512>(dk, ct, expected);
-	if (name == "ML-KEM-768")  return MLKEMDecapsVector<MLKEM_768>(dk, ct, expected);
-	if (name == "ML-KEM-1024") return MLKEMDecapsVector<MLKEM_1024>(dk, ct, expected);
-	throw Exception(Exception::OTHER_ERROR, "ML-KEM KAT: unknown parameter set " + name);
+	if (test == "KeyGen")
+		return MLKEMKeyGenVector<PARAMS>(MLKEMFromHex(r.d), MLKEMFromHex(r.z),
+			MLKEMFromHex(r.ek), MLKEMFromHex(r.dk));
+	if (test == "Encapsulate")
+		return MLKEMEncapsVector<PARAMS>(MLKEMFromHex(r.ek), MLKEMFromHex(r.m),
+			MLKEMFromHex(r.ct), MLKEMFromHex(r.ss));
+	if (test == "Decapsulate")
+		return MLKEMDecapsVector<PARAMS>(MLKEMFromHex(r.dk), MLKEMFromHex(r.ct),
+			MLKEMFromHex(r.ss));
+	throw Exception(Exception::OTHER_ERROR, "ML-KEM KAT: unknown test " + test);
 }
 
-// ACVP decapsulation vectors. Most carry a ciphertext the decapsulation key
+static bool MLKEMDispatchKat(const std::string& test, const MLKEMKatRecord& r)
+{
+	if (r.name == "ML-KEM-512")  return MLKEMKatVector<MLKEM_512>(test, r);
+	if (r.name == "ML-KEM-768")  return MLKEMKatVector<MLKEM_768>(test, r);
+	if (r.name == "ML-KEM-1024") return MLKEMKatVector<MLKEM_1024>(test, r);
+	throw Exception(Exception::OTHER_ERROR, "ML-KEM KAT: unknown parameter set " + r.name);
+}
+
+// ACVP vectors. Most decapsulation records carry a ciphertext the key
 // rejects, so the expected shared secret is the FIPS 203 implicit-rejection
 // value. NIST supplies it, so this checks the rejection path against an
 // external reference rather than against our own recomputation of it.
-static bool TestMLKEMDecapsKAT()
+static bool TestMLKEMKAT()
 {
-	const char* name = "ML-KEM ACVP decapsulation KAT";
+	const char* name = "ML-KEM ACVP";
 
 	std::ifstream file(DataDir("TestVectors/mlkem.txt").c_str());
 	if (!file) {
@@ -594,8 +677,8 @@ static bool TestMLKEMDecapsKAT()
 		return false;
 	}
 
-	std::string line, curName, dkHex, ctHex, ssHex;
-	unsigned int total = 0;
+	std::string line;
+	MLKEMKatRecord r;
 	std::map<std::string, unsigned int> coverage;
 
 	try {
@@ -613,22 +696,23 @@ static bool TestMLKEMDecapsKAT()
 			while (!val.empty() && val[0] == ' ')
 				val.erase(0, 1);
 
-			if (key == "Name") curName = val;
-			else if (key == "DecapsulationKey") dkHex = val;
-			else if (key == "Ciphertext") ctHex = val;
-			else if (key == "SharedSecret") ssHex = val;
+			if (key == "Name") r.name = val;
+			else if (key == "Comment") r.comment = val;
+			else if (key == "d") r.d = val;
+			else if (key == "z") r.z = val;
+			else if (key == "m") r.m = val;
+			else if (key == "EncapsulationKey") r.ek = val;
+			else if (key == "DecapsulationKey") r.dk = val;
+			else if (key == "Ciphertext") r.ct = val;
+			else if (key == "SharedSecret") r.ss = val;
 			else if (key == "Test") {
-				if (val == "Decapsulate") {
-					if (!MLKEMDispatchDecaps(curName, MLKEMFromHex(dkHex),
-							MLKEMFromHex(ctHex), MLKEMFromHex(ssHex))) {
-						std::cout << "FAILED:  " << name << " " << curName
-							<< " shared secret mismatch" << std::endl;
-						return false;
-					}
-					coverage[curName]++;
-					total++;
+				if (!MLKEMDispatchKat(val, r)) {
+					std::cout << "FAILED:  " << name << " " << val << " " << r.name
+						<< " " << r.comment << " mismatch" << std::endl;
+					return false;
 				}
-				curName.clear(); dkHex.clear(); ctHex.clear(); ssHex.clear();
+				coverage[val + " " + r.name]++;
+				r = MLKEMKatRecord();
 			}
 		}
 	}
@@ -639,20 +723,24 @@ static bool TestMLKEMDecapsKAT()
 
 	// Guard against a truncated or partially converted vector file. The count is
 	// pinned deliberately: adding vectors should mean updating it here too.
+	static const char* const expectedTests[] = { "KeyGen", "Encapsulate", "Decapsulate" };
 	static const char* const expectedSets[] = { "ML-KEM-512", "ML-KEM-768", "ML-KEM-1024" };
 	const unsigned int expectedPerSet = 3;
 
-	for (size_t i = 0; i < COUNTOF(expectedSets); i++) {
-		if (coverage[expectedSets[i]] != expectedPerSet) {
-			std::cout << "FAILED:  " << name << " " << expectedSets[i]
-				<< " coverage (" << coverage[expectedSets[i]]
-				<< " vectors; expected " << expectedPerSet << ")" << std::endl;
-			return false;
+	for (size_t t = 0; t < COUNTOF(expectedTests); t++) {
+		for (size_t i = 0; i < COUNTOF(expectedSets); i++) {
+			const std::string id = std::string(expectedTests[t]) + " " + expectedSets[i];
+			if (coverage[id] != expectedPerSet) {
+				std::cout << "FAILED:  " << name << " " << id
+					<< " coverage (" << coverage[id]
+					<< " vectors; expected " << expectedPerSet << ")" << std::endl;
+				return false;
+			}
 		}
+		std::cout << "passed:  " << name << " " << expectedTests[t] << " KAT ("
+			<< expectedPerSet * COUNTOF(expectedSets) << " vectors, "
+			<< COUNTOF(expectedSets) << " parameter sets)" << std::endl;
 	}
-
-	std::cout << "passed:  " << name << " (" << total << " vectors, "
-		<< COUNTOF(expectedSets) << " parameter sets)" << std::endl;
 	return true;
 }
 
@@ -702,7 +790,7 @@ bool ValidateMLKEM()
 	pass = TestMLKEMSaveLoad<MLKEM_1024>("ML-KEM-1024") && pass;
 
 	// ACVP known-answer vectors, covering the implicit-rejection path
-	pass = TestMLKEMDecapsKAT() && pass;
+	pass = TestMLKEMKAT() && pass;
 
 	pass = TestMLKEMDecodeState<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestPqcEncodeGuard<MLKEM_512, MLKEMPublicKey<MLKEM_512>, MLKEMPrivateKey<MLKEM_512> >(
