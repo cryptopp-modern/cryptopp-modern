@@ -2320,6 +2320,94 @@ static bool TestHSSEncodeGuard(const char* name)
 	}
 }
 
+namespace {
+
+class StatefulKeyGenFailRNG : public RandomNumberGenerator
+{
+public:
+	explicit StatefulKeyGenFailRNG(unsigned int allowed, byte fill, bool partial)
+		: m_allowed(allowed), m_fill(fill), m_partial(partial) {}
+
+	void GenerateBlock(byte* output, size_t size) override
+	{
+		if (m_allowed == 0) {
+			if (m_partial && size)
+				output[0] = m_fill;
+			throw Exception(Exception::OTHER_ERROR, "StatefulKeyGenFailRNG: no more draws");
+		}
+		--m_allowed;
+		std::memset(output, m_fill, size);
+	}
+
+private:
+	unsigned int m_allowed;
+	byte m_fill;
+	bool m_partial;
+};
+
+} // namespace
+
+template <class Key>
+static bool TestStatefulKeyGenFailure(const char* name)
+{
+	try {
+		for (unsigned int existing = 0; existing < 2; ++existing) {
+			for (unsigned int allowed = 0; allowed < 2; ++allowed) {
+				for (unsigned int partial = 0; partial < 2; ++partial) {
+					Key key;
+					SecByteBlock seed, identifier;
+					if (existing) {
+						StatefulKeyGenFailRNG good(2, 0x11, false);
+						key.GenerateRandom(good, g_nullNameValuePairs);
+						seed.Assign(key.GetSeedBytePtr(), Key::SEED_SIZE);
+						identifier.Assign(key.GetIdentifierBytePtr(), Key::I_SIZE);
+					}
+
+					StatefulKeyGenFailRNG failing(allowed, 0x5a, partial != 0);
+					bool threw = false;
+					try { key.GenerateRandom(failing, g_nullNameValuePairs); }
+					catch (const Exception&) { threw = true; }
+
+					bool unchanged = key.Validate(NullRNG(), 0) == (existing != 0);
+					if (existing) {
+						unchanged = unchanged &&
+							VerifyBufsEqual(key.GetSeedBytePtr(), seed, seed.size()) &&
+							VerifyBufsEqual(key.GetIdentifierBytePtr(), identifier, identifier.size());
+					} else {
+						unchanged = unchanged && key.GetSeedBytePtr() == NULLPTR &&
+							key.GetIdentifierBytePtr() == NULLPTR;
+					}
+					if (!threw || !unchanged) {
+						std::cout << "FAILED:  " << name << " key generation failure, draw "
+							<< allowed + 1 << ", existing=" << existing
+							<< ", partial=" << partial << std::endl;
+						return false;
+					}
+
+					StatefulKeyGenFailRNG good(2, 0x33, false);
+					key.GenerateRandom(good, g_nullNameValuePairs);
+					seed.New(Key::SEED_SIZE);
+					identifier.New(Key::I_SIZE);
+					std::memset(seed, 0x33, seed.size());
+					std::memset(identifier, 0x33, identifier.size());
+					if (!key.Validate(NullRNG(), 0) ||
+						!VerifyBufsEqual(key.GetSeedBytePtr(), seed, seed.size()) ||
+						!VerifyBufsEqual(key.GetIdentifierBytePtr(), identifier, identifier.size())) {
+						std::cout << "FAILED:  " << name << " key generation retry" << std::endl;
+						return false;
+					}
+				}
+			}
+		}
+		std::cout << "passed:  " << name << " key generation failure (8 cases and retries)" << std::endl;
+		return true;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " key generation failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateLMS()
 {
 	std::cout << "\nLMS (SP 800-208) validation suite running...\n\n";
@@ -2336,6 +2424,8 @@ bool ValidateLMS()
 	pass = TestLMSSigGenVerifyACVP() && pass;
 
 	// Functional tests: LMS-SHA256-M32-H5 / LMOTS-SHA256-N32-W8
+	pass = TestStatefulKeyGenFailure<LMSPrivateKey<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8> >(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSKeyGen<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSSignVerify<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
@@ -5172,6 +5262,8 @@ bool ValidateHSS()
 	bool pass = true;
 
 	// Functional tests: HSS L=2 H5/W8
+	pass = TestStatefulKeyGenFailure<HSSPrivateKey<HSS_SHA256_H5_W8_L2_Params> >(
+		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestHSSKeyGen<HSS_SHA256_H5_W8_L2_Params>(
 		"HSS[2]/LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestHSSSignVerify<HSS_SHA256_H5_W8_L2_Params>(
