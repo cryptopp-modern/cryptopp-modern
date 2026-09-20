@@ -34,6 +34,9 @@ jobs:
     - name: Run validation tests
       run: ./build/ci-linux/cryptest.exe v
 
+    - name: Test HSS rebuild recovery
+      run: ./build/ci-linux/cryptopp-hss-recovery
+
     - name: Run test vectors
       run: ./build/ci-linux/cryptest.exe tv all
 
