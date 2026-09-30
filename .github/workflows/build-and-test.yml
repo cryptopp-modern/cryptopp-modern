@@ -37,6 +37,9 @@ jobs:
     - name: Test HSS rebuild recovery
       run: ./build/ci-linux/cryptopp-hss-recovery
 
+    - name: Test ML-DSA key state after allocation failures
+      run: ./build/ci-linux/cryptopp-mldsa-recovery
+
     - name: Run test vectors
       run: ./build/ci-linux/cryptest.exe tv all
 

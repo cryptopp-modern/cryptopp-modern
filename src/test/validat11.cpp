@@ -1038,6 +1038,119 @@ static bool TestMLDSADecodeState(const char* name)
 	}
 }
 
+template <class PARAMS>
+static bool MLDSAKeyMatches(const MLDSAPrivateKey<PARAMS>& key, const byte* sk, const byte* pk)
+{
+	return key.GetPrivateKeyBytePtr() && key.GetPublicKeyBytePtr() &&
+		VerifyBufsEqual(key.GetPrivateKeyBytePtr(), sk, PARAMS::SECRET_KEY_SIZE) &&
+		VerifyBufsEqual(key.GetPublicKeyBytePtr(), pk, PARAMS::PUBLIC_KEY_SIZE);
+}
+
+template <class PARAMS>
+static bool MLDSASignsAndVerifies(RandomNumberGenerator& rng, const MLDSAPrivateKey<PARAMS>& key)
+{
+	MLDSASigner<PARAMS> signer(key.GetPrivateKeyBytePtr(), PARAMS::SECRET_KEY_SIZE);
+	MLDSAVerifier<PARAMS> verifier(key.GetPublicKeyBytePtr(), PARAMS::PUBLIC_KEY_SIZE);
+	const byte message[] = "after a failed key operation";
+	SecByteBlock signature(signer.SignatureLength());
+	size_t sigLen = signer.SignMessage(rng, message, sizeof(message), signature);
+	return verifier.VerifyMessage(message, sizeof(message), signature, sigLen);
+}
+
+// Failed generation or import must leave the key unchanged.
+template <class PARAMS>
+static bool TestMLDSAKeyStateOnFailure(const char* name)
+{
+	typedef MLDSAPrivateKey<PARAMS> PrivKey;
+	const size_t skLen = PARAMS::SECRET_KEY_SIZE;
+	const size_t pkLen = PARAMS::PUBLIC_KEY_SIZE;
+	try {
+		AutoSeededRandomPool rng;
+		CountedFailRNG failRng(0);
+		bool pass = true;
+
+		PrivKey key;
+		bool threw = false;
+		try { key.GenerateRandom(failRng, g_nullNameValuePairs); }
+		catch (const Exception&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " key generation completed with a failing generator" << std::endl;
+			pass = false;
+		}
+		if (key.Validate(rng, 3) || key.GetPrivateKeyBytePtr() || key.GetPublicKeyBytePtr()) {
+			std::cout << "FAILED:  " << name << " failed key generation left key data behind" << std::endl;
+			pass = false;
+		}
+		threw = false;
+		try {
+			std::string der;
+			StringSink sink(der);
+			key.Save(sink);
+		}
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " failed key generation left a key that encodes" << std::endl;
+			pass = false;
+		}
+
+		key.GenerateRandom(rng, g_nullNameValuePairs);
+		if (!key.Validate(rng, 3) || !MLDSASignsAndVerifies<PARAMS>(rng, key)) {
+			std::cout << "FAILED:  " << name << " key generation retry after failure" << std::endl;
+			pass = false;
+		}
+
+		SecByteBlock sk(key.GetPrivateKeyBytePtr(), skLen);
+		SecByteBlock pk(key.GetPublicKeyBytePtr(), pkLen);
+		PrivKey other;
+		other.GenerateRandom(rng, g_nullNameValuePairs);
+
+		threw = false;
+		try { key.GenerateRandom(failRng, g_nullNameValuePairs); }
+		catch (const Exception&) { threw = true; }
+		if (!threw || !MLDSAKeyMatches<PARAMS>(key, sk, pk)) {
+			std::cout << "FAILED:  " << name << " key changed by failed key generation" << std::endl;
+			pass = false;
+		}
+
+		threw = false;
+		try { key.SetPrivateKey(other.GetPrivateKeyBytePtr(), skLen - 1); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw || !MLDSAKeyMatches<PARAMS>(key, sk, pk)) {
+			std::cout << "FAILED:  " << name << " key changed by a rejected private key length" << std::endl;
+			pass = false;
+		}
+
+		threw = false;
+		try { key.SetPrivateKey(NULLPTR, skLen); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw || !MLDSAKeyMatches<PARAMS>(key, sk, pk)) {
+			std::cout << "FAILED:  " << name << " key changed by a rejected null private key" << std::endl;
+			pass = false;
+		}
+
+		key.SetPrivateKey(key.GetPrivateKeyBytePtr(), skLen);
+		if (!MLDSAKeyMatches<PARAMS>(key, sk, pk)) {
+			std::cout << "FAILED:  " << name << " key changed by importing its own private key" << std::endl;
+			pass = false;
+		}
+
+		key.SetPrivateKey(other.GetPrivateKeyBytePtr(), skLen);
+		if (!MLDSAKeyMatches<PARAMS>(key, other.GetPrivateKeyBytePtr(), other.GetPublicKeyBytePtr()) ||
+			!MLDSASignsAndVerifies<PARAMS>(rng, key)) {
+			std::cout << "FAILED:  " << name << " private key replacement mismatch" << std::endl;
+			pass = false;
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " key state after failure (7 cases)" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " key state after failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateMLDSA()
 {
 	std::cout << "\nML-DSA (FIPS 204) validation suite running...\n\n";
@@ -1048,18 +1161,21 @@ bool ValidateMLDSA()
 
 	// ML-DSA-44
 	pass = TestMLDSAKeyGen<MLDSA_44>("ML-DSA-44") && pass;
+	pass = TestMLDSAKeyStateOnFailure<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASignVerify<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASerialization<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_44>("ML-DSA-44") && pass;
 
 	// ML-DSA-65
 	pass = TestMLDSAKeyGen<MLDSA_65>("ML-DSA-65") && pass;
+	pass = TestMLDSAKeyStateOnFailure<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASignVerify<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASerialization<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_65>("ML-DSA-65") && pass;
 
 	// ML-DSA-87
 	pass = TestMLDSAKeyGen<MLDSA_87>("ML-DSA-87") && pass;
+	pass = TestMLDSAKeyStateOnFailure<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASignVerify<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASerialization<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_87>("ML-DSA-87") && pass;
