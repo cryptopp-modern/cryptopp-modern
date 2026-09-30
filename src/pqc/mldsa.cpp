@@ -1327,9 +1327,9 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
     using namespace MLDSA_Internal;
     using IntParams = typename InternalParams<PARAMS>::type;
 
-    // Allocate output buffers
-    m_sk.resize(SECRET_KEYLENGTH);
-    m_pk.resize(PUBLIC_KEYLENGTH);
+    // Keep the existing key until generation succeeds.
+    SecByteBlock sk(SECRET_KEYLENGTH);
+    SecByteBlock pk(PUBLIC_KEYLENGTH);
 
     // Step 1: Generate random seed xi (32 bytes)
     byte seedbuf[2 * SEEDBYTES + CRHBYTES];
@@ -1380,16 +1380,16 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
         poly_power2round(&t1.vec[i], &t0.vec[i], &t.vec[i]);
 
     // Step 7: Pack public key
-    pack_pk<IntParams>(m_pk.begin(), rho, &t1);
+    pack_pk<IntParams>(pk.begin(), rho, &t1);
 
     // Step 8: Compute tr = H(pk)
     byte tr[TRBYTES];
     SHAKE256 shake_tr(TRBYTES);
-    shake_tr.Update(m_pk.begin(), PUBLIC_KEYLENGTH);
+    shake_tr.Update(pk.begin(), PUBLIC_KEYLENGTH);
     shake_tr.TruncatedFinal(tr, TRBYTES);
 
     // Step 9: Pack secret key
-    pack_sk<IntParams>(m_sk.begin(), rho, tr, key, &t0, &s1, &s2);
+    pack_sk<IntParams>(sk.begin(), rho, tr, key, &t0, &s1, &s2);
 
     // Zeroize secret data on stack
     SecureWipeBuffer(seedbuf, sizeof(seedbuf));
@@ -1398,16 +1398,24 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
     SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
     SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
     SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
+
+    // These swaps cannot throw. The locals will wipe the old key.
+    m_sk.swap(sk);
+    m_pk.swap(pk);
 }
 
 template <class PARAMS>
 void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     if (len != SECRET_KEYLENGTH)
         throw InvalidArgument("ML-DSA: Invalid private key length");
+    if (key == NULLPTR)
+        throw InvalidArgument("ML-DSA: private key pointer is null");
     using namespace MLDSA_Internal;
     using IntParams = typename InternalParams<PARAMS>::type;
 
-    m_sk.Assign(key, len);
+    // Copy first so key may point to our own private key.
+    SecByteBlock sk(key, len);
+    SecByteBlock pk(PUBLIC_KEYLENGTH);
 
     // Extract components from secret key and regenerate public key
     byte rho[SEEDBYTES];
@@ -1417,7 +1425,7 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     polyvecl<IntParams::l> s1;
     polyveck<IntParams::k> s2;
 
-    unpack_sk<IntParams>(rho, tr, keyK, &t0, &s1, &s2, key);
+    unpack_sk<IntParams>(rho, tr, keyK, &t0, &s1, &s2, sk.begin());
 
     // Regenerate t1 from s1, s2, and A
     poly A[IntParams::k][IntParams::l];
@@ -1440,8 +1448,7 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
         poly_power2round(&t1.vec[i], &t0_temp.vec[i], &t.vec[i]);
 
     // Pack public key
-    m_pk.resize(PUBLIC_KEYLENGTH);
-    pack_pk<IntParams>(m_pk.begin(), rho, &t1);
+    pack_pk<IntParams>(pk.begin(), rho, &t1);
 
     // Zeroize secret data on stack
     SecureWipeBuffer(keyK, sizeof(keyK));
@@ -1449,6 +1456,10 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
     SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
     SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
+
+    // These swaps cannot throw. The locals will wipe the old key.
+    m_sk.swap(sk);
+    m_pk.swap(pk);
 }
 
 template <class PARAMS>
@@ -1502,11 +1513,7 @@ void MLDSAPrivateKey<PARAMS>::BERDecode(BufferedTransformation &bt)
 
     privateKeyInfo.MessageEnd();
 
-    // SetPrivateKey can throw after updating m_sk. Stage and swap on success.
-    MLDSAPrivateKey<PARAMS> staged;
-    staged.SetPrivateKey(sk.begin(), SECRET_KEYLENGTH);
-    m_sk.swap(staged.m_sk);
-    m_pk.swap(staged.m_pk);
+    SetPrivateKey(sk.begin(), SECRET_KEYLENGTH);
 }
 
 // MLDSAPublicKey implementation

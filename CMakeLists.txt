@@ -1613,28 +1613,30 @@ if(
 endif()
 
 if(CRYPTOPP_BUILD_TESTING)
-    # Wrap the library allocator in a separate executable. SecByteBlock uses
-    # malloc, so overriding operator new would not exercise rebuild failures.
+    # Wrap the library allocator in separate executables. SecByteBlock uses
+    # malloc, so overriding operator new would not exercise allocation failures.
     if(CRYPTOPP_BUILD_STATIC AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
        AND CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CMAKE_CROSSCOMPILING
        AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
-        add_executable(cryptopp-hss-recovery src/test/hss_recovery.cpp)
-        target_compile_features(cryptopp-hss-recovery PRIVATE cxx_std_11)
-        target_compile_options(cryptopp-hss-recovery PRIVATE ${CRYPTOPP_COMPILE_OPTIONS})
-        if(TARGET cryptopp-static)
-            target_link_libraries(cryptopp-hss-recovery PRIVATE cryptopp-static)
-        else()
-            target_link_libraries(cryptopp-hss-recovery PRIVATE cryptopp)
-        endif()
-        target_link_options(cryptopp-hss-recovery PRIVATE
-            "-Wl,--wrap=_ZN8CryptoPP17UnalignedAllocateEm")
-        add_dependencies(cryptest cryptopp-hss-recovery)
-        add_test(NAME cryptopp-modern-hss-recovery
-            COMMAND $<TARGET_FILE:cryptopp-hss-recovery>)
-        set_tests_properties(cryptopp-modern-hss-recovery PROPERTIES
-            FIXTURES_REQUIRED cryptest-build
-            SKIP_RETURN_CODE 77
-            LABELS "cryptopp-modern;cryptopp-hss")
+        foreach(recovery hss mldsa)
+            add_executable(cryptopp-${recovery}-recovery src/test/${recovery}_recovery.cpp)
+            target_compile_features(cryptopp-${recovery}-recovery PRIVATE cxx_std_11)
+            target_compile_options(cryptopp-${recovery}-recovery PRIVATE ${CRYPTOPP_COMPILE_OPTIONS})
+            if(TARGET cryptopp-static)
+                target_link_libraries(cryptopp-${recovery}-recovery PRIVATE cryptopp-static)
+            else()
+                target_link_libraries(cryptopp-${recovery}-recovery PRIVATE cryptopp)
+            endif()
+            target_link_options(cryptopp-${recovery}-recovery PRIVATE
+                "-Wl,--wrap=_ZN8CryptoPP17UnalignedAllocateEm")
+            add_dependencies(cryptest cryptopp-${recovery}-recovery)
+            add_test(NAME cryptopp-modern-${recovery}-recovery
+                COMMAND $<TARGET_FILE:cryptopp-${recovery}-recovery>)
+            set_tests_properties(cryptopp-modern-${recovery}-recovery PROPERTIES
+                FIXTURES_REQUIRED cryptest-build
+                SKIP_RETURN_CODE 77
+                LABELS "cryptopp-modern;cryptopp-${recovery}")
+        endforeach()
     endif()
 
     add_test(
