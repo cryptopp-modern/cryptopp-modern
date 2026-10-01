@@ -846,7 +846,6 @@ if(CRYPTOPP_ARM32 AND NOT CRYPTOPP_DISABLE_ARM_NEON)
         list(APPEND CRYPTOPP_LEA_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_SIMON128_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_SPECK128_FLAGS -march=armv7-a -mfpu=neon)
-        list(APPEND CRYPTOPP_SM4_FLAGS -march=armv7-a -mfpu=neon)
     else()
         list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_ARM_NEON=1")
     endif()
@@ -908,7 +907,6 @@ if(CRYPTOPP_ARMV8)
             list(APPEND CRYPTOPP_NEON_FLAGS -march=armv8-a)
             list(APPEND CRYPTOPP_SIMON128_FLAGS -march=armv8-a)
             list(APPEND CRYPTOPP_SPECK128_FLAGS -march=armv8-a)
-            list(APPEND CRYPTOPP_SM4_FLAGS -march=armv8-a)
 
             check_compile_link_option("-march=armv8-a+crc" CRYPTOPP_HAVE_ARM_CRC32
                                       "${TEST_PROG_DIR}/test_arm_crc.cpp"
@@ -954,28 +952,6 @@ if(CRYPTOPP_ARMV8)
                 list(APPEND CRYPTOPP_SHA_FLAGS -march=armv8-a+crypto)
             else()
                 list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_ARM_SHA2=1")
-            endif()
-
-            check_compile_link_option("-march=armv8.4-a+sm3" CRYPTOPP_HAVE_ARM_SM3
-                                      "${TEST_PROG_DIR}/test_arm_sm3.cpp"
-            )
-            if(CRYPTOPP_HAVE_ARM_SM3)
-                list(APPEND CRYPTOPP_SM3_FLAGS -march=armv8.4-a+sm3)
-                list(APPEND CRYPTOPP_SM4_FLAGS -march=armv8.4-a+sm3)
-            endif()
-
-            check_compile_link_option("-march=armv8.4-a+sha3" CRYPTOPP_HAVE_ARM_SHA3
-                                      "${TEST_PROG_DIR}/test_arm_sha3.cpp"
-            )
-            if(CRYPTOPP_HAVE_ARM_SHA3)
-                list(APPEND CRYPTOPP_SHA3_FLAGS -march=armv8.4-a+sha3)
-            endif()
-
-            check_compile_link_option("-march=armv8.4-a+sha512" CRYPTOPP_HAVE_ARM_SHA512
-                                      "${TEST_PROG_DIR}/test_arm_sha512.cpp"
-            )
-            if(CRYPTOPP_HAVE_ARM_SHA512)
-                list(APPEND CRYPTOPP_SHA3_FLAGS -march=armv8.4-a+sha512)
             endif()
         else()
             list(APPEND CRYPTOPP_COMPILE_DEFINITIONS "CRYPTOPP_DISABLE_ASM=1")
@@ -1263,11 +1239,6 @@ set_source_files_properties(
 set_source_files_properties(
     ${cryptopp_SOURCE_DIR}/src/symmetric/speck128_simd.cpp
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_SPECK128_FLAGS}"
-)
-
-set_source_files_properties(
-    ${cryptopp_SOURCE_DIR}/src/hash/sm3.cpp
-    PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_SM3_FLAGS}"
 )
 
 set_source_files_properties(

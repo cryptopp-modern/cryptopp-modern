@@ -585,7 +585,6 @@ ifeq ($(DETECT_FEATURES),1)
     LEA_FLAG = -march=armv7-a -mfpu=neon
     SIMON128_FLAG = -march=armv7-a -mfpu=neon
     SPECK128_FLAG = -march=armv7-a -mfpu=neon
-    SM4_FLAG = -march=armv7-a -mfpu=neon
   else
     # Make does not have useful debugging facilities. Show the user
     # what happened by compiling again without the pipe.
@@ -639,7 +638,6 @@ ifeq ($(DETECT_FEATURES),1)
     NEON_FLAG = -march=armv8-a
     SIMON128_FLAG = -march=armv8-a
     SPECK128_FLAG = -march=armv8-a
-    SM4_FLAG = -march=armv8-a
   else
     # Make does not have useful debugging facilities. Show the user
     # what happened by compiling again without the pipe.
@@ -697,35 +695,6 @@ ifeq ($(DETECT_FEATURES),1)
       SHA_FLAG = -march=armv8-a+crypto
     else
       CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_ARM_SHA2
-    endif
-
-    TPROG = TestPrograms/test_arm_sm3.cpp
-    TOPT = -march=armv8.4-a+sm3
-    HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
-    ifeq ($(strip $(HAVE_OPT)),0)
-      SM3_FLAG = -march=armv8.4-a+sm3
-      SM4_FLAG = -march=armv8.4-a+sm3
-    else
-      #CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_ARM_SM3
-      #CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_ARM_SM4
-    endif
-
-    TPROG = TestPrograms/test_arm_sha3.cpp
-    TOPT = -march=armv8.4-a+sha3
-    HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
-    ifeq ($(strip $(HAVE_OPT)),0)
-      SHA3_FLAG = -march=armv8.4-a+sha3
-    else
-      #CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_ARM_SHA3
-    endif
-
-    TPROG = TestPrograms/test_arm_sha512.cpp
-    TOPT = -march=armv8.4-a+sha512
-    HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
-    ifeq ($(strip $(HAVE_OPT)),0)
-      SHA512_FLAG = -march=armv8.4-a+sha512
-    else
-      #CRYPTOPP_CPPFLAGS += -DCRYPTOPP_DISABLE_ARM_SHA512
     endif
 
   # ASIMD_FLAG
@@ -1791,9 +1760,6 @@ src/hash/sha_simd.o : src/hash/sha_simd.cpp
 src/hash/sha%_armv4.o : src/hash/sha%_armv4.S
 	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_FLAG) -c) $<
 
-src/hash/sha3_simd.o : src/hash/sha3_simd.cpp
-	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA3_FLAG) -c) $<
-
 # SSE4.2/SHA-NI or ARMv8a available
 src/symmetric/shacal2_simd.o : src/symmetric/shacal2_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA_FLAG) -c) $<
@@ -1805,10 +1771,6 @@ src/symmetric/simon128_simd.o : src/symmetric/simon128_simd.cpp
 # SSSE3, NEON or POWER8 available
 src/symmetric/speck128_simd.o : src/symmetric/speck128_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SPECK128_FLAG) -c) $<
-
-# ARMv8.4 available
-src/hash/sm3_simd.o : src/hash/sm3_simd.cpp
-	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SM3_FLAG) -c) $<
 
 # AESNI available
 src/symmetric/sm4_simd.o : src/symmetric/sm4_simd.cpp
