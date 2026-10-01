@@ -469,12 +469,14 @@ then
     ARMV8_FLAG="-arch arm64"
     ARMV81_CRC_FLAG="-arch arm64"
     ARMV81_CRYPTO_FLAG="-arch arm64"
-    ARMV84_CRYPTO_FLAG="-arch arm64"
+    ARMV82_SHA3_FLAG="-arch arm64"
+    ARMV82_SM4_FLAG="-arch arm64"
   else
     ARMV8_FLAG="-march=armv8-a"
     ARMV81_CRC_FLAG="-march=armv8-a+crc"
     ARMV81_CRYPTO_FLAG="-march=armv8-a+crypto"
-    ARMV84_CRYPTO_FLAG="-march=armv8.4-a+crypto"
+    ARMV82_SHA3_FLAG="-march=armv8.2-a+sha3"
+    ARMV82_SM4_FLAG="-march=armv8.2-a+sm4"
   fi
 
   # Shell redirection
@@ -544,28 +546,28 @@ then
     echo '#define CRYPTOPP_DISABLE_ARM_SHA2 1'
   fi
 
-  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV84_CRYPTO_FLAG} TestPrograms/test_arm_sha3.cpp -o ${TOUT} 2>&1 | wc -w)
+  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV82_SHA3_FLAG} TestPrograms/test_arm_sha3.cpp -o ${TOUT} 2>&1 | wc -w)
   if [[ "${CXX_RESULT}" -eq 0 ]]; then
     echo '#define CRYPTOPP_ARM_SHA3_AVAILABLE 1'
   else
     echo '#define CRYPTOPP_DISABLE_ARM_SHA3 1'
   fi
 
-  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV84_CRYPTO_FLAG} TestPrograms/test_arm_sha512.cpp -o ${TOUT} 2>&1 | wc -w)
+  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV82_SHA3_FLAG} TestPrograms/test_arm_sha512.cpp -o ${TOUT} 2>&1 | wc -w)
   if [[ "${CXX_RESULT}" -eq 0 ]]; then
     echo '#define CRYPTOPP_ARM_SHA512_AVAILABLE 1'
   else
     echo '#define CRYPTOPP_DISABLE_ARM_SHA512 1'
   fi
 
-  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV84_CRYPTO_FLAG} TestPrograms/test_arm_sm3.cpp -o ${TOUT} 2>&1 | wc -w)
+  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV82_SM4_FLAG} TestPrograms/test_arm_sm3.cpp -o ${TOUT} 2>&1 | wc -w)
   if [[ "${CXX_RESULT}" -eq 0 ]]; then
     echo '#define CRYPTOPP_ARM_SM3_AVAILABLE 1'
   else
     echo '#define CRYPTOPP_DISABLE_ARM_SM3 1'
   fi
 
-  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV84_CRYPTO_FLAG} TestPrograms/test_arm_sm4.cpp -o ${TOUT} 2>&1 | wc -w)
+  CXX_RESULT=$(${CXX} ${CXXFLAGS} ${HDRFLAGS} ${ARMV82_SM4_FLAG} TestPrograms/test_arm_sm4.cpp -o ${TOUT} 2>&1 | wc -w)
   if [[ "${CXX_RESULT}" -eq 0 ]]; then
     echo '#define CRYPTOPP_ARM_SM4_AVAILABLE 1'
   else
