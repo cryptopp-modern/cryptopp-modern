@@ -10,10 +10,11 @@ int main(int argc, char* argv[])
 {
     // SHA3 intrinsics are merely ARMv8.2 instructions.
     // https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics
-    uint32x4_t x={0}, y={1}, z={2};
+    uint64x2_t x={0}, y={1}, z={2};
     x=VEOR3(x,y,z);
-    x=VXAR(y,z,6);
-    x=VRAX1(y,z);
+    x=VXAR<6>(x,z);
+    x=VRAX1(x,z);
 
-    return 0;
+    // Use the result. Unused inline assembly is removed when optimizing.
+    return (int)(vgetq_lane_u64(x,0) & 1);
 }
