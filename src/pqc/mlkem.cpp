@@ -13,11 +13,14 @@
 
 #include "mlkem_params.h"
 #include "mlkem_poly.h"
+#include "wipe_guard.h"
 
 #include <cstring>
 #include <stdexcept>
 
 NAMESPACE_BEGIN(CryptoPP)
+
+using PQC_Internal::WipeGuard;
 
 // ******************** Internal Implementation ************************* //
 
@@ -473,6 +476,7 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
 {
     const unsigned int k = PARAMS::k;
     byte buf[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
     byte *publicseed = buf;
     byte *noiseseed = buf + MLKEM_SYMBYTES;
 
@@ -491,7 +495,9 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
 
     // Generate secret vector s
     PolyVec<k> s;
+    WipeGuard wipeS(&s, sizeof(s));
     byte prf_input[MLKEM_SYMBYTES + 1];
+    WipeGuard wipePrfInput(prf_input, sizeof(prf_input));
     std::memcpy(prf_input, noiseseed, MLKEM_SYMBYTES);
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(i);
@@ -504,6 +510,7 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
 
     // Generate error vector e
     PolyVec<k> e;
+    WipeGuard wipeE(&e, sizeof(e));
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(k + i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
@@ -533,12 +540,6 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
 
     // Pack secret key
     polyvec_tobytes<k>(sk, s);
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(buf, sizeof(buf));
-    SecureWipeBuffer(prf_input, sizeof(prf_input));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s), sizeof(s));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&e), sizeof(e));
 }
 
 // Deterministic version for X-Wing seed expansion
@@ -547,6 +548,7 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
 {
     const unsigned int k = PARAMS::k;
     byte buf[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
     byte *publicseed = buf;
     byte *noiseseed = buf + MLKEM_SYMBYTES;
 
@@ -564,7 +566,9 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
 
     // Generate secret vector s
     PolyVec<k> s;
+    WipeGuard wipeS(&s, sizeof(s));
     byte prf_input[MLKEM_SYMBYTES + 1];
+    WipeGuard wipePrfInput(prf_input, sizeof(prf_input));
     std::memcpy(prf_input, noiseseed, MLKEM_SYMBYTES);
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(i);
@@ -577,6 +581,7 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
 
     // Generate error vector e
     PolyVec<k> e;
+    WipeGuard wipeE(&e, sizeof(e));
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(k + i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
@@ -606,12 +611,6 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
 
     // Pack secret key
     polyvec_tobytes<k>(sk, s);
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(buf, sizeof(buf));
-    SecureWipeBuffer(prf_input, sizeof(prf_input));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s), sizeof(s));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&e), sizeof(e));
 }
 
 template <class PARAMS>
@@ -631,8 +630,11 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
 
     // Generate r, e1, e2 from coins
     PolyVec<k> r, e1;
+    WipeGuard wipeR(&r, sizeof(r)), wipeE1(&e1, sizeof(e1));
     Poly e2;
+    WipeGuard wipeE2(&e2, sizeof(e2));
     byte prf_input[MLKEM_SYMBYTES + 1];
+    WipeGuard wipePrfInput(prf_input, sizeof(prf_input));
     std::memcpy(prf_input, coins, MLKEM_SYMBYTES);
 
     for (unsigned int i = 0; i < k; i++) {
@@ -687,12 +689,6 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
     // Compress and pack ciphertext
     polyvec_compress<PARAMS>(ct, u);
     poly_compress(ct + PARAMS::POLYVECCOMPRESSEDBYTES, v, PARAMS::dv);
-
-    // Zeroize secret randomness on stack
-    SecureWipeBuffer(prf_input, sizeof(prf_input));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&r), sizeof(r));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&e1), sizeof(e1));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&e2), sizeof(e2));
 }
 
 template <class PARAMS>
@@ -708,6 +704,7 @@ void indcpa_dec(byte *m, const byte *ct, const byte *sk)
 
     // Unpack secret key
     PolyVec<k> s;
+    WipeGuard wipeS(&s, sizeof(s));
     polyvec_frombytes<k>(s, sk);
 
     // NTT(u)
@@ -715,16 +712,13 @@ void indcpa_dec(byte *m, const byte *ct, const byte *sk)
 
     // Compute m = v - s^T * u
     Poly mp;
+    WipeGuard wipeMp(&mp, sizeof(mp));
     polyvec_pointwise_acc<k>(mp, s, u);
     invntt(mp);
     poly_sub(mp, v, mp);
     poly_reduce(mp);
 
     poly_tomsg(m, mp);
-
-    // Zeroize secret key and message polynomial on stack
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s), sizeof(s));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&mp), sizeof(mp));
 }
 
 // ******************** Parameter Traits ************************* //
@@ -794,7 +788,9 @@ void mlkem_encaps(byte *ct, byte *ss, const byte *pk, RandomNumberGenerator &rng
 {
     typedef typename ParamTraits<PARAMS>::Internal InternalParams;
     byte buf[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
     byte kr[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeKr(kr, sizeof(kr));
 
     // Generate random message m
     // FIPS 203 Algorithm 20: m is used directly (no H(m) step in final spec)
@@ -815,10 +811,6 @@ void mlkem_encaps(byte *ct, byte *ss, const byte *pk, RandomNumberGenerator &rng
 
     // FIPS 203: K is the first 32 bytes of G(m || H(ek)) directly
     std::memcpy(ss, kr, MLKEM_SYMBYTES);
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(buf, sizeof(buf));
-    SecureWipeBuffer(kr, sizeof(kr));
 }
 
 template <class PARAMS>
@@ -826,8 +818,11 @@ void mlkem_decaps(byte *ss, const byte *ct, const byte *sk)
 {
     typedef typename ParamTraits<PARAMS>::Internal InternalParams;
     byte buf[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
     byte kr[2 * MLKEM_SYMBYTES];
+    WipeGuard wipeKr(kr, sizeof(kr));
     byte cmp[InternalParams::CIPHERTEXTBYTES];
+    WipeGuard wipeCmp(cmp, sizeof(cmp));
 
     // Unpack public key and z from secret key
     const byte *pk = sk + InternalParams::INDCPA_SECRETKEYBYTES;
@@ -857,6 +852,7 @@ void mlkem_decaps(byte *ss, const byte *ct, const byte *sk)
 
     // FIPS 203: Implicit rejection K_bar = J(z || c) = SHAKE-256(z || c)
     byte k_bar[MLKEM_SYMBYTES];
+    WipeGuard wipeKBar(k_bar, sizeof(k_bar));
     SHAKE256 j_hash(MLKEM_SYMBYTES);
     j_hash.Update(z, MLKEM_SYMBYTES);
     j_hash.Update(ct, InternalParams::CIPHERTEXTBYTES);
@@ -867,12 +863,6 @@ void mlkem_decaps(byte *ss, const byte *ct, const byte *sk)
     const unsigned int failMask = 0u - fail;
     for (unsigned int i = 0; i < MLKEM_SYMBYTES; i++)
         ss[i] = kr[i] ^ (failMask & (kr[i] ^ k_bar[i]));
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(buf, sizeof(buf));
-    SecureWipeBuffer(kr, sizeof(kr));
-    SecureWipeBuffer(cmp, sizeof(cmp));
-    SecureWipeBuffer(k_bar, sizeof(k_bar));
 }
 
 }  // namespace MLKEM_Internal

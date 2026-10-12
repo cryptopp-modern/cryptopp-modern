@@ -14,8 +14,12 @@
 
 #include "mldsa_params.h"
 #include "mldsa_poly.h"
+#include "wipe_guard.h"
 
 NAMESPACE_BEGIN(CryptoPP)
+
+using PQC_Internal::WipeGuard;
+
 NAMESPACE_BEGIN(MLDSA_Internal)
 
 // ==================== NTT Zetas ====================
@@ -1333,6 +1337,7 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
 
     // Step 1: Generate random seed xi (32 bytes)
     byte seedbuf[2 * SEEDBYTES + CRHBYTES];
+    WipeGuard wipeSeed(seedbuf, sizeof(seedbuf));
     rng.GenerateBlock(seedbuf, SEEDBYTES);
 
     // Step 2: Expand seed into (rho, rho', K) using SHAKE256
@@ -1353,7 +1358,9 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
 
     // Step 4: Sample secret vectors s1 and s2 from rhoprime
     polyvecl<IntParams::l> s1;
+    WipeGuard wipeS1(&s1, sizeof(s1));
     polyveck<IntParams::k> s2;
+    WipeGuard wipeS2(&s2, sizeof(s2));
 
     for (unsigned int i = 0; i < IntParams::l; i++)
         poly_uniform_eta<IntParams>(&s1.vec[i], rhoprime, static_cast<uint16_t>(i));
@@ -1363,6 +1370,7 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
 
     // Step 5: Compute t = A * s1 + s2
     polyvecl<IntParams::l> s1hat = s1;
+    WipeGuard wipeS1hat(&s1hat, sizeof(s1hat));
     polyvecl_ntt<IntParams::l>(&s1hat);
 
     polyveck<IntParams::k> t;
@@ -1376,6 +1384,7 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
 
     // Step 6: Power2Round to get t1 and t0
     polyveck<IntParams::k> t1, t0;
+    WipeGuard wipeT0(&t0, sizeof(t0));
     for (unsigned int i = 0; i < IntParams::k; i++)
         poly_power2round(&t1.vec[i], &t0.vec[i], &t.vec[i]);
 
@@ -1384,20 +1393,13 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
 
     // Step 8: Compute tr = H(pk)
     byte tr[TRBYTES];
+    WipeGuard wipeTr(tr, sizeof(tr));
     SHAKE256 shake_tr(TRBYTES);
     shake_tr.Update(pk.begin(), PUBLIC_KEYLENGTH);
     shake_tr.TruncatedFinal(tr, TRBYTES);
 
     // Step 9: Pack secret key
     pack_sk<IntParams>(sk.begin(), rho, tr, key, &t0, &s1, &s2);
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(seedbuf, sizeof(seedbuf));
-    SecureWipeBuffer(tr, sizeof(tr));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1), sizeof(s1));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
 
     // These swaps cannot throw. The locals will wipe the old key.
     m_sk.swap(sk);
@@ -1421,9 +1423,13 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     byte rho[SEEDBYTES];
     byte tr[TRBYTES];
     byte keyK[SEEDBYTES];
+    WipeGuard wipeKeyK(keyK, sizeof(keyK));
     polyveck<IntParams::k> t0;
+    WipeGuard wipeT0(&t0, sizeof(t0));
     polyvecl<IntParams::l> s1;
+    WipeGuard wipeS1(&s1, sizeof(s1));
     polyveck<IntParams::k> s2;
+    WipeGuard wipeS2(&s2, sizeof(s2));
 
     unpack_sk<IntParams>(rho, tr, keyK, &t0, &s1, &s2, sk.begin());
 
@@ -1432,6 +1438,7 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     expand_matrix<IntParams>(A, rho);
 
     polyvecl<IntParams::l> s1hat = s1;
+    WipeGuard wipeS1hat(&s1hat, sizeof(s1hat));
     polyvecl_ntt<IntParams::l>(&s1hat);
 
     polyveck<IntParams::k> t;
@@ -1449,13 +1456,6 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
 
     // Pack public key
     pack_pk<IntParams>(pk.begin(), rho, &t1);
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(keyK, sizeof(keyK));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1), sizeof(s1));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
 
     // These swaps cannot throw. The locals will wipe the old key.
     m_sk.swap(sk);
@@ -1609,9 +1609,13 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
     byte rho[SEEDBYTES];
     byte tr[TRBYTES];
     byte key[SEEDBYTES];
+    WipeGuard wipeKey(key, sizeof(key));
     polyveck<IntParams::k> t0;
+    WipeGuard wipeT0(&t0, sizeof(t0));
     polyvecl<IntParams::l> s1;
+    WipeGuard wipeS1(&s1, sizeof(s1));
     polyveck<IntParams::k> s2;
+    WipeGuard wipeS2(&s2, sizeof(s2));
 
     unpack_sk<IntParams>(rho, tr, key, &t0, &s1, &s2, m_key.GetPrivateKeyBytePtr());
 
@@ -1621,6 +1625,7 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
     // Compute mu = H(tr || M') where M' = 0x00 || len(ctx) || ctx || M (FIPS 204, pure signing)
     byte mu[CRHBYTES];
+    WipeGuard wipeMu(mu, sizeof(mu));
     byte msg_prefix[2] = { 0x00, static_cast<byte>(accum.contextSize()) };
     SHAKE256 shake_mu(CRHBYTES);
     shake_mu.Update(tr, TRBYTES);
@@ -1632,9 +1637,11 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
     // Generate random rho'' for signing
     byte rhoprime[CRHBYTES];
+    WipeGuard wipeRhoprime(rhoprime, sizeof(rhoprime));
     SHAKE256 shake_rnd(CRHBYTES);
     shake_rnd.Update(key, SEEDBYTES);
     byte rnd[SEEDBYTES];
+    WipeGuard wipeRnd(rnd, sizeof(rnd));
     rng.GenerateBlock(rnd, SEEDBYTES);
     shake_rnd.Update(rnd, SEEDBYTES);
     shake_rnd.Update(mu, CRHBYTES);
@@ -1642,8 +1649,11 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
     // Convert s1, s2, t0 to NTT domain for faster computation
     polyvecl<IntParams::l> s1hat = s1;
+    WipeGuard wipeS1hat(&s1hat, sizeof(s1hat));
     polyveck<IntParams::k> s2hat = s2;
+    WipeGuard wipeS2hat(&s2hat, sizeof(s2hat));
     polyveck<IntParams::k> t0hat = t0;
+    WipeGuard wipeT0hat(&t0hat, sizeof(t0hat));
 
     polyvecl_ntt<IntParams::l>(&s1hat);
     polyveck_ntt<IntParams::k>(&s2hat);
@@ -1651,31 +1661,16 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
     // Rejection sampling loop
     polyvecl<IntParams::l> y, z;
+    WipeGuard wipeY(&y, sizeof(y)), wipeZ(&z, sizeof(z));
     polyveck<IntParams::k> w, w1, w0, h;
+    WipeGuard wipeW(&w, sizeof(w)), wipeW1(&w1, sizeof(w1)), wipeW0(&w0, sizeof(w0)), wipeH(&h, sizeof(h));
     poly cp;
+    WipeGuard wipeCp(&cp, sizeof(cp));
     unsigned int nonce = 0;
 
     while (true) {
-        if (nonce > 10000) {
-            SecureWipeBuffer(key, sizeof(key));
-            SecureWipeBuffer(rhoprime, sizeof(rhoprime));
-            SecureWipeBuffer(rnd, sizeof(rnd));
-            SecureWipeBuffer(mu, sizeof(mu));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&s1), sizeof(s1));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&s2hat), sizeof(s2hat));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&t0hat), sizeof(t0hat));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&y), sizeof(y));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&z), sizeof(z));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&w), sizeof(w));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&w1), sizeof(w1));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&w0), sizeof(w0));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&h), sizeof(h));
-            SecureWipeBuffer(reinterpret_cast<byte*>(&cp), sizeof(cp));
+        if (nonce > 10000)
             throw Exception(Exception::OTHER_ERROR, "ML-DSA: Too many rejection samples in signing");
-        }
 
         // Sample y from rhoprime
         for (unsigned int i = 0; i < IntParams::l; i++)
@@ -1766,25 +1761,6 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
         pack_sig<IntParams>(signature, c_tilde, &z, &h);
         break;
     }
-
-    // Zeroize secret data on stack
-    SecureWipeBuffer(key, sizeof(key));
-    SecureWipeBuffer(rhoprime, sizeof(rhoprime));
-    SecureWipeBuffer(rnd, sizeof(rnd));
-    SecureWipeBuffer(mu, sizeof(mu));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1), sizeof(s1));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s2), sizeof(s2));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&t0), sizeof(t0));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s1hat), sizeof(s1hat));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&s2hat), sizeof(s2hat));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&t0hat), sizeof(t0hat));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&y), sizeof(y));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&z), sizeof(z));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&w), sizeof(w));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&w1), sizeof(w1));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&w0), sizeof(w0));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&h), sizeof(h));
-    SecureWipeBuffer(reinterpret_cast<byte*>(&cp), sizeof(cp));
 
     if (restart)
         accum.Restart();

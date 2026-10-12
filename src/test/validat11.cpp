@@ -17,6 +17,8 @@
 #include <cryptopp/slhdsa.h>
 #include <cryptopp/xwing.h>
 
+#include "../pqc/wipe_guard.h"
+
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -315,6 +317,65 @@ static bool TestPqcDerFixtures(const char* name, byte privSeed, const char* priv
 	}
 }
 
+// ******************** PQC stack wipe guard ************************* //
+
+// The guarded storage belongs to the caller, so it can be read after the
+// guard has run. Canaries either side catch a wipe of the wrong size.
+struct GuardedBytes { byte before[8]; byte secret[61]; byte after[8]; };
+struct GuardedWords { word64 before; word64 secret[5]; word64 after; };
+
+static void FillThenLeave(void* buf, size_t byteCount, bool leaveByThrow)
+{
+	PQC_Internal::WipeGuard wipe(buf, byteCount);
+	std::memset(buf, 0xA5, byteCount);
+	if (leaveByThrow)
+		throw Exception(Exception::OTHER_ERROR, "leaving by exception");
+}
+
+static bool IsFilledWith(const void* buf, size_t byteCount, byte value)
+{
+	const byte* p = static_cast<const byte*>(buf);
+	for (size_t i = 0; i < byteCount; ++i)
+		if (p[i] != value)
+			return false;
+	return true;
+}
+
+template <class T>
+static bool GuardWipesExactly(T& t, bool leaveByThrow)
+{
+	std::memset(&t, 0xC3, sizeof(t));
+	bool threw = false;
+	try { FillThenLeave(t.secret, sizeof(t.secret), leaveByThrow); }
+	catch (const Exception&) { threw = true; }
+	return threw == leaveByThrow &&
+		IsFilledWith(t.secret, sizeof(t.secret), 0) &&
+		IsFilledWith(&t.before, sizeof(t.before), 0xC3) &&
+		IsFilledWith(&t.after, sizeof(t.after), 0xC3);
+}
+
+static bool TestWipeGuard()
+{
+	GuardedBytes b;
+	GuardedWords w;
+	bool pass = GuardWipesExactly(b, false);
+	pass = GuardWipesExactly(b, true) && pass;
+	pass = GuardWipesExactly(w, false) && pass;
+	pass = GuardWipesExactly(w, true) && pass;
+
+	std::memset(&b, 0xC3, sizeof(b));
+	{
+		PQC_Internal::WipeGuard wipe(b.secret, sizeof(b.secret));
+		std::memset(b.secret, 0xA5, sizeof(b.secret));
+	}
+	pass = IsFilledWith(b.secret, sizeof(b.secret), 0) &&
+		IsFilledWith(b.before, sizeof(b.before), 0xC3) &&
+		IsFilledWith(b.after, sizeof(b.after), 0xC3) && pass;
+
+	std::cout << (pass ? "passed:  " : "FAILED:  ") << "stack wipe guard (5 cases)" << std::endl;
+	return pass;
+}
+
 // ******************** ML-KEM Validation (FIPS 203) ************************* //
 
 // Fails on the first GenerateBlock call after the allowed count, so a test
@@ -332,6 +393,17 @@ public:
 	}
 private:
 	unsigned int m_allowed;
+};
+
+// Writes half of the requested bytes and then fails.
+class PartialWriteFailRNG : public RandomNumberGenerator
+{
+public:
+	void GenerateBlock(byte *output, size_t size)
+	{
+		std::memset(output, 0x5a, size / 2);
+		throw Exception(Exception::OTHER_ERROR, "PartialWriteFailRNG: failed part way");
+	}
 };
 
 // Key generation draws d and then z. A failure on the second draw must leave
@@ -770,6 +842,8 @@ bool ValidateMLKEM()
 	std::cout << "\nML-KEM (FIPS 203) validation suite running...\n\n";
 	bool pass = true;
 
+	pass = TestWipeGuard() && pass;
+
 	// ML-KEM-512
 	pass = TestMLKEMKeyGen<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestMLKEMKeyGenFailure<MLKEM_512>("ML-KEM-512") && pass;
@@ -1151,6 +1225,47 @@ static bool TestMLDSAKeyStateOnFailure(const char* name)
 	}
 }
 
+// A generator that fails during signing, before or part way through its
+// write, must not stop the signer from signing afterwards.
+template <class PARAMS>
+static bool TestMLDSASignFailure(const char* name)
+{
+	try {
+		AutoSeededRandomPool rng;
+		MLDSASigner<PARAMS> signer(rng);
+		MLDSAVerifier<PARAMS> verifier(signer);
+		const byte message[] = "signing with a failing generator";
+		SecByteBlock signature(signer.SignatureLength());
+		bool pass = true;
+
+		CountedFailRNG failBefore(0);
+		PartialWriteFailRNG failPartWay;
+		RandomNumberGenerator* failing[] = { &failBefore, &failPartWay };
+		for (unsigned int i = 0; i < 2; i++) {
+			bool threw = false;
+			try { signer.SignMessage(*failing[i], message, sizeof(message), signature); }
+			catch (const Exception&) { threw = true; }
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " signing completed with a failing generator" << std::endl;
+				pass = false;
+			}
+			size_t sigLen = signer.SignMessage(rng, message, sizeof(message), signature);
+			if (!verifier.VerifyMessage(message, sizeof(message), signature, sigLen)) {
+				std::cout << "FAILED:  " << name << " signing after a generator failure" << std::endl;
+				pass = false;
+			}
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " signing after a generator failure (2 cases)" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " signing after a generator failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 bool ValidateMLDSA()
 {
 	std::cout << "\nML-DSA (FIPS 204) validation suite running...\n\n";
@@ -1163,6 +1278,7 @@ bool ValidateMLDSA()
 	pass = TestMLDSAKeyGen<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSAKeyStateOnFailure<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASignVerify<MLDSA_44>("ML-DSA-44") && pass;
+	pass = TestMLDSASignFailure<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASerialization<MLDSA_44>("ML-DSA-44") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_44>("ML-DSA-44") && pass;
 
@@ -1170,6 +1286,7 @@ bool ValidateMLDSA()
 	pass = TestMLDSAKeyGen<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSAKeyStateOnFailure<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASignVerify<MLDSA_65>("ML-DSA-65") && pass;
+	pass = TestMLDSASignFailure<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASerialization<MLDSA_65>("ML-DSA-65") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_65>("ML-DSA-65") && pass;
 
@@ -1177,6 +1294,7 @@ bool ValidateMLDSA()
 	pass = TestMLDSAKeyGen<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSAKeyStateOnFailure<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASignVerify<MLDSA_87>("ML-DSA-87") && pass;
+	pass = TestMLDSASignFailure<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASerialization<MLDSA_87>("ML-DSA-87") && pass;
 	pass = TestMLDSASaveLoad<MLDSA_87>("ML-DSA-87") && pass;
 

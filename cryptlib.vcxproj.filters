@@ -1164,6 +1164,9 @@
     <ClInclude Include="src\pqc\slhdsa_hypertree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\pqc\wipe_guard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="cpuid64.asm">

@@ -533,6 +533,7 @@
     <ClInclude Include="src\pqc\slhdsa_wots.h" />
     <ClInclude Include="src\pqc\slhdsa_fors.h" />
     <ClInclude Include="src\pqc\slhdsa_hypertree.h" />
+    <ClInclude Include="src\pqc\wipe_guard.h" />
     <ClInclude Include="include\cryptopp\misc.h" />
     <ClInclude Include="include\cryptopp\modarith.h" />
     <ClInclude Include="include\cryptopp\modes.h" />
