@@ -502,6 +502,7 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -514,6 +515,7 @@ void indcpa_keypair(byte *pk, byte *sk, RandomNumberGenerator &rng)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(k + i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -573,6 +575,7 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -585,6 +588,7 @@ void indcpa_keypair_deterministic(byte *pk, byte *sk, const byte *d)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(k + i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -640,6 +644,7 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(i);
         byte cbd_buf[PARAMS::eta1 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -649,6 +654,7 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
     for (unsigned int i = 0; i < k; i++) {
         prf_input[MLKEM_SYMBYTES] = static_cast<byte>(k + i);
         byte cbd_buf[PARAMS::eta2 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -658,6 +664,7 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
     prf_input[MLKEM_SYMBYTES] = static_cast<byte>(2 * k);
     {
         byte cbd_buf[PARAMS::eta2 * MLKEM_N / 4];
+        WipeGuard wipeCbd(cbd_buf, sizeof(cbd_buf));
         SHAKE256 prf(sizeof(cbd_buf));
         prf.Update(prf_input, sizeof(prf_input));
         prf.TruncatedFinal(cbd_buf, sizeof(cbd_buf));
@@ -669,6 +676,7 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
 
     // Compute u = A^T * r + e1
     PolyVec<k> u;
+    WipeGuard wipeU(&u, sizeof(u));
     for (unsigned int i = 0; i < k; i++) {
         polyvec_pointwise_acc<k>(u.vec[i], AT[i], r);
         invntt(u.vec[i]);
@@ -678,9 +686,11 @@ void indcpa_enc(byte *ct, const byte *m, const byte *pk, const byte *coins)
 
     // Compute v = t^T * r + e2 + Decompress(m)
     Poly v;
+    WipeGuard wipeV(&v, sizeof(v));
     polyvec_pointwise_acc<k>(v, t, r);
     invntt(v);
     Poly mp;
+    WipeGuard wipeMp(&mp, sizeof(mp));
     poly_frommsg(mp, m);
     poly_add(v, v, e2);
     poly_add(v, v, mp);

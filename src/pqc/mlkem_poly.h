@@ -6,6 +6,7 @@
 #define CRYPTOPP_MLKEM_POLY_H
 
 #include "mlkem_params.h"
+#include "wipe_guard.h"
 #include <cryptopp/secblock.h>
 #include <cstring>
 
@@ -166,6 +167,7 @@ template <unsigned int K>
 inline void polyvec_pointwise_acc(Poly &c, const PolyVec<K> &a, const PolyVec<K> &b)
 {
     Poly t;
+    PQC_Internal::WipeGuard wipeT(&t, sizeof(t));
     poly_basemul(c, a.vec[0], b.vec[0]);
     for (unsigned int i = 1; i < K; i++) {
         poly_basemul(t, a.vec[i], b.vec[i]);

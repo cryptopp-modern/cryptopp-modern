@@ -306,6 +306,7 @@ void poly_uniform_eta<Params_44>(poly *a, const byte *seed, uint16_t nonce) {
     // Eta=2: each byte can produce 0-2 coefficients. Use large buffer for safety.
     static constexpr unsigned int BUF_SIZE = 512;
     byte buf[BUF_SIZE];
+    WipeGuard wipeBuf(buf, sizeof(buf));
 
     SHAKE256 shake(BUF_SIZE);
     shake.Update(seed, CRHBYTES);
@@ -325,6 +326,7 @@ void poly_uniform_eta<Params_65>(poly *a, const byte *seed, uint16_t nonce) {
     // Eta=4: each nibble has 9/16 acceptance rate. Use large buffer for safety.
     static constexpr unsigned int BUF_SIZE = 512;
     byte buf[BUF_SIZE];
+    WipeGuard wipeBuf(buf, sizeof(buf));
 
     SHAKE256 shake(BUF_SIZE);
     shake.Update(seed, CRHBYTES);
@@ -344,6 +346,7 @@ void poly_uniform_eta<Params_87>(poly *a, const byte *seed, uint16_t nonce) {
     // Eta=2: each byte can produce 0-2 coefficients. Use large buffer for safety.
     static constexpr unsigned int BUF_SIZE = 512;
     byte buf[BUF_SIZE];
+    WipeGuard wipeBuf(buf, sizeof(buf));
 
     SHAKE256 shake(BUF_SIZE);
     shake.Update(seed, CRHBYTES);
@@ -426,6 +429,7 @@ template <class PARAMS>
 void poly_uniform_gamma1(poly *a, const byte *seed, uint16_t nonce) {
     const unsigned int POLYZ_PACKEDBYTES = PARAMS::POLYZ_PACKEDBYTES;
     byte buf[PARAMS::POLYZ_PACKEDBYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
 
     SHAKE256 shake(POLYZ_PACKEDBYTES);
     shake.Update(seed, CRHBYTES);
@@ -450,6 +454,7 @@ void poly_challenge(poly *c, const byte *seed) {
     // This avoids the need for XOF-style incremental squeezing
     static constexpr unsigned int CHALLENGE_BYTES = 8 + 256;
     byte buf[CHALLENGE_BYTES];
+    WipeGuard wipeBuf(buf, sizeof(buf));
     uint64_t signs;
 
     SHAKE256 shake(CHALLENGE_BYTES);
@@ -509,6 +514,7 @@ void poly_unpack_t1(poly *r, const byte *a) {
 // Pack t0 (13 bits per coefficient, signed)
 void poly_pack_t0(byte *r, const poly *a) {
     int32_t t[8];
+    WipeGuard wipeT(t, sizeof(t));
 
     for (unsigned int i = 0; i < MLDSA_N / 8; i++) {
         for (unsigned int j = 0; j < 8; j++)
@@ -584,8 +590,9 @@ struct PackEtaImpl<2> {
     static void pack(byte *r, const poly *a) {
         const unsigned int eta = 2;
         // 3 bits per coefficient
+        byte t[8];
+        WipeGuard wipeT(t, sizeof(t));
         for (unsigned int i = 0; i < MLDSA_N / 8; i++) {
-            byte t[8];
             for (unsigned int j = 0; j < 8; j++)
                 t[j] = static_cast<byte>(eta - a->coeffs[8*i+j]);
 
@@ -1071,6 +1078,7 @@ void polyvec_matrix_pointwise_montgomery(
     const polyvecl<PARAMS::l> *s)
 {
     poly tmp;
+    WipeGuard wipeTmp(&tmp, sizeof(tmp));
 
     for (unsigned int i = 0; i < PARAMS::k; i++) {
         poly_pointwise_montgomery(&t->vec[i], &A[i][0], &s->vec[0]);
@@ -1374,6 +1382,7 @@ void MLDSAPrivateKey<PARAMS>::GenerateRandom(RandomNumberGenerator &rng, const N
     polyvecl_ntt<IntParams::l>(&s1hat);
 
     polyveck<IntParams::k> t;
+    WipeGuard wipeT(&t, sizeof(t));
     polyvec_matrix_pointwise_montgomery<IntParams>(&t, A, &s1hat);
     polyveck_reduce<IntParams::k>(&t);
     polyveck_invntt<IntParams::k>(&t);
@@ -1442,6 +1451,7 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     polyvecl_ntt<IntParams::l>(&s1hat);
 
     polyveck<IntParams::k> t;
+    WipeGuard wipeT(&t, sizeof(t));
     polyvec_matrix_pointwise_montgomery<IntParams>(&t, A, &s1hat);
     polyveck_reduce<IntParams::k>(&t);
     polyveck_invntt<IntParams::k>(&t);
@@ -1449,10 +1459,10 @@ void MLDSAPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len) {
     polyveck_add<IntParams::k>(&t, &t, &s2);
     polyveck_caddq<IntParams::k>(&t);
 
+    // The unpacked t0 is not needed again, so it takes the low half.
     polyveck<IntParams::k> t1;
-    polyveck<IntParams::k> t0_temp;  // Not needed but required by power2round
     for (unsigned int i = 0; i < IntParams::k; i++)
-        poly_power2round(&t1.vec[i], &t0_temp.vec[i], &t.vec[i]);
+        poly_power2round(&t1.vec[i], &t0.vec[i], &t.vec[i]);
 
     // Pack public key
     pack_pk<IntParams>(pk.begin(), rho, &t1);
@@ -1679,6 +1689,7 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
         // w = A * y
         polyvecl<IntParams::l> yhat = y;
+        WipeGuard wipeYhat(&yhat, sizeof(yhat));
         polyvecl_ntt<IntParams::l>(&yhat);
         polyvec_matrix_pointwise_montgomery<IntParams>(&w, A, &yhat);
         polyveck_reduce<IntParams::k>(&w);
@@ -1691,10 +1702,12 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
         // Pack w1 and compute challenge hash
         byte w1_packed[IntParams::k * IntParams::POLYW1_PACKEDBYTES];
+        WipeGuard wipeW1Packed(w1_packed, sizeof(w1_packed));
         for (unsigned int i = 0; i < IntParams::k; i++)
             poly_pack_w1<IntParams>(w1_packed + i * IntParams::POLYW1_PACKEDBYTES, &w1.vec[i]);
 
         byte c_tilde[IntParams::CTILDEBYTES];
+        WipeGuard wipeCTilde(c_tilde, sizeof(c_tilde));
         SHAKE256 shake_c(IntParams::CTILDEBYTES);
         shake_c.Update(mu, CRHBYTES);
         shake_c.Update(w1_packed, sizeof(w1_packed));
@@ -1705,6 +1718,7 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
         // NTT of c
         poly chat = cp;
+        WipeGuard wipeChat(&chat, sizeof(chat));
         poly_ntt(&chat);
 
         // z = y + c * s1
@@ -1721,6 +1735,7 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
         // cs2 = c * s2
         polyveck<IntParams::k> cs2;
+        WipeGuard wipeCs2(&cs2, sizeof(cs2));
         for (unsigned int i = 0; i < IntParams::k; i++) {
             poly_pointwise_montgomery(&cs2.vec[i], &chat, &s2hat.vec[i]);
             poly_invntt(&cs2.vec[i]);
@@ -1736,6 +1751,7 @@ size_t MLDSASigner<PARAMS>::SignAndRestart(RandomNumberGenerator &rng,
 
         // ct0 = c * t0
         polyveck<IntParams::k> ct0;
+        WipeGuard wipeCt0(&ct0, sizeof(ct0));
         for (unsigned int i = 0; i < IntParams::k; i++) {
             poly_pointwise_montgomery(&ct0.vec[i], &chat, &t0hat.vec[i]);
             poly_invntt(&ct0.vec[i]);
