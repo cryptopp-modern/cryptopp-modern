@@ -825,7 +825,7 @@ bool TestEd25519()
 #endif
 
 	// Issue weidai11/cryptopp#1352. Validate at level 2 must reject small-order
-	// public keys. Identity is one of the 12 blacklisted points.
+	// public keys. The identity is one of them.
 	try {
 		byte identity[32] = { 0 };
 		identity[0] = 1;
