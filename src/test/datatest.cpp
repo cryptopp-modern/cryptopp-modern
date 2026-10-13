@@ -1175,8 +1175,10 @@ void TestKeyDerivationFunction(TestData &v, unsigned int &totalTests)
 	if(test == "Skip") return;
 
 	// Argon2 uses "Password" as main input, other KDFs use "Secret"
+	const bool isArgon2 = (name == "Argon2d" || name == "Argon2i" || name == "Argon2id" ||
+		name == "Argon2i-legacy" || name == "Argon2id-legacy");
 	std::string secret;
-	if (name == "Argon2d" || name == "Argon2i" || name == "Argon2id")
+	if (isArgon2)
 		secret = GetDecodedDatum(v, "Password");
 	else
 		secret = GetDecodedDatum(v, "Secret");
@@ -1191,11 +1193,13 @@ void TestKeyDerivationFunction(TestData &v, unsigned int &totalTests)
 	if (name != lastName)
 	{
 		// Special handling for Argon2 variants
-		if (name == "Argon2d" || name == "Argon2i" || name == "Argon2id")
+		if (isArgon2)
 		{
 			Argon2::Variant variant = Argon2::ARGON2ID;
 			if (name == "Argon2d") variant = Argon2::ARGON2D;
 			else if (name == "Argon2i") variant = Argon2::ARGON2I;
+			else if (name == "Argon2i-legacy") variant = Argon2::ARGON2I_LEGACY;
+			else if (name == "Argon2id-legacy") variant = Argon2::ARGON2ID_LEGACY;
 			kdf.reset(new Argon2(variant));
 		}
 		else

@@ -130,6 +130,7 @@ bool ValidateAll(bool thorough)
 	pass=ValidatePBKDF() && pass;
 	pass=ValidateHKDF() && pass;
 	pass=ValidateScrypt() && pass;
+	pass=ValidateArgon2() && pass;
 
 	pass=ValidateDES() && pass;
 	pass=ValidateCipherModes() && pass;

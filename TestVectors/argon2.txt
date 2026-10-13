@@ -45,3 +45,199 @@ Secret: 0303030303030303
 AssociatedData: 040404040404040404040404
 DerivedKey: 0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659
 Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2i version 0x13, issue 114 report, 16 blocks per segment
+Variant: 1
+TimeCost: 1
+MemoryCost: 64
+Parallelism: 1
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 9bec782fb84dd994630417dc331dbd068e49749c48139d9daad33a23fc068c36
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2i version 0x13, library default parameters, 4096 blocks per segment
+Variant: 1
+TimeCost: 3
+MemoryCost: 65536
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: fc539ef1c66ff69342491f47f5aedadec1283ae114c493b2491b85d657d0f068
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2i version 0x13, 127 blocks per segment
+Variant: 1
+TimeCost: 2
+MemoryCost: 1016
+Parallelism: 2
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 9ed97df8cfd2a4d66b8d5afa38c82e9455531df6ee8b5fd31d97a1824720f2a6
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2i version 0x13, 128 blocks per segment
+Variant: 1
+TimeCost: 3
+MemoryCost: 2048
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: bf7c29a7e9ac16ee8435eaf56665df4aa0fa05b0fead18cc47bc66f4927ca538
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2i version 0x13, 129 blocks per segment
+Variant: 1
+TimeCost: 2
+MemoryCost: 1548
+Parallelism: 3
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 91b9a4df5eff08ce0e29a08da53082532584a75d08ed8eb52a3b6114a9dde92b
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2id version 0x13, issue 114 report, 16 blocks per segment
+Variant: 2
+TimeCost: 1
+MemoryCost: 64
+Parallelism: 1
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 729c7a54441bc13559bdca71348c4e554599e719c08a952601ed5c83618c1bbd
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2id version 0x13, library default parameters, 4096 blocks per segment
+Variant: 2
+TimeCost: 3
+MemoryCost: 65536
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 661fefbd6f29bcbc8f4646abc32a9d7a4645bb5c059537f8a5587f31adbecccd
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2id version 0x13, 127 blocks per segment
+Variant: 2
+TimeCost: 2
+MemoryCost: 1016
+Parallelism: 2
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 40130c011a9df2bb7351587b8f801bb65f42cdb919d1848f49b173734829489a
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2id version 0x13, 128 blocks per segment
+Variant: 2
+TimeCost: 3
+MemoryCost: 2048
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: fbaaa90a561948d12beceb03579c6f376c92fa91badc66cc773c86272271200f
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id
+Source: libargon2 20190702 (reference implementation), password "password", salt "somesalt"
+Comment: Argon2id version 0x13, 129 blocks per segment
+Variant: 2
+TimeCost: 2
+MemoryCost: 1548
+Parallelism: 3
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: b6d916a0798848ff9c87e57e0ee45e7cc8cc747934faea97e89cb83dc2c5d582
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i-legacy
+Source: cryptopp-modern 2026.9.1 output, password "password", salt "somesalt"
+Comment: Argon2i as computed by 2025.11.0 through 2026.9.1, issue 114 report
+Variant: 3
+TimeCost: 1
+MemoryCost: 64
+Parallelism: 1
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 2b92601832a9216342de9671b73da5062206dced5f0f17052b039f6827e6f97a
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2i-legacy
+Source: cryptopp-modern 2026.9.1 output, password "password", salt "somesalt"
+Comment: Argon2i as computed by 2025.11.0 through 2026.9.1, library default parameters
+Variant: 3
+TimeCost: 3
+MemoryCost: 65536
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 3306fb4c5369ad94a645774f84f4b0892da19544cb44e3131aca4f93b4d56b3d
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id-legacy
+Source: cryptopp-modern 2026.9.1 output, password "password", salt "somesalt"
+Comment: Argon2id as computed by 2025.11.0 through 2026.9.1, issue 114 report
+Variant: 4
+TimeCost: 1
+MemoryCost: 64
+Parallelism: 1
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: 794f89d74b98b6cd05aafdd49bafe853aceae88391f4c4f186efeffc721a9c76
+Test: Verify
+
+AlgorithmType: KDF
+Name: Argon2id-legacy
+Source: cryptopp-modern 2026.9.1 output, password "password", salt "somesalt"
+Comment: Argon2id as computed by 2025.11.0 through 2026.9.1, library default parameters
+Variant: 4
+TimeCost: 3
+MemoryCost: 65536
+Parallelism: 4
+TagLength: 32
+Password: 70617373776f7264
+Salt: 736f6d6573616c74
+DerivedKey: aa14d327ec9540feb9554752efd82b4d881b2d278351b21d6d5f4f7fec130f0f
+Test: Verify

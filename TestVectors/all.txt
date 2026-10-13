@@ -1,6 +1,7 @@
 AlgorithmType: FileList
 Name: all.txt collection
 Test: TestVectors/aes.txt
+Test: TestVectors/argon2.txt
 Test: TestVectors/aria.txt
 Test: TestVectors/blake2b.txt
 Test: TestVectors/blake2s.txt

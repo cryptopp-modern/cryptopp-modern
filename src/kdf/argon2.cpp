@@ -397,9 +397,26 @@ std::string Argon2::StaticAlgorithmName(Variant variant)
         return "Argon2i";
     case ARGON2ID:
         return "Argon2id";
+    case ARGON2I_LEGACY:
+        return "Argon2i-legacy";
+    case ARGON2ID_LEGACY:
+        return "Argon2id-legacy";
     default:
         return "Argon2";
     }
+}
+
+// The legacy variants reproduce the Argon2i and Argon2id output of cryptopp-modern
+// 2025.11.0 through 2026.9.1, which indexed the address block from the first computed
+// block of a segment instead of the block position. They hash and address as the
+// standard variant; only the indexing differs.
+static Argon2::Variant StandardVariant(Argon2::Variant variant)
+{
+    if (variant == Argon2::ARGON2I_LEGACY)
+        return Argon2::ARGON2I;
+    if (variant == Argon2::ARGON2ID_LEGACY)
+        return Argon2::ARGON2ID;
+    return variant;
 }
 
 std::string Argon2::AlgorithmName() const
@@ -525,10 +542,13 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
     AlignedSecByteBlock memoryBlockStorage(memoryBlocks * sizeof(Block));
     Block* memory = reinterpret_cast<Block*>(memoryBlockStorage.data());
 
+    const Variant variant = StandardVariant(m_variant);
+    const bool legacyAddressing = (variant != m_variant);
+
     // Compute H0
     byte h0[64];
     InitialHash(h0, parallelism, static_cast<word32>(derivedLen), memoryCost, timeCost,
-        static_cast<word32>(m_variant),
+        static_cast<word32>(variant),
         password, static_cast<word32>(passwordLen),
         salt, static_cast<word32>(saltLen),
         secret ? secret : reinterpret_cast<const byte*>(""), static_cast<word32>(secretLen),
@@ -559,8 +579,8 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                 zeroBlock.Clear();
                 inputBlock.Clear();
 
-                bool dataIndependent = (m_variant == ARGON2I) ||
-                    (m_variant == ARGON2ID && pass == 0 && slice < ARGON2_SYNC_POINTS / 2);
+                bool dataIndependent = (variant == ARGON2I) ||
+                    (variant == ARGON2ID && pass == 0 && slice < ARGON2_SYNC_POINTS / 2);
 
                 if (dataIndependent)
                 {
@@ -569,7 +589,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                     inputBlock.v[2] = slice;
                     inputBlock.v[3] = memoryBlocks;
                     inputBlock.v[4] = timeCost;
-                    inputBlock.v[5] = static_cast<word64>(m_variant);
+                    inputBlock.v[5] = static_cast<word64>(variant);
                 }
 
                 #pragma omp for
@@ -583,6 +603,13 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                     {
                         inputBlock.v[1] = lane;
                         inputBlock.v[6] = 0;
+
+                        // Addresses are indexed by block position within the segment. The
+                        // first segment of the first pass starts at block 2, so its first
+                        // address block is generated before the loop. The legacy variants
+                        // count from the first computed block instead.
+                        if (startIndex != 0 && !legacyAddressing)
+                            NextAddresses(addressBlock, inputBlock, zeroBlock);
                     }
 
                     for (word32 i = startIndex; i < segmentLength; ++i, ++currentIndex)
@@ -592,11 +619,14 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
 
                         if (dataIndependent)
                         {
-                            if (addressCounter % ARGON2_QWORDS_IN_BLOCK == 0)
+                            word32 addressIndex = i;
+                            if (legacyAddressing)
+                                addressIndex = addressCounter++;
+
+                            if (addressIndex % ARGON2_QWORDS_IN_BLOCK == 0)
                                 NextAddresses(addressBlock, inputBlock, zeroBlock);
 
-                            pseudoRand = addressBlock.v[addressCounter % ARGON2_QWORDS_IN_BLOCK];
-                            addressCounter++;
+                            pseudoRand = addressBlock.v[addressIndex % ARGON2_QWORDS_IN_BLOCK];
 
                             refLane = static_cast<word32>((pseudoRand >> 32) % parallelism);
 

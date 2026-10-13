@@ -53,7 +53,18 @@ public:
         /// \brief Argon2id - hybrid of Argon2i and Argon2d (recommended)
         /// \details Uses Argon2i for the first half pass and Argon2d for the rest.
         ///   RFC 9106 recommends this variant for most use cases.
-        ARGON2ID = 2
+        ARGON2ID = 2,
+
+        /// \brief Argon2i as computed by cryptopp-modern 2025.11.0 through 2026.9.1
+        /// \details Those releases read the address block from the wrong position in the
+        ///   first segment, so their Argon2i output differed from RFC 9106 for most
+        ///   parameter sets. Use this variant only to verify hashes or recover keys they
+        ///   produced, then rehash with ARGON2I. Not for new hashes or keys.
+        ARGON2I_LEGACY = 3,
+
+        /// \brief Argon2id as computed by cryptopp-modern 2025.11.0 through 2026.9.1
+        /// \details See ARGON2I_LEGACY. Argon2d was not affected and has no legacy variant.
+        ARGON2ID_LEGACY = 4
     };
 
     /// \brief Construct an Argon2 key derivation function
@@ -65,7 +76,8 @@ public:
 
     /// \brief Provides the static algorithm name for a variant
     /// \param variant the Argon2 variant
-    /// \return the standard algorithm name ("Argon2d", "Argon2i", or "Argon2id")
+    /// \return the standard algorithm name ("Argon2d", "Argon2i", or "Argon2id"), or
+    ///   "Argon2i-legacy" or "Argon2id-legacy" for the legacy variants
     static std::string StaticAlgorithmName(Variant variant = ARGON2ID);
 
     /// \brief Provides the name of this algorithm
