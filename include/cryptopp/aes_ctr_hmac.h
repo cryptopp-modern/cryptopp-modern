@@ -375,7 +375,7 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::EncryptAndAuthenticate(
 		throw InvalidArgument(AlgorithmName() + ": message length exceeds maximum");
 
 	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
-	Resync(iv, len);
+	this->Resynchronize(iv, static_cast<int>(len));
 	this->SpecifyDataLengths(aadLength, messageLength, 0);
 	if (aadLength)
 		this->Update(aad, aadLength);
@@ -404,7 +404,7 @@ bool AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::DecryptAndVerify(
 		throw InvalidArgument(AlgorithmName() + ": ciphertext length exceeds maximum");
 
 	size_t len = (ivLength < 0) ? IVSize() : static_cast<size_t>(ivLength);
-	Resync(iv, len);
+	this->Resynchronize(iv, static_cast<int>(len));
 	this->SpecifyDataLengths(aadLength, ciphertextLength, 0);
 	if (aadLength)
 		this->Update(aad, aadLength);
