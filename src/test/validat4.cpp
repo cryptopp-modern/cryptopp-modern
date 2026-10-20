@@ -1893,6 +1893,53 @@ static bool TestAEADResynchronization()
 	return pass;
 }
 
+static bool TestEAXResynchronization()
+{
+	// EAX paper, vector 2: check the one-shot path against an external result.
+	const byte key[] = "\x91\x94\x5d\x3f\x4d\xcb\xee\x0b\xf4\x5e\xf5\x22\x55\xf0\x95\xa4";
+	const byte iv[] = "\xbe\xca\xf0\x43\xb0\xa2\x3d\x84\x31\x94\xba\x97\x2c\x66\xde\xbd";
+	const byte header[] = "\xfa\x3b\xfd\x48\x06\xeb\x53\xfa";
+	const byte message[] = "\xf7\xfb";
+	const byte expected[] = "\x19\xdd\x5c\x4c\x93\x31\x04\x9d\x0b\xda\xb0\x27\x74\x08\xf6\x79\x67\xe5";
+	byte ciphertext[2], tag[16], out[2];
+	bool pass = true;
+	try
+	{
+		EAX<AES>::Encryption enc;
+		enc.SetKeyWithIV(key, 16, iv, 16);
+		enc.EncryptAndAuthenticate(ciphertext, tag, sizeof(tag), iv, 16, header, 8, message, 2);
+		pass = std::memcmp(ciphertext, expected, 2) == 0 && std::memcmp(tag, expected + 2, 16) == 0;
+		EAX<AES>::Decryption dec;
+		dec.SetKeyWithIV(key, 16, iv, 16);
+		const bool verified = dec.DecryptAndVerify(out, expected + 2, 16, iv, 16, header, 8, expected, 2);
+		pass = verified && std::memcmp(out, message, 2) == 0 && pass;
+	}
+	catch (const Exception &) { pass = false; }
+	std::cout << (pass ? "passed   " : "FAILED   ") << "EAX one-shot published vector\n";
+
+	// Without Restart, these two histories hash the same nonce transcript:
+	// tweak1 || tweak0 || (zero block || nonce) == tweak1 || zero block || tweak0 || nonce.
+	bool fail = false;
+	try
+	{
+		byte initA[16] = {1}, initB[16] = {2}, shortIV[16] = {3}, longIV[32] = {0};
+		byte zero[16] = {0}, plain[32] = {0}, first[32], second[32];
+		std::memcpy(longIV + 16, shortIV, sizeof(shortIV));
+		EAX<AES>::Encryption firstEnc, secondEnc;
+		firstEnc.SetKeyWithIV(key, 16, initA, sizeof(initA));
+		firstEnc.Resynchronize(longIV, sizeof(longIV));
+		secondEnc.SetKeyWithIV(key, 16, initB, sizeof(initB));
+		secondEnc.Update(zero, sizeof(zero));
+		secondEnc.Resynchronize(shortIV, sizeof(shortIV));
+		firstEnc.ProcessData(first, plain, sizeof(plain));
+		secondEnc.ProcessData(second, plain, sizeof(plain));
+		fail = std::memcmp(first, second, sizeof(first)) == 0;
+	}
+	catch (const Exception &) { fail = true; }
+	std::cout << (fail ? "FAILED   " : "passed   ") << "EAX abandoned header cannot alias a different nonce\n";
+	return !fail && pass;
+}
+
 bool ValidateGCM()
 {
 	std::cout << "\nAES/GCM validation suite running...\n";
@@ -1900,6 +1947,14 @@ bool ValidateGCM()
 	bool pass = RunTestDataFile("TestVectors/gcm.txt", MakeParameters(Name::TableSize(), (int)2048));
 	std::cout << "\n64K tables:";
 	pass = RunTestDataFile("TestVectors/gcm.txt", MakeParameters(Name::TableSize(), (int)64*1024)) && pass;
+
+	std::cout << "\nAEAD resynchronisation:\n\n";
+	pass = TestAEADResynchronization<EAX<AES> >() && pass;
+	pass = TestAEADResynchronization<GCM<AES> >() && pass;
+	pass = TestAEADResynchronization<CCM<AES, 16> >() && pass;
+	pass = TestAEADResynchronization<ChaCha20Poly1305>() && pass;
+	pass = TestAEADResynchronization<XChaCha20Poly1305>() && pass;
+	pass = TestEAXResynchronization() && pass;
 
 	// Regression coverage for zero-length AEAD tags (upstream issue #1364).
 	std::cout << "\nAEAD zero-length tag rejection:\n\n";
