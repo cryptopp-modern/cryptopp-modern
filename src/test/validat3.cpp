@@ -69,6 +69,8 @@ bool ValidateAll(bool thorough)
 	pass=TestPolynomialMod2() && pass;
 	// http://github.com/weidai11/cryptopp/issues/360
 	pass=TestRounding() && pass;
+	// https://github.com/cryptopp-modern/cryptopp-modern/issues/118
+	pass=TestSafeConvert() && pass;
 	// http://github.com/weidai11/cryptopp/issues/242
 	pass=TestHuffmanCodes() && pass;
 	// http://github.com/weidai11/cryptopp/issues/346

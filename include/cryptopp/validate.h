@@ -182,6 +182,8 @@ bool TestIntegerBitops();
 bool TestIntegerOps();
 // http://github.com/weidai11/cryptopp/issues/360
 bool TestRounding();
+// https://github.com/cryptopp-modern/cryptopp-modern/issues/118
+bool TestSafeConvert();
 // http://github.com/weidai11/cryptopp/issues/242
 bool TestHuffmanCodes();
 // http://github.com/weidai11/cryptopp/issues/346

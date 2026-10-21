@@ -14,6 +14,10 @@
 #include <cryptopp/stdcpp.h>
 #include <cryptopp/trap.h>
 
+#if defined(CRYPTOPP_CXX11)
+# include <type_traits>
+#endif
+
 #if !defined(CRYPTOPP_DOXYGEN_PROCESSING)
 
 #if (CRYPTOPP_MSC_VERSION)
@@ -704,6 +708,36 @@ template <class T1, class T2> inline const T1 UnsignedMin(const T1& a, const T2&
 		return (T1)b < a ? (T1)b : a;
 }
 
+/// \brief Compare a converted value with its source
+/// \tparam integral boolean flag indicating both types are built-in integral types
+/// \details SafeConvertCompare compares the value cast back to the source type when both
+///  types are built-in integral types, which avoids a mixed-sign comparison. Other
+///  conversions compare directly through <tt>operator!=</tt>, since the cast back is
+///  undefined for an out-of-range floating-point value. Floating-point conversions are
+///  not checked for exactness. Before C++11 every conversion compares directly, as the
+///  original template did.
+/// \sa SafeConvert
+template <bool integral> struct SafeConvertCompare;
+
+template<> struct SafeConvertCompare<true>
+{
+	template <class T1, class T2>
+	static inline bool Equal(const T1 &from, const T2 &to)
+	{
+		return static_cast<T1>(to) == from;
+	}
+};
+
+template<> struct SafeConvertCompare<false>
+{
+	template <class T1, class T2>
+	static inline bool Equal(T1 &from, T2 &to)
+	{
+		// operator!= is all the original template required of a user type
+		return !(from != to);
+	}
+};
+
 /// \brief Perform a conversion from \p from to \p to
 /// \tparam T1 class or type
 /// \tparam T2 class or type
@@ -713,12 +747,17 @@ template <class T1, class T2> inline const T1 UnsignedMin(const T1& a, const T2&
 /// \details if the function returns true, then it is safe to use \p to. If the function returns false,
 ///  then \p to is undefined and should not be used.
 /// \note for integral conversions, a template specialization should be provided. The specialization
-///  will perform more efficiently, and avoid warnings for truncation and sign compares.
+///  will perform more efficiently.
 template <class T1, class T2>
 inline bool SafeConvert(T1 from, T2 &to)
 {
 	to = static_cast<T2>(from);
-	if (from != to || (from > 0) != (to > 0))
+#if defined(CRYPTOPP_CXX11)
+	const bool integral = std::is_integral<T1>::value && std::is_integral<T2>::value;
+#else
+	const bool integral = false;
+#endif
+	if (!SafeConvertCompare<integral>::Equal(from, to) || (from > 0) != (to > 0))
 		return false;
 	return true;
 }

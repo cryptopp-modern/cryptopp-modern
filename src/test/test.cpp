@@ -1084,6 +1084,8 @@ bool Validate(int alg, bool thorough)
 # if defined(CRYPTOPP_ALTIVEC_AVAILABLE)
 	case 9989: result = TestAltivecOps(); break;
 # endif
+	// https://github.com/cryptopp-modern/cryptopp-modern/issues/118
+	case 9988: result = TestSafeConvert(); break;
 #endif
 
 	default: return false;

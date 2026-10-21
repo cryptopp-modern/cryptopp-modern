@@ -847,6 +847,75 @@ bool TestSharing()
     return pass;
 }
 
+bool TestSafeConvert()
+{
+    std::cout << "\nTesting SafeConvert...\n\n";
+    bool pass=true, fail;
+
+    // These pairs have no specialization on any platform, so they take the generic template.
+    {
+        unsigned long from = 12345; long long to = 0;
+        fail = !SafeConvert(from, to) || to != 12345;
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned long to long long, in range\n";
+    }
+    {
+        // The pair from issue #118. The maximum fits only where long is narrower than long long.
+        unsigned long from = (std::numeric_limits<unsigned long>::max)(); long long to = 0;
+        const bool fits = sizeof(unsigned long) < sizeof(long long);
+        fail = SafeConvert(from, to) != fits || (fits && to != static_cast<long long>(from));
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned long to long long, maximum\n";
+    }
+    {
+        unsigned short from = 0xFFFF; short to = 0;
+        fail = SafeConvert(from, to);
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned short to short, top bit set\n";
+    }
+    {
+        short from = -1; unsigned short to = 0;
+        fail = SafeConvert(from, to);
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, short to unsigned short, negative\n";
+    }
+    {
+        long long from = 1; from <<= 40; short to = 0;
+        fail = SafeConvert(from, to);
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, long long to short, narrowing\n";
+    }
+    {
+        long long from = -7; short to = 0;
+        fail = !SafeConvert(from, to) || to != -7;
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, long long to short, in range\n";
+    }
+    {
+        unsigned long from = 0; long long to = 1;
+        fail = !SafeConvert(from, to) || to != 0;
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned long to long long, zero\n";
+    }
+
+    // Floating-point destinations keep the direct comparison, which accepts the rounded value;
+    // the cast back would be undefined for an out-of-range value.
+    {
+        unsigned long from = 12345; double to = 0;
+        fail = !SafeConvert(from, to) || to != 12345.0;
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned long to double, in range\n";
+    }
+    {
+        unsigned long from = (std::numeric_limits<unsigned long>::max)(); double to = 0;
+        fail = !SafeConvert(from, to) || to != static_cast<double>(from);
+        pass = !fail && pass;
+        std::cout << (fail ? "FAILED:" : "passed:") << "  SafeConvert, unsigned long to double, maximum\n";
+    }
+
+    return pass;
+}
+
 bool TestRounding()
 {
     std::cout << "\nTesting RoundUpToMultipleOf/RoundDownToMultipleOf...\n\n";
