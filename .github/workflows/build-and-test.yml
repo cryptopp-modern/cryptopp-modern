@@ -94,6 +94,29 @@ jobs:
           CMakeFiles/cryptopp.dir/src/hash/blake3_avx512.cpp.o
         echo "AVX-512 fallback OK"
 
+  cmake-linux-noavx:
+    name: CMake Linux (GCC, QEMU Nehalem)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install Ninja and QEMU
+      run: sudo apt-get update && sudo apt-get install -y ninja-build qemu-user-static
+
+    - name: Configure
+      run: cmake --preset=ci-linux -DCRYPTOPP_WERROR=ON
+
+    - name: Build
+      run: cmake --build build/ci-linux -j"$(nproc)"
+
+    - name: Run validation tests on a CPU without AVX
+      run: |
+        # Nehalem has SSE4.2 but no AVX. Catch AVX instructions in
+        # code dispatched on SSE4.1 or lower.
+        qemu-x86_64-static -cpu Nehalem ./build/ci-linux/cryptest.exe v
+
   cmake-linux-gcc14:
     name: CMake Linux (GCC 14)
     runs-on: ubuntu-24.04

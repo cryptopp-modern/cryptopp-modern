@@ -719,8 +719,7 @@ if(
                                   "${TEST_PROG_DIR}/test_x86_avx2.cpp"
         )
         if(CRYPTOPP_HAVE_AVX2)
-            # BLAKE3 AVX2 needs both SSE4.1 (for fallback) and AVX2
-            list(APPEND CRYPTOPP_BLAKE3_AVX2_FLAGS "${sse41_flag}" "${avx2_flag}")
+            list(APPEND CRYPTOPP_BLAKE3_AVX2_FLAGS "${avx2_flag}")
             list(APPEND CRYPTOPP_CHACHA_AVX2_FLAGS "${avx2_flag}")
             list(APPEND CRYPTOPP_LSH256_AVX2_FLAGS "${avx2_flag}")
             list(APPEND CRYPTOPP_LSH512_AVX2_FLAGS "${avx2_flag}")
@@ -840,7 +839,6 @@ if(CRYPTOPP_ARM32 AND NOT CRYPTOPP_DISABLE_ARM_NEON)
         list(APPEND CRYPTOPP_GCM_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_BLAKE2B_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_BLAKE2S_FLAGS -march=armv7-a -mfpu=neon)
-        list(APPEND CRYPTOPP_BLAKE3_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_CHACHA_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_CHAM_FLAGS -march=armv7-a -mfpu=neon)
         list(APPEND CRYPTOPP_LEA_FLAGS -march=armv7-a -mfpu=neon)
@@ -1110,15 +1108,21 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE2B_FLAGS}"
 )
 
-# BLAKE3 SIMD: Use /arch:AVX2 on MSVC for fair comparison with GCC -mavx2
+# Keep AVX instructions out of the SSE4.1 path.
+set_source_files_properties(
+    ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+    PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_FLAGS}"
+)
+
+# Build the AVX2 path separately.
 if(MSVC)
     set_source_files_properties(
-        ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_avx2.cpp
         PROPERTIES COMPILE_OPTIONS "/arch:AVX2"
     )
 else()
     set_source_files_properties(
-        ${cryptopp_SOURCE_DIR}/src/hash/blake3_simd.cpp
+        ${cryptopp_SOURCE_DIR}/src/hash/blake3_avx2.cpp
         PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_BLAKE3_AVX2_FLAGS}"
     )
 endif()
