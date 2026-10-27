@@ -330,8 +330,11 @@ function(check_compile_link_option opt var prog)
         return()
     endif()
 
-    message(STATUS "[cryptopp-modern] Performing Test ${var}")
-    # The probes ask whether the compiler accepts an instruction set. Silence
+    string(REPLACE ";" " " opt_text "${opt}")
+    set(probe_text "Checking compiler support for ${opt_text} (${var})")
+    message(STATUS "[cryptopp-modern] ${probe_text}")
+    # The probes ask whether the compiler accepts an instruction set, not
+    # whether the CPU has it (cpu.cpp decides that at runtime). Silence
     # warnings for the probe compile so a -Werror in the incoming flags cannot
     # turn a warning in the probe source into a failed test.
     if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
@@ -352,10 +355,10 @@ function(check_compile_link_option opt var prog)
     )
     if(COMMAND_SUCCESS)
         set(${var} 1 CACHE INTERNAL "Test ${var}")
-        message(STATUS "[cryptopp-modern] Performing Test ${var} - Success")
+        message(STATUS "[cryptopp-modern] ${probe_text} - yes")
     else()
         set(${var} 0 CACHE INTERNAL "Test ${var}")
-        message(STATUS "[cryptopp-modern] Performing Test ${var} - Failed")
+        message(STATUS "[cryptopp-modern] ${probe_text} - no")
     endif()
 endfunction(check_compile_link_option)
 
