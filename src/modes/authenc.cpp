@@ -126,12 +126,14 @@ reswitch:
 		m_state = AuthenticationIsOnPlaintext()==IsForwardTransformation() ? State_AuthUntransformed : State_AuthTransformed;
 		goto reswitch;
 	case State_AuthUntransformed:
-		AuthenticateData(inString, length);
+		if (length)
+			AuthenticateData(inString, length);
 		AccessSymmetricCipher().ProcessData(outString, inString, length);
 		break;
 	case State_AuthTransformed:
 		AccessSymmetricCipher().ProcessData(outString, inString, length);
-		AuthenticateData(outString, length);
+		if (length)
+			AuthenticateData(outString, length);
 		break;
 	default:
 		CRYPTOPP_ASSERT(false);
