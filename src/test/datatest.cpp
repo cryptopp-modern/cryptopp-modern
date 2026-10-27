@@ -507,7 +507,7 @@ void TestSignatureSchemeWithFileSource(TestData &v, unsigned int &totalTests)
 	{
 		signer.reset(ObjectFactoryRegistry<PK_Signer>::Registry().CreateObject(name.c_str()));
 		verifier.reset(ObjectFactoryRegistry<PK_Verifier>::Registry().CreateObject(name.c_str()));
-		name = lastName;
+		lastName = name;
 
 		// Code coverage
 		(void)signer->AlgorithmName();
@@ -1010,7 +1010,7 @@ void TestAuthenticatedSymmetricCipher(TestData &v, const NameValuePairs &overrid
 		{
 			encryptor.reset(ObjectFactoryRegistry<AuthenticatedSymmetricCipher, ENCRYPTION>::Registry().CreateObject(name.c_str()));
 			decryptor.reset(ObjectFactoryRegistry<AuthenticatedSymmetricCipher, DECRYPTION>::Registry().CreateObject(name.c_str()));
-			name = lastName;
+			lastName = name;
 
 			// Code coverage
 			(void)encryptor->AlgorithmName();
@@ -1206,7 +1206,7 @@ void TestKeyDerivationFunction(TestData &v, unsigned int &totalTests)
 		{
 			kdf.reset(ObjectFactoryRegistry<KeyDerivationFunction>::Registry().CreateObject(name.c_str()));
 		}
-		name = lastName;
+		lastName = name;
 
 		// Code coverage
 		(void)kdf->AlgorithmName();
