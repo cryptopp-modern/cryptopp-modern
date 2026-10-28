@@ -1,6 +1,6 @@
-# ML-DSA (FIPS 204) Signature Verification Test Vectors
+# ML-DSA (FIPS 204) Test Vectors
 # Source: NIST ACVP (https://github.com/usnistgov/ACVP-Server)
-# Algorithm: ML-DSA sigVer (external, pure)
+# Algorithm: ML-DSA keyGen, sigGen and sigVer (external, pure)
 
 Name: ML-DSA-44
 Source: NIST ACVP FIPS204

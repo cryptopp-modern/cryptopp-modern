@@ -1266,10 +1266,205 @@ static bool TestMLDSASignFailure(const char* name)
 	}
 }
 
+// One record of TestVectors/mldsa.txt, keyed by field name. Reading a field
+// the record lacks throws, so a deleted line is a parse error, while a present
+// but empty Message or Context is a legitimate value.
+typedef std::map<std::string, std::string> MLDSAKatRecord;
+
+static const std::string& MLDSAField(const MLDSAKatRecord& r, const char* field)
+{
+	MLDSAKatRecord::const_iterator it = r.find(field);
+	if (it == r.end()) {
+		MLDSAKatRecord::const_iterator n = r.find("Name");
+		throw Exception(Exception::OTHER_ERROR, "ML-DSA KAT: " +
+			(n == r.end() ? std::string("record") : n->second + " record") + " without " + field);
+	}
+	return it->second;
+}
+
+static SecByteBlock MLDSAFromHex(const std::string& hex)
+{
+	std::string bin;
+	StringSource(hex, true, new HexDecoder(new StringSink(bin)));
+	return SecByteBlock(reinterpret_cast<const byte*>(bin.data()), bin.size());
+}
+
+// Key generation draws the 32-byte seed, so a generator holding it
+// reproduces the NIST key pair through the public constructor.
+template <class PARAMS>
+static bool MLDSAKeyGenVector(const SecByteBlock& seed, const SecByteBlock& pk,
+	const SecByteBlock& sk)
+{
+	if (seed.size() != 32 ||
+		pk.size() != PARAMS::PUBLIC_KEY_SIZE || sk.size() != PARAMS::SECRET_KEY_SIZE)
+		return false;
+
+	ByteQueue queue;
+	queue.Put(seed.begin(), seed.size());
+	MLKEMKatRNG rng(queue);
+
+	MLDSASigner<PARAMS> signer(rng);
+
+	if (queue.AnyRetrievable())
+		return false;
+
+	return std::memcmp(signer.GetKey().GetPublicKeyBytePtr(), pk.begin(), pk.size()) == 0 &&
+		std::memcmp(signer.GetKey().GetPrivateKeyBytePtr(), sk.begin(), sk.size()) == 0;
+}
+
+// Hedged signing draws only the 32-byte rnd.
+template <class PARAMS>
+static bool MLDSASigGenVector(const SecByteBlock& sk, const SecByteBlock& msg,
+	const SecByteBlock& ctx, const SecByteBlock& rnd, const SecByteBlock& sig)
+{
+	if (sk.size() != PARAMS::SECRET_KEY_SIZE || rnd.size() != 32 ||
+		sig.size() != PARAMS::SIGNATURE_SIZE)
+		return false;
+
+	MLDSASigner<PARAMS> signer(sk.begin(), sk.size());
+	MLDSA_MessageAccumulator<PARAMS> accum;
+	accum.SetContext(ctx.begin(), ctx.size());
+	accum.Update(msg.begin(), msg.size());
+
+	ByteQueue queue;
+	queue.Put(rnd.begin(), rnd.size());
+	MLKEMKatRNG rng(queue);
+
+	SecByteBlock signature(signer.SignatureLength());
+	const size_t length = signer.SignAndRestart(rng, accum, signature.begin());
+
+	if (queue.AnyRetrievable())
+		return false;
+
+	return length == sig.size() && std::memcmp(signature.begin(), sig.begin(), length) == 0;
+}
+
+// Every record carries a full-length key and signature; the rejected ones
+// fail inside the verifier, not at the length checks.
+template <class PARAMS>
+static bool MLDSASigVerVector(const SecByteBlock& pk, const SecByteBlock& msg,
+	const SecByteBlock& ctx, const SecByteBlock& sig, bool expected)
+{
+	if (pk.size() != PARAMS::PUBLIC_KEY_SIZE || sig.size() != PARAMS::SIGNATURE_SIZE)
+		return false;
+
+	MLDSAVerifier<PARAMS> verifier(pk.begin(), pk.size());
+	MLDSA_MessageAccumulator<PARAMS> accum;
+	accum.SetContext(ctx.begin(), ctx.size());
+	verifier.InputSignature(accum, sig.begin(), sig.size());
+	accum.Update(msg.begin(), msg.size());
+	return verifier.VerifyAndRestart(accum) == expected;
+}
+
+template <class PARAMS>
+static bool MLDSAKatVector(const std::string& test, const MLDSAKatRecord& r)
+{
+	if (test == "KeyGen")
+		return MLDSAKeyGenVector<PARAMS>(MLDSAFromHex(MLDSAField(r, "Seed")),
+			MLDSAFromHex(MLDSAField(r, "PublicKey")), MLDSAFromHex(MLDSAField(r, "SecretKey")));
+	if (test == "SigGen")
+		return MLDSASigGenVector<PARAMS>(MLDSAFromHex(MLDSAField(r, "SecretKey")),
+			MLDSAFromHex(MLDSAField(r, "Message")), MLDSAFromHex(MLDSAField(r, "Context")),
+			MLDSAFromHex(MLDSAField(r, "Rnd")), MLDSAFromHex(MLDSAField(r, "Signature")));
+	if (test == "SigVer") {
+		const std::string& passed = MLDSAField(r, "TestPassed");
+		if (passed != "true" && passed != "false")
+			throw Exception(Exception::OTHER_ERROR, "ML-DSA KAT: " + MLDSAField(r, "Name") + " TestPassed is " + passed);
+		return MLDSASigVerVector<PARAMS>(MLDSAFromHex(MLDSAField(r, "PublicKey")),
+			MLDSAFromHex(MLDSAField(r, "Message")), MLDSAFromHex(MLDSAField(r, "Context")),
+			MLDSAFromHex(MLDSAField(r, "Signature")), passed == "true");
+	}
+	throw Exception(Exception::OTHER_ERROR, "ML-DSA KAT: unknown test " + test);
+}
+
+static bool MLDSADispatchKat(const std::string& test, const MLDSAKatRecord& r)
+{
+	const std::string& name = MLDSAField(r, "Name");
+	if (name == "ML-DSA-44") return MLDSAKatVector<MLDSA_44>(test, r);
+	if (name == "ML-DSA-65") return MLDSAKatVector<MLDSA_65>(test, r);
+	if (name == "ML-DSA-87") return MLDSAKatVector<MLDSA_87>(test, r);
+	throw Exception(Exception::OTHER_ERROR, "ML-DSA KAT: unknown parameter set " + name);
+}
+
+// ACVP vectors through the external (pure) interface. The verification
+// records include signatures NIST expects to be rejected.
+static bool TestMLDSAKAT()
+{
+	const char* name = "ML-DSA ACVP";
+
+	std::ifstream file(DataDir("TestVectors/mldsa.txt").c_str());
+	if (!file) {
+		std::cout << "FAILED:  " << name << " cannot open TestVectors/mldsa.txt" << std::endl;
+		return false;
+	}
+
+	std::string line;
+	MLDSAKatRecord r;
+	std::map<std::string, unsigned int> coverage;
+
+	try {
+		while (std::getline(file, line)) {
+			if (!line.empty() && line[line.size() - 1] == '\r')
+				line.erase(line.size() - 1);
+			if (line.empty() || line[0] == '#')
+				continue;
+
+			std::string::size_type colon = line.find(':');
+			if (colon == std::string::npos)
+				continue;
+			std::string key = line.substr(0, colon);
+			std::string val = line.substr(colon + 1);
+			while (!val.empty() && val[0] == ' ')
+				val.erase(0, 1);
+
+			if (key == "Test") {
+				if (!MLDSADispatchKat(val, r)) {
+					std::cout << "FAILED:  " << name << " " << val << " " << r["Name"]
+						<< (r.count("Comment") ? " " + r["Comment"] : "") << " mismatch" << std::endl;
+					return false;
+				}
+				coverage[val + " " + r["Name"]]++;
+				r.clear();
+			}
+			else
+				r[key] = val;
+		}
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+
+	// Guard against a truncated vector file. The counts are pinned
+	// deliberately: adding vectors should mean updating them here too.
+	struct Expected { const char* test; unsigned int perSet; };
+	static const Expected expectedTests[] = { { "KeyGen", 1 }, { "SigGen", 1 }, { "SigVer", 3 } };
+	static const char* const expectedSets[] = { "ML-DSA-44", "ML-DSA-65", "ML-DSA-87" };
+
+	for (size_t t = 0; t < COUNTOF(expectedTests); t++) {
+		for (size_t i = 0; i < COUNTOF(expectedSets); i++) {
+			const std::string id = std::string(expectedTests[t].test) + " " + expectedSets[i];
+			if (coverage[id] != expectedTests[t].perSet) {
+				std::cout << "FAILED:  " << name << " " << id
+					<< " coverage (" << coverage[id]
+					<< " vectors; expected " << expectedTests[t].perSet << ")" << std::endl;
+				return false;
+			}
+		}
+		std::cout << "passed:  " << name << " " << expectedTests[t].test << " KAT ("
+			<< expectedTests[t].perSet * COUNTOF(expectedSets) << " vectors, "
+			<< COUNTOF(expectedSets) << " parameter sets)" << std::endl;
+	}
+	return true;
+}
+
 bool ValidateMLDSA()
 {
 	std::cout << "\nML-DSA (FIPS 204) validation suite running...\n\n";
 	bool pass = true;
+
+	// NIST ACVP known-answer tests
+	pass = TestMLDSAKAT() && pass;
 
 	// Context argument bounds
 	pass = TestMLDSAContext<MLDSA_44>("ML-DSA-44") && pass;
