@@ -1220,6 +1220,63 @@ bool ValidateArgon2()
 		pass = TestArgon2(kdf, testSet, COUNTOF(testSet)) && pass;
 	}
 
+	// Parameter rejection
+	{
+		std::cout << "Argon2 parameter checks:\n";
+		byte derived[32];
+		const byte password[8] = {0}, salt[8] = {0};
+		bool fail;
+
+		// One past the last enumerator, inside the range the enum can hold
+		Argon2 unknown(static_cast<Argon2::Variant>(Argon2::ARGON2ID_LEGACY + 1));
+		try { unknown.DeriveKey(derived, sizeof(derived), password, sizeof(password), salt, sizeof(salt), 1, 8, 1); fail = true; }
+		catch (const InvalidArgument&) { fail = false; }
+		std::cout << (fail ? "FAILED   " : "passed   ") << "unknown variant rejected\n";
+		pass = pass && !fail;
+
+		Argon2 kdf(Argon2::ARGON2ID);
+		fail = kdf.MaxDerivedKeyLength() != 0xFFFFFFFFu;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "maximum derived length is 2^32-1\n";
+		pass = pass && !fail;
+
+		// Lengths beyond 32 bits exist only on 64-bit platforms
+		if ((std::numeric_limits<size_t>::max)() > (std::numeric_limits<word32>::max)())
+		{
+			const size_t tooLong = static_cast<size_t>(W64LIT(0x100000000));
+			try { kdf.DeriveKey(derived, sizeof(derived), password, tooLong, salt, sizeof(salt), 1, 8, 1); fail = true; }
+			catch (const InvalidArgument&) { fail = false; }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize password rejected\n";
+			pass = pass && !fail;
+
+			try { kdf.DeriveKey(derived, sizeof(derived), password, sizeof(password), salt, tooLong, 1, 8, 1); fail = true; }
+			catch (const InvalidArgument&) { fail = false; }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize salt rejected\n";
+			pass = pass && !fail;
+
+			try { kdf.DeriveKey(derived, sizeof(derived), password, sizeof(password), salt, sizeof(salt), 1, 8, 1, salt, tooLong); fail = true; }
+			catch (const InvalidArgument&) { fail = false; }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize secret rejected\n";
+			pass = pass && !fail;
+
+			try { kdf.DeriveKey(derived, sizeof(derived), password, sizeof(password), salt, sizeof(salt), 1, 8, 1, NULLPTR, 0, salt, tooLong); fail = true; }
+			catch (const InvalidArgument&) { fail = false; }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize associated data rejected\n";
+			pass = pass && !fail;
+
+			// The NameValuePairs overload must reject before it copies the parameter
+			try { kdf.DeriveKey(derived, sizeof(derived), password, sizeof(password), MakeParameters(Name::Salt(), ConstByteArrayParameter(salt, tooLong))); fail = true; }
+			catch (const InvalidArgument&) { fail = false; }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize salt parameter rejected before copy\n";
+			pass = pass && !fail;
+
+			fail = kdf.IsValidDerivedLength(tooLong);
+			try { kdf.DeriveKey(derived, tooLong, password, sizeof(password), salt, sizeof(salt), 1, 8, 1); fail = true; }
+			catch (const InvalidDerivedKeyLength&) { }
+			std::cout << (fail ? "FAILED   " : "passed   ") << "oversize derived length rejected\n";
+			pass = pass && !fail;
+		}
+	}
+
 	return pass;
 }
 

@@ -29,6 +29,7 @@ using CryptoPP::PutWord;
 using CryptoPP::LITTLE_ENDIAN_ORDER;
 using CryptoPP::AlignedSecByteBlock;
 using CryptoPP::SecureWipeBuffer;
+using CryptoPP::InvalidArgument;
 using CryptoPP::BLAKE2b;
 
 // Argon2 constants
@@ -59,6 +60,16 @@ inline void Store64(byte* dst, word64 w)
 inline word64 Load64(const byte* src)
 {
     return GetWord<word64>(false, LITTLE_ENDIAN_ORDER, src);
+}
+
+/// \brief Reject an input longer than RFC 9106 allows
+/// \param len length in bytes
+/// \throw InvalidArgument if len exceeds 2^32-1 bytes
+inline void ThrowIfInputTooLong(size_t len)
+{
+    const word64 maxLen = W64LIT(0xFFFFFFFF);
+    if (static_cast<word64>(len) > maxLen)
+        throw InvalidArgument("Argon2: password, salt, secret and associated data cannot exceed 2^32-1 bytes");
 }
 
 /// \brief Variable-length hash function H'
@@ -262,17 +273,16 @@ inline void PermuteBlock(Block& block)
 /// \param result output block
 /// \param x first input block
 /// \param y second input block
+/// \param r scratch block, owned by the caller and wiped at the end of each slice
+/// \param q scratch block, owned by the caller and wiped at the end of each slice
 /// \details Implements the compression function G(X, Y) as specified in RFC 9106 Section 3.3
-inline void CompressionG(Block& result, const Block& x, const Block& y)
+inline void CompressionG(Block& result, const Block& x, const Block& y, Block& r, Block& q)
 {
-    Block r;
-
     // R = X XOR Y
     for (word32 i = 0; i < ARGON2_QWORDS_IN_BLOCK; ++i)
         r.v[i] = x.v[i] ^ y.v[i];
 
     // Q = copy of R (for final XOR)
-    Block q;
     q.CopyFrom(r);
 
     // Z = P(R)
@@ -372,11 +382,13 @@ inline word32 IndexAlpha(word32 pass, word32 /* lane */, word32 slice, word32 in
 /// \param addressBlock block containing pseudo-random values
 /// \param inputBlock input block for generating addresses
 /// \param zeroBlock zero-filled block
-inline void NextAddresses(Block& addressBlock, Block& inputBlock, const Block& zeroBlock)
+/// \param r scratch block for CompressionG
+/// \param q scratch block for CompressionG
+inline void NextAddresses(Block& addressBlock, Block& inputBlock, const Block& zeroBlock, Block& r, Block& q)
 {
     inputBlock.v[6]++;
-    CompressionG(addressBlock, zeroBlock, inputBlock);
-    CompressionG(addressBlock, zeroBlock, addressBlock);
+    CompressionG(addressBlock, zeroBlock, inputBlock, r, q);
+    CompressionG(addressBlock, zeroBlock, addressBlock, r, q);
 }
 
 ANONYMOUS_NAMESPACE_END
@@ -441,6 +453,18 @@ void Argon2::ValidateParameters(size_t derivedLen, word32 timeCost, word32 memor
     CRYPTOPP_ASSERT(parallelism >= 1);
     CRYPTOPP_ASSERT(parallelism <= 0xFFFFFF);
 
+    switch (m_variant)
+    {
+    case ARGON2D:
+    case ARGON2I:
+    case ARGON2ID:
+    case ARGON2I_LEGACY:
+    case ARGON2ID_LEGACY:
+        break;
+    default:
+        throw InvalidArgument("Argon2: unknown variant");
+    }
+
     if (derivedLen < 4)
         throw InvalidArgument("Argon2: derived length must be at least 4 bytes");
 
@@ -494,17 +518,30 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen, const byte *password,
     if (params.GetValue("Parallelism", parallelism) == false)
         parallelism = defaultParallelism;
 
-    // Extract parameters and make local copies since m_temp is reused
+    ThrowIfInputTooLong(passwordLen);
+
+    // Extract parameters and make local copies since m_temp is reused. Each
+    // length is checked before its copy so an oversize parameter is rejected
+    // rather than copied.
     ConstByteArrayParameter saltParam, secretParam, associatedDataParam;
     std::string saltCopy, associatedDataCopy;
     SecByteBlock secretCopy;
 
     if (params.GetValue("Salt", saltParam))
+    {
+        ThrowIfInputTooLong(saltParam.size());
         saltCopy.assign((const char*)saltParam.begin(), saltParam.size());
+    }
     if (params.GetValue("Secret", secretParam))
+    {
+        ThrowIfInputTooLong(secretParam.size());
         secretCopy.Assign(secretParam.begin(), secretParam.size());
+    }
     if (params.GetValue("AssociatedData", associatedDataParam))
+    {
+        ThrowIfInputTooLong(associatedDataParam.size());
         associatedDataCopy.assign((const char*)associatedDataParam.begin(), associatedDataParam.size());
+    }
 
     return DeriveKey(derived, derivedLen, password, passwordLen,
         (const byte*)saltCopy.data(), saltCopy.size(), timeCost, memoryCost, parallelism,
@@ -529,14 +566,16 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
     if (!salt || saltLen < 8)
         throw InvalidArgument("Argon2: salt must be at least 8 bytes");
 
-    // Calculate actual memory blocks (ensure divisible by 4*parallelism for slicing)
-    word32 memoryBlocks = memoryCost;
-    if (memoryCost < 8 * parallelism)
-        memoryBlocks = 8 * parallelism;
+    ThrowIfInputTooLong(passwordLen);
+    ThrowIfInputTooLong(saltLen);
+    ThrowIfInputTooLong(secretLen);
+    ThrowIfInputTooLong(associatedDataLen);
 
-    const word32 segmentLength = memoryBlocks / (parallelism * ARGON2_SYNC_POINTS);
+    // Round the memory down to a multiple of 4 * parallelism blocks. ValidateParameters
+    // guarantees at least 8 * parallelism.
+    const word32 segmentLength = memoryCost / (parallelism * ARGON2_SYNC_POINTS);
     const word32 laneLength = segmentLength * ARGON2_SYNC_POINTS;
-    memoryBlocks = laneLength * parallelism;
+    const word32 memoryBlocks = laneLength * parallelism;
 
     // Allocate memory
     AlignedSecByteBlock memoryBlockStorage(memoryBlocks * sizeof(Block));
@@ -575,7 +614,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
 
             #pragma omp parallel num_threads(threads)
             {
-                Block addressBlock, inputBlock, zeroBlock;
+                Block addressBlock, inputBlock, zeroBlock, tmpBlock, r, q;
                 zeroBlock.Clear();
                 inputBlock.Clear();
 
@@ -609,7 +648,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                         // address block is generated before the loop. The legacy variants
                         // count from the first computed block instead.
                         if (startIndex != 0 && !legacyAddressing)
-                            NextAddresses(addressBlock, inputBlock, zeroBlock);
+                            NextAddresses(addressBlock, inputBlock, zeroBlock, r, q);
                     }
 
                     for (word32 i = startIndex; i < segmentLength; ++i, ++currentIndex)
@@ -624,7 +663,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                                 addressIndex = addressCounter++;
 
                             if (addressIndex % ARGON2_QWORDS_IN_BLOCK == 0)
-                                NextAddresses(addressBlock, inputBlock, zeroBlock);
+                                NextAddresses(addressBlock, inputBlock, zeroBlock, r, q);
 
                             pseudoRand = addressBlock.v[addressIndex % ARGON2_QWORDS_IN_BLOCK];
 
@@ -665,8 +704,7 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                         Block& prevBlock = memory[lane * laneLength + prevIndex];
                         Block& currBlock = memory[lane * laneLength + currentIndex];
 
-                        Block tmpBlock;
-                        CompressionG(tmpBlock, prevBlock, refBlock);
+                        CompressionG(tmpBlock, prevBlock, refBlock, r, q);
 
                         if (pass == 0)
                             currBlock.CopyFrom(tmpBlock);
@@ -674,6 +712,11 @@ size_t Argon2::DeriveKey(byte *derived, size_t derivedLen,
                             currBlock.XorWith(tmpBlock);
                     }
                 }
+
+                // The address blocks derive from public parameters; these three hold block contents.
+                SecureWipeBuffer(reinterpret_cast<byte*>(&tmpBlock), sizeof(tmpBlock));
+                SecureWipeBuffer(reinterpret_cast<byte*>(&r), sizeof(r));
+                SecureWipeBuffer(reinterpret_cast<byte*>(&q), sizeof(q));
             }
         }
     }

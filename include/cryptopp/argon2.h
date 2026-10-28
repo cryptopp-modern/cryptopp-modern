@@ -87,10 +87,9 @@ public:
 
     /// \brief Returns the maximum derived key length
     /// \return maximum derived key length, in bytes
-    /// \details RFC 9106 allows up to 2^32-1 bytes, but this implementation is limited
-    ///   by SIZE_MAX due to C++ datatypes
+    /// \details RFC 9106 allows tag lengths up to 2^32-1 bytes
     size_t MaxDerivedKeyLength() const {
-        return static_cast<size_t>(0)-1;
+        return static_cast<size_t>(0xFFFFFFFFu);
     }
 
     /// \brief Returns a valid key length for the derivation function
@@ -106,8 +105,9 @@ public:
     /// \param passwordLen the size of the password buffer, in bytes
     /// \param params parameters including Salt, TimeCost, MemoryCost, Parallelism, Secret, AssociatedData
     /// \return the number of iterations performed
-    /// \throw InvalidDerivedKeyLength if <tt>derivedLen</tt> is less than 4
-    /// \throw InvalidArgument if parameters are invalid
+    /// \throw InvalidDerivedKeyLength if <tt>derivedLen</tt> is less than 4 or greater than 2^32-1
+    /// \throw InvalidArgument if parameters are invalid, or if the password, salt, secret or
+    ///   associated data is longer than 2^32-1 bytes
     /// \details DeriveKey() provides a standard interface to derive a key from
     ///   a password and other parameters. Parameters are extracted from NameValuePairs:
     ///   - Salt: byte array (required)
@@ -134,8 +134,9 @@ public:
     /// \param associatedData optional associated data input buffer
     /// \param associatedDataLen the size of the associated data buffer, in bytes
     /// \return the number of iterations performed (always returns timeCost)
-    /// \throw InvalidDerivedKeyLength if <tt>derivedLen</tt> is less than 4
-    /// \throw InvalidArgument if parameters are invalid
+    /// \throw InvalidDerivedKeyLength if <tt>derivedLen</tt> is less than 4 or greater than 2^32-1
+    /// \throw InvalidArgument if parameters are invalid, or if the password, salt, secret or
+    ///   associated data is longer than 2^32-1 bytes
     /// \details DeriveKey() provides a more convenient interface with explicit parameters.
     /// \details RFC 9106 recommends:
     ///   - First choice: Argon2id with t=1, m=2097152 (2 GiB), p=4
