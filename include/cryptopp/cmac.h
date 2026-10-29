@@ -31,6 +31,10 @@ public:
 	void UncheckedSetKey(const byte *key, unsigned int length, const NameValuePairs &params);
 	void Update(const byte *input, size_t length);
 	void TruncatedFinal(byte *mac, size_t size);
+	/// \brief Restart the MAC
+	/// \details Discards the current state and keeps the subkeys, without
+	///  the block encryption that finalising a digest would cost
+	void Restart();
 	unsigned int DigestSize() const {return GetCipher().BlockSize();}
 	unsigned int OptimalBlockSize() const {return GetCipher().BlockSize();}
 	unsigned int OptimalDataAlignment() const {return GetCipher().OptimalDataAlignment();}

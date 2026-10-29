@@ -45,6 +45,7 @@
 
 #include <cryptopp/modes.h>
 #include <cryptopp/cmac.h>
+#include <cryptopp/threefish.h>
 #include <cryptopp/dmac.h>
 #include <cryptopp/hmac.h>
 #include <cryptopp/vmac.h>
@@ -2141,10 +2142,114 @@ bool ValidateXTS()
 	return RunTestDataFile("TestVectors/xts.txt");
 }
 
+// AES that counts the calls into its encryption, so a test can show that
+// Restart makes none. Both entry points count, and the portable
+// AdvancedProcessBlocks re-enters ProcessAndXorBlock, so this is a count of
+// calls rather than of blocks.
+class CountingAES : public AES
+{
+public:
+	class Encryption : public AES::Encryption
+	{
+	public:
+		static size_t s_calls;
+		void ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const
+		{
+			++s_calls;
+			AES::Encryption::ProcessAndXorBlock(inBlock, xorBlock, outBlock);
+		}
+		size_t AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags) const
+		{
+			++s_calls;
+			return AES::Encryption::AdvancedProcessBlocks(inBlocks, xorBlocks, outBlocks, length, flags);
+		}
+	};
+};
+
+size_t CountingAES::Encryption::s_calls = 0;
+
+// Restart must not encrypt. SetKey derives the subkeys, which shows the
+// counter is live; an Update of up to one block only buffers, so nothing may
+// move the counter again until Final.
+static bool TestCMACRestartNoEncryption()
+{
+	byte key[CMAC<CountingAES>::DEFAULT_KEYLENGTH], message[CountingAES::BLOCKSIZE], digest[CountingAES::BLOCKSIZE];
+	for (size_t i = 0; i < sizeof(key); ++i) key[i] = static_cast<byte>(i);
+	for (size_t i = 0; i < sizeof(message); ++i) message[i] = static_cast<byte>(0x40 + i);
+	const size_t prefixLengths[] = { 0, 5, sizeof(message) };
+	const size_t& calls = CountingAES::Encryption::s_calls;
+
+	CMAC<CountingAES> mac(key, sizeof(key));
+	const size_t keyed = calls;
+	bool pass = keyed > 0;
+	for (size_t p = 0; p < COUNTOF(prefixLengths); ++p)
+	{
+		mac.Update(prefixLengths[p] ? message : NULLPTR, prefixLengths[p]);
+		mac.Restart();
+		pass = (calls == keyed) && pass;
+	}
+	mac.Final(digest);
+	pass = (calls > keyed) && pass;
+
+	std::cout << (pass ? "passed   " : "FAILED   ") << "CMAC(AES) Restart performs no block encryption\n";
+	return pass;
+}
+
+// Restart must leave the MAC as a fresh SetKey does: the same digest for the
+// same message whatever was absorbed before it.
+template <class T>
+static bool TestCMACRestart(const char* name)
+{
+	byte key[CMAC<T>::DEFAULT_KEYLENGTH], message[37], prefix[T::BLOCKSIZE + 3];
+	for (size_t i = 0; i < sizeof(key); ++i) key[i] = static_cast<byte>(i);
+	for (size_t i = 0; i < sizeof(message); ++i) message[i] = static_cast<byte>(0x40 + i);
+	for (size_t i = 0; i < sizeof(prefix); ++i) prefix[i] = static_cast<byte>(0x80 + i);
+	// Nothing, part of a block, exactly one buffered block, and more than a
+	// block absorbed before the Restart.
+	const size_t prefixLengths[] = { 0, 5, T::BLOCKSIZE, sizeof(prefix) };
+	const size_t messageLengths[] = { 0, sizeof(message) };
+	CMAC<T> mac(key, sizeof(key));
+	byte expected[T::BLOCKSIZE], actual[T::BLOCKSIZE];
+	bool pass = true;
+
+	for (size_t m = 0; m < COUNTOF(messageLengths); ++m)
+	{
+		const byte* msg = messageLengths[m] ? message : NULLPTR;
+		CMAC<T> reference(key, sizeof(key));
+		reference.CalculateDigest(expected, msg, messageLengths[m]);
+		for (size_t p = 0; p < COUNTOF(prefixLengths); ++p)
+		{
+			mac.Update(prefixLengths[p] ? prefix : NULLPTR, prefixLengths[p]);
+			mac.Restart();
+			mac.Update(msg, messageLengths[m]);
+			mac.Final(actual);
+			pass = (std::memcmp(expected, actual, sizeof(expected)) == 0) && pass;
+		}
+	}
+
+	// Restart before the key is set has nothing to discard.
+	CMAC<T> reference(key, sizeof(key)), unkeyed;
+	reference.CalculateDigest(expected, message, sizeof(message));
+	unkeyed.Restart();
+	unkeyed.SetKey(key, sizeof(key));
+	unkeyed.CalculateDigest(actual, message, sizeof(message));
+	pass = (std::memcmp(expected, actual, sizeof(expected)) == 0) && pass;
+
+	std::cout << (pass ? "passed   " : "FAILED   ") << name << " Restart matches a fresh object ("
+		<< COUNTOF(prefixLengths) * COUNTOF(messageLengths) + 1 << " cases)\n";
+	return pass;
+}
+
 bool ValidateCMAC()
 {
 	std::cout << "\nCMAC validation suite running...\n";
-	return RunTestDataFile("TestVectors/cmac.txt");
+	bool pass = RunTestDataFile("TestVectors/cmac.txt");
+	std::cout << "\n";
+	pass = TestCMACRestart<AES>("CMAC(AES)") && pass;
+	pass = TestCMACRestart<DES_EDE3>("CMAC(DES-EDE3)") && pass;
+	pass = TestCMACRestart<Threefish1024>("CMAC(Threefish-1024)") && pass;
+	pass = TestCMACRestartNoEncryption() && pass;
+	return pass;
 }
 
 bool ValidateAES_CTR_HMAC()

@@ -159,6 +159,15 @@ void CMAC_Base::TruncatedFinal(byte *mac, size_t size)
 	std::memset(m_reg, 0, blockSize);
 }
 
+void CMAC_Base::Restart()
+{
+	// m_reg holds the running state followed by the two subkeys. Only the
+	// state is discarded; m_reg is empty until the key is set.
+	if (m_reg.size())
+		std::memset(m_reg, 0, GetCipher().BlockSize());
+	m_counter = 0;
+}
+
 NAMESPACE_END
 
 #endif
