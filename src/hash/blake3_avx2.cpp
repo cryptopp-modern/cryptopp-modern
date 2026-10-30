@@ -35,13 +35,6 @@ static const size_t BLAKE3_CHUNK_LEN = 1024;
 static const byte BLAKE3_CHUNK_START = 1;
 static const byte BLAKE3_CHUNK_END = 2;
 
-// SSE4.1 routines in blake3_simd.cpp used for the chunks left over
-// after the 8-way rounds
-extern void BLAKE3_Compress_SSE41(word32 cv[8], const byte block[64],
-                                  byte block_len, word64 counter, byte flags);
-extern void BLAKE3_Hash4_SSE41(const byte *const *inputs, const word32 key[8],
-                               word64 counter, byte flags, byte *out);
-
 // AVX2 helper macros and functions
 #define LOADU256(p)    _mm256_loadu_si256((const __m256i *)(const void*)(p))
 #define STOREU256(p,r) _mm256_storeu_si256((__m256i *)(void*)(p), r)
@@ -476,13 +469,15 @@ void BLAKE3_Hash8_AVX2(const byte *const *inputs, const word32 key[8],
     STOREU256(&out[224], h_vecs[7]);
 }
 
-// Hash multiple chunks using 8-way parallel AVX2 processing
+// Hash whole groups of 8 chunks using 8-way parallel AVX2 processing.
+// Returns the number of chunks hashed; blake3.cpp passes exactly 8.
 size_t BLAKE3_HashMany_AVX2(const byte *input, size_t input_len,
                             const word32 key[8], word64 counter,
                             byte flags, byte *out)
 {
     size_t chunks_processed = 0;
     const size_t num_chunks = input_len / BLAKE3_CHUNK_LEN;
+    CRYPTOPP_ASSERT(input_len % (8 * BLAKE3_CHUNK_LEN) == 0);
 
     // Process 8 chunks at a time
     while (chunks_processed + 8 <= num_chunks) {
@@ -500,40 +495,6 @@ size_t BLAKE3_HashMany_AVX2(const byte *input, size_t input_len,
         BLAKE3_Hash8_AVX2(inputs, key, counter + chunks_processed, flags,
                           out + chunks_processed * 32);
         chunks_processed += 8;
-    }
-
-    // Process remaining 4 chunks with SSE4.1 if available
-    while (chunks_processed + 4 <= num_chunks) {
-        const byte *inputs[4] = {
-            input + chunks_processed * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 1) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 2) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 3) * BLAKE3_CHUNK_LEN
-        };
-
-        BLAKE3_Hash4_SSE41(inputs, key, counter + chunks_processed, flags,
-                           out + chunks_processed * 32);
-        chunks_processed += 4;
-    }
-
-    // Process remaining chunks one at a time
-    while (chunks_processed < num_chunks) {
-        const byte *chunk_input = input + chunks_processed * BLAKE3_CHUNK_LEN;
-        word32 cv[8];
-        std::memcpy(cv, key, 32);
-
-        for (size_t block = 0; block < 16; block++) {
-            byte block_flags = flags;
-            if (block == 0) block_flags |= BLAKE3_CHUNK_START;
-            if (block == 15) block_flags |= BLAKE3_CHUNK_END;
-
-            BLAKE3_Compress_SSE41(cv, chunk_input + block * BLAKE3_BLOCK_LEN,
-                                  BLAKE3_BLOCK_LEN, counter + chunks_processed,
-                                  block_flags);
-        }
-
-        std::memcpy(out + chunks_processed * 32, cv, 32);
-        chunks_processed++;
     }
 
     return chunks_processed;

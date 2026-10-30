@@ -462,14 +462,15 @@ void BLAKE3_Hash4_SSE41(const byte *const *inputs, const word32 key[8],
     STOREU(&out[112], h_vecs[7]);
 }
 
-// Hash multiple chunks using 4-way parallel processing
-// Returns the number of chunks processed
+// Hash whole groups of 4 chunks using 4-way parallel SSE4.1 processing.
+// Returns the number of chunks hashed; blake3.cpp passes exactly 4.
 size_t BLAKE3_HashMany_SSE41(const byte *input, size_t input_len,
                              const word32 key[8], word64 counter,
                              byte flags, byte *out)
 {
     size_t chunks_processed = 0;
     const size_t num_chunks = input_len / BLAKE3_CHUNK_LEN;
+    CRYPTOPP_ASSERT(input_len % (4 * BLAKE3_CHUNK_LEN) == 0);
 
     // Process 4 chunks at a time using SIMD
     while (chunks_processed + 4 <= num_chunks) {
@@ -483,27 +484,6 @@ size_t BLAKE3_HashMany_SSE41(const byte *input, size_t input_len,
         BLAKE3_Hash4_SSE41(inputs, key, counter + chunks_processed, flags,
                            out + chunks_processed * 32);
         chunks_processed += 4;
-    }
-
-    // Process remaining chunks one at a time (fallback)
-    while (chunks_processed < num_chunks) {
-        const byte *chunk_input = input + chunks_processed * BLAKE3_CHUNK_LEN;
-        word32 cv[8];
-        std::memcpy(cv, key, 32);
-
-        // Process all 16 blocks in the chunk
-        for (size_t block = 0; block < 16; block++) {
-            byte block_flags = flags;
-            if (block == 0) block_flags |= BLAKE3_CHUNK_START;
-            if (block == 15) block_flags |= BLAKE3_CHUNK_END;
-
-            BLAKE3_Compress_SSE41(cv, chunk_input + block * BLAKE3_BLOCK_LEN,
-                                  BLAKE3_BLOCK_LEN, counter + chunks_processed,
-                                  block_flags);
-        }
-
-        std::memcpy(out + chunks_processed * 32, cv, 32);
-        chunks_processed++;
     }
 
     return chunks_processed;
