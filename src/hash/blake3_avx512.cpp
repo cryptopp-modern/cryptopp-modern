@@ -350,21 +350,15 @@ void BLAKE3_Hash16_AVX512(const byte *const *inputs, const word32 key[8],
     transpose_vecs16_out(h_vecs, out);
 }
 
-// Forward declaration of AVX2 fallback
-extern void BLAKE3_Hash8_AVX2(const byte *const *inputs, const word32 key[8],
-                              word64 counter, byte flags, byte *out);
-extern void BLAKE3_Hash4_SSE41(const byte *const *inputs, const word32 key[8],
-                               word64 counter, byte flags, byte *out);
-extern void BLAKE3_Compress_SSE41(word32 cv[8], const byte block[64],
-                                  byte block_len, word64 counter, byte flags);
-
-// Hash multiple chunks using 16-way parallel AVX512 processing
+// Hash whole groups of 16 chunks using 16-way parallel AVX512 processing.
+// Returns the number of chunks hashed; blake3.cpp passes exactly 16.
 size_t BLAKE3_HashMany_AVX512(const byte *input, size_t input_len,
                               const word32 key[8], word64 counter,
                               byte flags, byte *out)
 {
     size_t chunks_processed = 0;
     const size_t num_chunks = input_len / BLAKE3_CHUNK_LEN;
+    CRYPTOPP_ASSERT(input_len % (16 * BLAKE3_CHUNK_LEN) == 0);
 
     // Process 16 chunks at a time using AVX512
     while (chunks_processed + 16 <= num_chunks) {
@@ -391,62 +385,6 @@ size_t BLAKE3_HashMany_AVX512(const byte *input, size_t input_len,
                              out + chunks_processed * 32);
         chunks_processed += 16;
     }
-
-#if CRYPTOPP_AVX2_AVAILABLE
-    // Process remaining 8 chunks with AVX2
-    while (chunks_processed + 8 <= num_chunks) {
-        const byte *inputs[8] = {
-            input + chunks_processed * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 1) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 2) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 3) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 4) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 5) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 6) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 7) * BLAKE3_CHUNK_LEN
-        };
-
-        BLAKE3_Hash8_AVX2(inputs, key, counter + chunks_processed, flags,
-                          out + chunks_processed * 32);
-        chunks_processed += 8;
-    }
-#endif
-
-#if CRYPTOPP_SSE41_AVAILABLE
-    // Process remaining 4 chunks with SSE4.1
-    while (chunks_processed + 4 <= num_chunks) {
-        const byte *inputs[4] = {
-            input + chunks_processed * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 1) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 2) * BLAKE3_CHUNK_LEN,
-            input + (chunks_processed + 3) * BLAKE3_CHUNK_LEN
-        };
-
-        BLAKE3_Hash4_SSE41(inputs, key, counter + chunks_processed, flags,
-                           out + chunks_processed * 32);
-        chunks_processed += 4;
-    }
-
-    // Process remaining chunks one at a time
-    while (chunks_processed < num_chunks) {
-        const byte *chunk_input = input + chunks_processed * BLAKE3_CHUNK_LEN;
-        word32 cv[8];
-        std::memcpy(cv, key, 32);
-
-        for (size_t block = 0; block < 16; block++) {
-            byte block_flags = flags;
-            if (block == 0) block_flags |= BLAKE3_CHUNK_START;
-            if (block == 15) block_flags |= BLAKE3_CHUNK_END;
-
-            BLAKE3_Compress_SSE41(cv, chunk_input + block * BLAKE3_BLOCK_LEN,
-                                  BLAKE3_BLOCK_LEN, counter + chunks_processed,
-                                  block_flags);
-        }
-
-        std::memcpy(out + chunks_processed * 32, cv, 32);
-        chunks_processed++;
-    }
-#endif
 
     return chunks_processed;
 }
