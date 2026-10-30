@@ -263,7 +263,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Configure (Visual Studio generator, ${{ matrix.target }} target)
-      run: cmake -S . -B build/ci-win-arm -G "Visual Studio 18 2026" -A ${{ matrix.target }} -DCMAKE_BUILD_TYPE=Release -DCRYPTOPP_BUILD_TESTING=ON
+      run: cmake -S . -B build/ci-win-arm -G "Visual Studio 18 2026" -A ${{ matrix.target }} -DCRYPTOPP_BUILD_TESTING=ON
 
     - name: Build
       run: cmake --build build/ci-win-arm --config Release
