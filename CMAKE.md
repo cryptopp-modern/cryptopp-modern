@@ -38,6 +38,10 @@ cmake --build build/msvc --config Release
 
 # Run tests
 ./build/msvc/Release/cryptest.exe v
+
+# Or pick the configuration through the build and test presets
+cmake --build --preset=msvc-release
+ctest --preset=msvc-release
 ```
 
 ### Windows (MinGW)
@@ -63,14 +67,12 @@ The project includes `CMakePresets.json` with pre-configured build configuration
 | `debug` | Ninja | Debug | Debug build with symbols |
 | `release` | Ninja | Release | Optimized release build |
 | `relwithdebinfo` | Ninja | RelWithDebInfo | Release with debug info |
-| `msvc` | Visual Studio 17 2022 | - | Windows MSVC build |
-| `msvc-debug` | Visual Studio 17 2022 | Debug | MSVC debug build |
-| `msvc-release` | Visual Studio 17 2022 | Release | MSVC release build |
+| `msvc` | Visual Studio 17 2022 | Debug or Release, chosen at build time | Windows MSVC build |
 | `no-asm` | Ninja | Release | Pure C++ (no assembly) |
 | `install-test` | Ninja | Release | For testing installation |
 | `ci-linux` | Ninja | Release | CI configuration for Linux |
 | `ci-macos` | Ninja | Release | CI configuration for macOS |
-| `ci-windows` | Visual Studio 17 2022 | - | CI configuration for Windows |
+| `ci-windows` | Visual Studio 17 2022 | Debug or Release, chosen at build time | CI configuration for Windows |
 
 ### Using Presets
 
@@ -84,6 +86,10 @@ cmake --preset=debug
 # Build with a specific preset
 cmake --build --preset=debug
 ```
+
+The Visual Studio generator is multi-config, so `msvc` configures once and the configuration is chosen when building: `cmake --build --preset=msvc-debug` or `cmake --build --preset=msvc-release` (`msvc` builds Release), with `ctest --preset=msvc-debug` and `ctest --preset=msvc-release` to match. Passing `-DCMAKE_BUILD_TYPE` to this generator has no effect.
+
+The `msvc-debug` and `msvc-release` configure presets have been removed; use `cmake --preset=msvc`, then choose Debug or Release through the build and test presets.
 
 ## CMake Options
 

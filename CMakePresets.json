@@ -55,24 +55,6 @@
       }
     },
     {
-      "name": "msvc-debug",
-      "displayName": "Visual Studio 2022 Debug",
-      "description": "Debug build using Visual Studio 2022",
-      "inherits": "msvc",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "msvc-release",
-      "displayName": "Visual Studio 2022 Release",
-      "description": "Release build using Visual Studio 2022",
-      "inherits": "msvc",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
       "name": "ci-linux",
       "displayName": "CI Linux",
       "description": "Configuration for Linux CI builds",
@@ -193,8 +175,12 @@
     },
     {
       "name": "msvc-debug",
-      "configurePreset": "msvc-debug",
+      "inherits": "msvc",
       "configuration": "Debug"
+    },
+    {
+      "name": "msvc-release",
+      "inherits": "msvc"
     }
   ],
   "testPresets": [
@@ -221,7 +207,19 @@
       "configuration": "Release",
       "output": {
         "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
       }
+    },
+    {
+      "name": "msvc-debug",
+      "inherits": "msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "msvc-release",
+      "inherits": "msvc"
     }
   ]
 }
