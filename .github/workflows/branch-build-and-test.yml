@@ -669,6 +669,30 @@ jobs:
   # Makefile Builds (Backward Compatibility)
   # =============================================================================
 
+  makefile-linux-i386-lto:
+    # 32-bit x86 with GCC link-time optimisation, the ALT Linux shape. The
+    # SSE2 subroutine labels in integer.cpp were referenced across functions,
+    # which only linked while the file was one object. -flto-partition=max
+    # puts every function in its own partition so a regression fails the link.
+    name: Makefile Linux i386 LTO (GCC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install multilib
+      run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+
+    - name: Build library (32-bit, LTO, one function per partition)
+      run: make -j"$(nproc)" CXXFLAGS="-DNDEBUG -m32 -O2 -flto=auto -flto-partition=max" static dynamic cryptest.exe
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
     runs-on: ubuntu-24.04
