@@ -1,5 +1,5 @@
 cryptopp-modern: Maintained Fork of the Crypto++ Library
-Version 2026.10.0 - October 2026
+Version 2026.11.0 - November 2026
 
 cryptopp-modern is an actively maintained fork of the Crypto++ library,
 a free C++ class library of cryptographic schemes. The library contains
@@ -308,6 +308,40 @@ documentation is one of the highest returns on investment.
 
 The items in this section comprise the most recent history. Please see History.txt
 for the record back to Crypto++ 1.0.
+
+2026.11.0 - November 2026
+      - minor release (EAX and AES-CTR-HMAC resynchronisation, BLAKE3 on
+        CPUs without AVX, 32-bit x86 LTO builds, ML-DSA known-answer tests)
+      - restarted the CMAC in EAX_Base::Resync and reset the AES-CTR-HMAC
+        state in one-shot calls (PR 119, upstream issue 1378)
+        * repeated resynchronisation could produce incorrect ciphertext and
+          tags or reuse the keystream after an abandoned header; ciphertext
+          from the faulty EAX one-shot path will not verify through the
+          corrected path
+      - skipped AuthenticateData on empty messages, fixing debug assertions
+        (PR 124)
+      - added a CMAC Restart override that keeps the subkeys and performs no
+        block encryption (PR 128)
+      - compiled the BLAKE3 SSE4.1 path without AVX2, fixing SIGILL on CPUs
+        without AVX (issue 121, PR 122); CMake instruction-set checks now
+        report compiler support (PR 123)
+      - fixed the nmake x64 link and removed unreachable BLAKE3 SIMD tail
+        loops (PR 129)
+        * blake3_avx512.cpp had been missing from cryptest.nmake since
+          2025.12.0
+      - rejected unknown Argon2 variants and inputs longer than the RFC 9106
+        limits, and wiped the compression scratch blocks (PR 126)
+      - added ML-DSA ACVP known-answer tests for key generation, signing and
+        verification (PR 127)
+      - fixed 32-bit x86 builds with GCC link-time optimisation (PR 131)
+        * integer.cpp referenced SSE2 assembler labels across functions,
+          which LTO partitioning broke
+      - made msvc-debug and msvc-release build and test presets on the msvc
+        configure preset (PR 130)
+      - kept inherited compiler options in the Visual Studio projects
+        (PR 117, upstream PR 1376)
+      - fixed a Clang sign-compare warning in SafeConvert (issue 118, PR 120)
+      - fixed reversed lastName assignments in datatest.cpp (PR 125)
 
 2026.10.0 - October 2026
       - minor release (Argon2i and Argon2id RFC 9106 compatibility, Ed25519

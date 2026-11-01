@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.10.0
+**Current Version:** 2026.11.0
 
 ---
 
@@ -183,6 +183,12 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.11.0 (November 2026) - EAX Resynchronisation, BLAKE3 Without AVX, 32-bit x86 LTO Builds
+- **EAX and AES-CTR-HMAC** - CMAC restarted before the EAX nonce tag and AES-CTR-HMAC one-shot state reset; ciphertext from the faulty EAX one-shot path will not verify through the corrected path (#119); no debug assertions on empty AEAD messages (#124); CMAC `Restart` without a block encryption (#128)
+- **BLAKE3** - SSE4.1 path compiled without AVX2, fixing SIGILL on CPUs without AVX (#122); nmake x64 build links again (#129)
+- **Argon2 and ML-DSA** - RFC 9106 input limits enforced and temporary blocks wiped (#126); ACVP known-answer tests (#127)
+- **Builds** - 32-bit x86 GCC LTO (#131), Visual Studio build and test presets (#130), inherited compiler options kept (#117), `SafeConvert` warning (#120)
 
 ### 2026.10.0 (October 2026) - Argon2 Correction, Ed25519 Small-Order Keys, PQC Stack Wipes
 - **Argon2i and Argon2id** - Address block read from index 0 instead of 2 in the first segment since 2025.11.0; standard output corrected, legacy variants for migration, reference vectors in the default suites (#114, #115)

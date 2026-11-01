@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.10.0 (current release)
+- 2026.11.0 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -21,8 +21,8 @@ Check the fingerprint, import the key, then verify the archive:
 ```sh
 gpg --show-keys --with-fingerprint KEYS
 gpg --import KEYS
-gpg --verify cryptopp-modern-2026.10.0.zip.sig cryptopp-modern-2026.10.0.zip
-gpg --verify cryptopp-modern-2026.10.0.tar.gz.sig cryptopp-modern-2026.10.0.tar.gz
+gpg --verify cryptopp-modern-2026.11.0.zip.sig cryptopp-modern-2026.11.0.zip
+gpg --verify cryptopp-modern-2026.11.0.tar.gz.sig cryptopp-modern-2026.11.0.tar.gz
 ```
 
 Make sure the fingerprint matches the value above before trusting the archive.
@@ -60,7 +60,7 @@ When decrypting a malformed ciphertext, `PKCS_EncryptionPaddingScheme::Unpad` co
 
 **Fix:** `Unpad` now bounds the recovered-message copy by the caller's buffer, and undersized encryption blocks are rejected before unpadding.
 
-**Advisory:** GHSA-9g8r-h7q5-x8pc. A CVE has been requested and will be added to the advisory when assigned.
+**Advisory:** GHSA-9g8r-h7q5-x8pc.
 
 ### Correction: PKCS#1 v1.5 depadding timing hardening (CVE-2023-50979)
 
@@ -110,7 +110,7 @@ Both the Donna verifier and the NaCl C API verifier (`crypto_sign_open` in `twee
 
 The 2026.5.2 check was ported from upstream Crypto++ commit weidai11/cryptopp@4775a166, which has the same gap. It compared the key against a table of X25519 values and included the sign bit. It rejected the identity, the point of order 2 and one point of order 4. The other point of order 4, the four points of order 8, and the identity and order-2 point encoded with the sign bit set were still accepted. 2026.10.0 checks the Ed25519 values and ignores the sign bit.
 
-**Upstream:** addresses the small-order public key part of upstream Crypto++ issue 1352. Upstream commit weidai11/cryptopp@4775a166 has the same incomplete check; a port of this fix is pending.
+**Upstream:** addresses the small-order public key part of upstream Crypto++ issue 1352. Upstream commit weidai11/cryptopp@4775a166 has the same incomplete check; upstream PR weidai11/cryptopp#1377 ports this fix.
 
 ### BLAKE3 incorrect hashes on AArch64 (fixed in 2026.5.1)
 

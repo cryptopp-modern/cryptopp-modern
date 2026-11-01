@@ -183,8 +183,8 @@ The SONAME carries an ABI version that is independent of the calendar release ve
 
 ```
 libcryptopp.so            -> libcryptopp.so.9
-libcryptopp.so.9          -> libcryptopp.so.2026.10.0   (SONAME)
-libcryptopp.so.2026.10.0                                (real file)
+libcryptopp.so.9          -> libcryptopp.so.2026.11.0   (SONAME)
+libcryptopp.so.2026.11.0                                (real file)
 ```
 
 On macOS the ABI version sets the dylib `compatibility_version` and the release version sets `current_version`.

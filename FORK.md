@@ -26,6 +26,14 @@
 
 ### cryptopp-modern Releases
 
+**2026.11.0** (November 2026) - EAX Resynchronisation, BLAKE3 Without AVX, 32-bit x86 LTO Builds (Minor)
+- Restarted the CMAC in EAX resynchronisation and reset the AES-CTR-HMAC one-shot state; ciphertext produced through the faulty EAX one-shot path will not verify through the corrected path (#119); debug builds no longer assert on empty AEAD messages (#124)
+- Added a CMAC `Restart` override that performs no block encryption (#128)
+- Compiled the BLAKE3 SSE4.1 path without AVX2, fixing SIGILL on CPUs without AVX, with a QEMU Nehalem CI job (#122); fixed the nmake x64 link (#129)
+- Rejected unknown Argon2 variants and inputs longer than the RFC 9106 limits, and wiped temporary blocks (#126)
+- Added ML-DSA ACVP known-answer tests (#127)
+- Fixed 32-bit x86 builds with GCC link-time optimisation (#131); made `msvc-debug` and `msvc-release` build and test presets (#130); kept inherited compiler options in the Visual Studio projects (#117); fixed a Clang sign-compare warning in `SafeConvert` (#120); clarified the CMake instruction-set checks (#123); fixed reversed `lastName` assignments in `datatest.cpp` (#125)
+
 **2026.10.0** (October 2026) - Argon2 Correction, Ed25519 Small-Order Keys, PQC Stack Wipes (Minor)
 - Fixed Argon2i and Argon2id address indexing; the first segment read the address block from index 0 instead of 2, producing non-standard hashes for affected parameter sets since 2025.11.0, Argon2d unaffected; added `ARGON2I_LEGACY` and `ARGON2ID_LEGACY` for migration and ran the reference vectors in the default test suites (#114, #115)
 - Rejected all small-order Ed25519 public keys during validation, fixing an incomplete check from 2026.5.2 (#112)
@@ -207,10 +215,10 @@ This is a maintained fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.10.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.11.0 |
 |--------|----------------|---------------------------|
-| **Last Release** | October 1, 2023 | October 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.10.0) |
+| **Last Release** | October 1, 2023 | November 2026 |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.11.0) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
@@ -244,6 +252,6 @@ This is a maintained fork to:
 
 ---
 
-**Last Updated:** 2026-10-13
+**Last Updated:** 2026-11-01
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.10.0
+**Current Version:** 2026.11.0

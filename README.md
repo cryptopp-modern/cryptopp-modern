@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.10.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.11.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,7 +24,16 @@
 ---
 
 
-## What's New in 2026.10.0
+## What's New in 2026.11.0
+
+- **EAX and AES-CTR-HMAC** - Repeated EAX resynchronisation carried stale CMAC state into the nonce tag, and AES-CTR-HMAC one-shot calls threw `BadState` when an object was reused. Ciphertext produced through the faulty EAX one-shot path will not verify through the corrected path (#119). Debug builds no longer assert on empty AEAD messages (#124).
+- **CMAC** - `Restart` no longer runs a block encryption, which makes EAX resynchronisation cheaper (#128).
+- **BLAKE3** - The SSE4.1 path is compiled without AVX2, fixing SIGILL on CPUs without AVX, and a QEMU Nehalem CI job runs the suite without AVX (#122). The nmake x64 build links again (#129).
+- **Argon2** - Unknown variants and input lengths exceeding the RFC 9106 limits are rejected, and temporary blocks are wiped (#126).
+- **ML-DSA** - Key generation, signing and verification are checked against NIST ACVP vectors in the validation suite (#127).
+- **Builds** - 32-bit x86 builds with GCC link-time optimisation link again (#131); `msvc-debug` and `msvc-release` are build and test presets on the `msvc` configure preset (#130); the Visual Studio projects keep compiler options inherited from property sheets (#117); `SafeConvert` no longer triggers a Clang mixed-sign warning (#120).
+
+### Previously in 2026.10.0
 
 - **Argon2i and Argon2id corrected** - The first segment read the address block from index 0 instead of 2, producing non-standard hashes for affected parameter sets since 2025.11.0; Argon2d is unaffected. `ARGON2I_LEGACY` and `ARGON2ID_LEGACY` reproduce the previous output for migration, and the reference vectors run in the default test suites (#114, #115).
 - **Ed25519 small-order keys** - Reject all small-order public keys during validation, fixing an incomplete check from 2026.5.2. Signature verification and X25519 are unchanged (#112).
@@ -39,14 +48,6 @@
 - **HSS error paths** - Signer caches are rebuilt after a failed signing attempt, so a retry no longer produces an invalid signature and a burned index; LMS and HSS key generation leaves the key unchanged on failure (#99).
 - **Shared and static in one pass** - `CRYPTOPP_BUILD_STATIC` alongside `CRYPTOPP_BUILD_SHARED`, and `BUILD_SHARED_LIBS` honoured when selecting the library type (#86, #90).
 - **CMake packaging and detection** - The configured include directory is exported (#94), pkg-config output is per configuration and carries the Debug postfix (#95, #96), the feature probes no longer fail on warnings under `-Werror` (#100), a failed AVX-512 probe falls back cleanly (#101), and a new `CRYPTOPP_WERROR` option turns warnings into errors for the library build (#100).
-
-### Previously in 2026.9.0
-
-- **PKCS#1 v1.5 security fix** - Decrypting a malformed ciphertext could write up to nine bytes past the output buffer; affects 2025.11.0 through 2026.8.1 (GHSA-9g8r-h7q5-x8pc).
-- **RFC 9802 LMS encoding** - Standalone LMS public keys now encode in the RFC 9802 SubjectPublicKeyInfo form, with keys saved by earlier releases still loading; single-level HSS parameter sets pair with them (#75).
-- **PQC key hardening** - A failed BER decode leaves the key unchanged, unset keys refuse to encode (#83), and ML-KEM key generation is transactional (#84).
-- **FileStateStore durability** - The parent directory is flushed when a state file is created on POSIX systems (#78).
-- **Packaging** - `CRYPTOPP_INSTALL_CRYPTEST` installs the `cryptest` tool and its data (#76); pkg-config output handles absolute install directories (#77).
 
 ---
 
