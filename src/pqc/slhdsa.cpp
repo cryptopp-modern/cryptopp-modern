@@ -222,6 +222,7 @@ public:
     {
         // FIPS 205 Section 10.2: HMAC-SHA-256 for n=16, HMAC-SHA-512 for n=24,32
         byte hash[MSG_HASH_SIZE];
+        WipeGuard wipeHash(hash, sizeof(hash));
 
         MsgHmacType hmac(sk_prf, n);
         hmac.Update(opt_rand, n);
@@ -265,7 +266,9 @@ public:
                         const byte *pub_seed, const byte *addr)
     {
         byte buf[BLOCK_SIZE + SHA2_ADDR_BYTES + 32];
+        WipeGuard wipeBuf(buf, sizeof(buf));
         byte hash[HASH_SIZE];
+        WipeGuard wipeHash(hash, sizeof(hash));
         byte addr_c[SHA2_ADDR_BYTES];
 
         compress_address(addr_c, addr);
