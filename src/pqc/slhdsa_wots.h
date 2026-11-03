@@ -6,6 +6,7 @@
 #define CRYPTOPP_SLHDSA_WOTS_H
 
 #include "slhdsa_internal.h"
+#include "wipe_guard.h"
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(SLHDSA_Internal)
@@ -94,6 +95,7 @@ void wots_pk_gen(byte *pk, const byte *sk_seed,
     constexpr unsigned int LEN = PARAMS::wots_len;
 
     byte tmp[N];
+    PQC_Internal::WipeGuard wipeTmp(tmp, sizeof(tmp));
     byte sk_addr[ADDR_BYTES];
     std::memcpy(sk_addr, addr, ADDR_BYTES);
     set_type(sk_addr, ADDR_TYPE_WOTSPRF);
@@ -108,8 +110,6 @@ void wots_pk_gen(byte *pk, const byte *sk_seed,
         // Chain to get public key element
         wots_gen_chain<HASH_CTX, N>(pk + i * N, tmp, 0, WOTS_W - 1, pub_seed, addr);
     }
-
-    SecureWipeBuffer(tmp, N);
 }
 
 /// Generate WOTS+ signature
@@ -127,6 +127,7 @@ void wots_sign(byte *sig, const byte *msg,
 
     unsigned int lengths[LEN];
     byte tmp[N];
+    PQC_Internal::WipeGuard wipeTmp(tmp, sizeof(tmp));
     byte sk_addr[ADDR_BYTES];
 
     std::memcpy(sk_addr, addr, ADDR_BYTES);
@@ -146,8 +147,6 @@ void wots_sign(byte *sig, const byte *msg,
         set_chain_addr(addr, i);
         wots_gen_chain<HASH_CTX, N>(sig + i * N, tmp, 0, lengths[i], pub_seed, addr);
     }
-
-    SecureWipeBuffer(tmp, N);
 }
 
 /// Compute WOTS+ public key from signature

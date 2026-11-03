@@ -17,6 +17,7 @@
 #include "slhdsa_wots.h"
 #include "slhdsa_fors.h"
 #include "slhdsa_hypertree.h"
+#include "wipe_guard.h"
 
 #include <cstring>
 #include <stdexcept>
@@ -30,6 +31,7 @@ NAMESPACE_BEGIN(CryptoPP)
 namespace {
 
 using namespace SLHDSA_Internal;
+using PQC_Internal::WipeGuard;
 
 // ******************** Parameter Traits ************************* //
 // Maps public parameter structs to internal parameter structs
@@ -196,7 +198,9 @@ public:
                     const byte *addr)
     {
         byte buf[BLOCK_SIZE + SHA2_ADDR_BYTES + 32];
+        WipeGuard wipeBuf(buf, sizeof(buf));
         byte hash[HASH_SIZE];
+        WipeGuard wipeHash(hash, sizeof(hash));
         byte addr_c[SHA2_ADDR_BYTES];
 
         compress_address(addr_c, addr);
@@ -211,9 +215,6 @@ public:
         sha.Final(hash);
 
         std::memcpy(out, hash, n);
-
-        SecureWipeBuffer(buf, sizeof(buf));
-        SecureWipeBuffer(hash, sizeof(hash));
     }
 
     static void prf_msg(byte *out, const byte *sk_prf, const byte *opt_rand,
@@ -221,6 +222,7 @@ public:
     {
         // FIPS 205 Section 10.2: HMAC-SHA-256 for n=16, HMAC-SHA-512 for n=24,32
         byte hash[MSG_HASH_SIZE];
+        WipeGuard wipeHash(hash, sizeof(hash));
 
         MsgHmacType hmac(sk_prf, n);
         hmac.Update(opt_rand, n);
@@ -264,7 +266,9 @@ public:
                         const byte *pub_seed, const byte *addr)
     {
         byte buf[BLOCK_SIZE + SHA2_ADDR_BYTES + 32];
+        WipeGuard wipeBuf(buf, sizeof(buf));
         byte hash[HASH_SIZE];
+        WipeGuard wipeHash(hash, sizeof(hash));
         byte addr_c[SHA2_ADDR_BYTES];
 
         compress_address(addr_c, addr);
@@ -487,7 +491,9 @@ static void slh_keygen(byte *sk, byte *pk, RandomNumberGenerator &rng)
     // PK = (PK.seed || PK.root)
 
     byte sk_seed[N];
+    WipeGuard wipeSkSeed(sk_seed, sizeof(sk_seed));
     byte sk_prf[N];
+    WipeGuard wipeSkPrf(sk_prf, sizeof(sk_prf));
     byte pub_seed[N];
 
     rng.GenerateBlock(sk_seed, N);
@@ -507,10 +513,6 @@ static void slh_keygen(byte *sk, byte *pk, RandomNumberGenerator &rng)
     // Assemble public key: PK.seed || PK.root
     std::memcpy(pk, pub_seed, N);
     std::memcpy(pk + N, pub_root, N);
-
-    // Zeroize secret seeds on stack
-    SecureWipeBuffer(sk_seed, N);
-    SecureWipeBuffer(sk_prf, N);
 }
 
 /// SLH-DSA Signing (internal interface)
@@ -536,9 +538,11 @@ static void slh_sign_internal(byte *sig, const byte *msg, size_t msg_len,
 
     // Generate randomizer R
     byte opt_rand[N];
+    WipeGuard wipeOptRand(opt_rand, sizeof(opt_rand));
     rng.GenerateBlock(opt_rand, N);
 
     byte R[N];
+    WipeGuard wipeR(R, sizeof(R));
     Hash::prf_msg(R, sk_prf, opt_rand, msg, msg_len);
 
     // Copy R to signature
@@ -579,10 +583,6 @@ static void slh_sign_internal(byte *sig, const byte *msg, size_t msg_len,
     constexpr size_t FORS_SIG_SIZE = SLHDSA_Internal::fors_sig_size<InternalParams>();
     SLHDSA_Internal::ht_sign<Hash, InternalParams>(sig + N + FORS_SIG_SIZE, fors_pk,
                                                     sk_seed, pub_seed, idx_tree, idx_leaf);
-
-    // Zeroize signing randomness on stack
-    SecureWipeBuffer(opt_rand, N);
-    SecureWipeBuffer(R, N);
 }
 
 /// SLH-DSA Verification (internal interface)

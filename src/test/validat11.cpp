@@ -1533,6 +1533,89 @@ static bool TestSLHDSAKeyGen(const char* name)
 	}
 }
 
+// Key generation draws SK.seed, SK.prf and PK.seed in turn. A failure before
+// the first draw, between any two draws, or part way through a draw must
+// leave an existing key pair exactly as it was.
+template <class PARAMS>
+static bool TestSLHDSAKeyGenFailure(const char* name)
+{
+	try {
+		AutoSeededRandomPool goodRng;
+		SLHDSAPrivateKey<PARAMS> key;
+		key.GenerateRandom(goodRng, g_nullNameValuePairs);
+		SecByteBlock before(key.GetPrivateKeyBytePtr(), PARAMS::SECRET_KEY_SIZE);
+		SecByteBlock beforePub(key.GetPublicKeyBytePtr(), PARAMS::PUBLIC_KEY_SIZE);
+		bool pass = true;
+
+		CountedFailRNG failFirst(0), failSecond(1), failThird(2);
+		PartialWriteFailRNG failPartWay;
+		RandomNumberGenerator* failing[] = { &failFirst, &failSecond, &failThird, &failPartWay };
+		for (unsigned int i = 0; i < 4; i++) {
+			bool threw = false;
+			try { key.GenerateRandom(*failing[i], g_nullNameValuePairs); }
+			catch (const Exception&) { threw = true; }
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " key generation completed with a failing generator" << std::endl;
+				pass = false;
+			}
+			if (!VerifyBufsEqual(key.GetPrivateKeyBytePtr(), before, before.size()) ||
+				!VerifyBufsEqual(key.GetPublicKeyBytePtr(), beforePub, beforePub.size())) {
+				std::cout << "FAILED:  " << name << " key pair changed by failed key generation" << std::endl;
+				pass = false;
+			}
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " failed key generation leaves key unchanged (4 cases)" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " failed key generation - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// A generator that fails during signing, before or part way through its
+// write, must not stop the signer from signing afterwards.
+template <class PARAMS>
+static bool TestSLHDSASignFailure(const char* name)
+{
+	try {
+		AutoSeededRandomPool rng;
+		SLHDSASigner<PARAMS> signer(rng);
+		SLHDSAVerifier<PARAMS> verifier(signer);
+		const byte message[] = "signing with a failing generator";
+		SecByteBlock signature(signer.SignatureLength());
+		bool pass = true;
+
+		CountedFailRNG failBefore(0);
+		PartialWriteFailRNG failPartWay;
+		RandomNumberGenerator* failing[] = { &failBefore, &failPartWay };
+		for (unsigned int i = 0; i < 2; i++) {
+			bool threw = false;
+			try { signer.SignMessage(*failing[i], message, sizeof(message), signature); }
+			catch (const Exception&) { threw = true; }
+			if (!threw) {
+				std::cout << "FAILED:  " << name << " signing completed with a failing generator" << std::endl;
+				pass = false;
+			}
+			size_t sigLen = signer.SignMessage(rng, message, sizeof(message), signature);
+			if (!verifier.VerifyMessage(message, sizeof(message), signature, sigLen)) {
+				std::cout << "FAILED:  " << name << " signing after a generator failure" << std::endl;
+				pass = false;
+			}
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " signing after a generator failure (2 cases)" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " signing after a generator failure - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 template <class PARAMS>
 static bool TestSLHDSASignVerify(const char* name)
 {
@@ -1927,12 +2010,16 @@ bool ValidateSLHDSA()
 	// SHA2 variants
 	pass = TestSLHDSAKeyGen<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 	pass = TestSLHDSASignVerify<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
+	pass = TestSLHDSAKeyGenFailure<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
+	pass = TestSLHDSASignFailure<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 	pass = TestSLHDSASerialization<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 	pass = TestSLHDSASaveLoad<SLHDSA_SHA2_128f>("SLH-DSA-SHA2-128f") && pass;
 
 	// SHAKE variants
 	pass = TestSLHDSAKeyGen<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 	pass = TestSLHDSASignVerify<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
+	pass = TestSLHDSAKeyGenFailure<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
+	pass = TestSLHDSASignFailure<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 	pass = TestSLHDSASerialization<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 	pass = TestSLHDSASaveLoad<SLHDSA_SHAKE_128f>("SLH-DSA-SHAKE-128f") && pass;
 
