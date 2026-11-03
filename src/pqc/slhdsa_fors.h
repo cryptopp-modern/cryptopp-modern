@@ -6,6 +6,7 @@
 #define CRYPTOPP_SLHDSA_FORS_H
 
 #include "slhdsa_internal.h"
+#include "wipe_guard.h"
 
 NAMESPACE_BEGIN(CryptoPP)
 NAMESPACE_BEGIN(SLHDSA_Internal)
@@ -59,17 +60,18 @@ void fors_treehash(byte *node, const byte *sk_seed,
         uint32_t leaf_idx = start_idx + i;
 
         // Generate leaf: F(PK.seed, ADRS, sk[leaf_idx])
-        byte sk[N];
-        fors_sk_gen<HASH_CTX, PARAMS>(sk, sk_seed, pub_seed, addr, leaf_idx);
-
-        // Hash the secret key to get leaf
         // FIPS 205 Algorithm 11: type stays FORS_TREE, no setTypeAndClear
         byte leaf[N];
-        set_tree_height(addr, 0);
-        set_tree_index(addr, leaf_idx);
-        HASH_CTX::thash_f(leaf, sk, pub_seed, addr);
+        {
+            byte sk[N];
+            PQC_Internal::WipeGuard wipeSk(sk, sizeof(sk));
+            fors_sk_gen<HASH_CTX, PARAMS>(sk, sk_seed, pub_seed, addr, leaf_idx);
 
-        SecureWipeBuffer(sk, N);
+            // Hash the secret key to get leaf
+            set_tree_height(addr, 0);
+            set_tree_index(addr, leaf_idx);
+            HASH_CTX::thash_f(leaf, sk, pub_seed, addr);
+        }
 
         // Push leaf onto stack
         std::memcpy(stack + stack_offset * N, leaf, N);
