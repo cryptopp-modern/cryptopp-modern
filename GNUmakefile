@@ -1797,15 +1797,10 @@ src/symmetric/rijndael.o : src/symmetric/rijndael.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
 endif
 
-# Only use CRYPTOPP_DATA_DIR if its not set in CXXFLAGS
+# Only use CRYPTOPP_DATA_DIR if its not set in CXXFLAGS. DataDir() lives in test.cpp,
+# so that is the only file that needs it.
 ifeq ($(findstring -DCRYPTOPP_DATA_DIR, $(CPPFLAGS)$(CXXFLAGS)),)
 ifneq ($(strip $(CRYPTOPP_DATA_DIR)),)
-src/test/validat%.o : src/test/validat%.cpp
-	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
-src/test/bench%.o : src/test/bench%.cpp
-	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
-src/test/datatest.o : src/test/datatest.cpp
-	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
 src/test/test.o : src/test/test.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
 endif
