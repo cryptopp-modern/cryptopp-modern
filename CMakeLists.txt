@@ -1574,15 +1574,9 @@ if(
         COMMENT "Copying TestData and TestVectors to build directory"
     )
 
+    # DataDir() is defined in test.cpp, the only file that needs the data dir.
     set_property(SOURCE
-        ${cryptopp_SOURCE_DIR}/src/test/bench3.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/datatest.cpp
         ${cryptopp_SOURCE_DIR}/src/test/test.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/validat0.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/validat4.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/validat7.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/validat8.cpp
-        ${cryptopp_SOURCE_DIR}/src/test/validat9.cpp
         APPEND PROPERTY
             COMPILE_DEFINITIONS
                 CRYPTOPP_DATA_DIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}/cryptopp/"
