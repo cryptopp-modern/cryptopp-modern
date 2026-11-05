@@ -1664,138 +1664,138 @@ endif # Dependencies
 NOSTD_CXXFLAGS=$(filter-out -stdlib=%,$(filter-out -std=%,$(CXXFLAGS)))
 
 # Cryptogams ARM asm implementation. AES needs -mthumb for Clang
-src/symmetric/aes_armv4.o : src/symmetric/aes_armv4.S
+aes_armv4.o : src/symmetric/aes_armv4.S
 	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_THUMB_FLAG) -c) $<
 
 # SSE, NEON or POWER7 available
-src/hash/blake2s_simd.o : src/hash/blake2s_simd.cpp
+blake2s_simd.o : src/hash/blake2s_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE2S_FLAG) -c) $<
 
 # SSE, NEON or POWER8 available
-src/hash/blake2b_simd.o : src/hash/blake2b_simd.cpp
+blake2b_simd.o : src/hash/blake2b_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE2B_FLAG) -c) $<
 
 # SSE4.1 available
-src/hash/blake3_simd.o : src/hash/blake3_simd.cpp
+blake3_simd.o : src/hash/blake3_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_FLAG) -c) $<
 
 # AVX2 available
-src/hash/blake3_avx2.o : src/hash/blake3_avx2.cpp
+blake3_avx2.o : src/hash/blake3_avx2.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_AVX2_FLAG) -c) $<
 
 # AVX512 available
-src/hash/blake3_avx512.o : src/hash/blake3_avx512.cpp
+blake3_avx512.o : src/hash/blake3_avx512.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(BLAKE3_AVX512_FLAG) -c) $<
 
 # SSE2 or NEON available
-src/symmetric/chacha_simd.o : src/symmetric/chacha_simd.cpp
+chacha_simd.o : src/symmetric/chacha_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHACHA_FLAG) -c) $<
 
 # AVX2 available
-src/symmetric/chacha_avx.o : src/symmetric/chacha_avx.cpp
+chacha_avx.o : src/symmetric/chacha_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHACHA_AVX2_FLAG) -c) $<
 
 # SSSE3 available
-src/symmetric/cham_simd.o : src/symmetric/cham_simd.cpp
+cham_simd.o : src/symmetric/cham_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CHAM_FLAG) -c) $<
 
 # SSE4.2 or ARMv8a available
-src/hash/crc_simd.o : src/hash/crc_simd.cpp
+crc_simd.o : src/hash/crc_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(CRC_FLAG) -c) $<
 
 # Power9 available
-src/random/darn.o : src/random/darn.cpp
+darn.o : src/random/darn.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(DARN_FLAG) -c) $<
 
 # SSE2 on i686
-src/pubkey/donna_sse.o : src/pubkey/donna_sse.cpp
+donna_sse.o : src/pubkey/donna_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SSE2_FLAG) -c) $<
 
 # Carryless multiply
-src/modes/gcm_simd.o : src/modes/gcm_simd.cpp
+gcm_simd.o : src/modes/gcm_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(GCM_FLAG) -c) $<
 
 # Carryless multiply
-src/core/gf2n_simd.o : src/core/gf2n_simd.cpp
+gf2n_simd.o : src/core/gf2n_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(GF2N_FLAG) -c) $<
 
 # SSSE3 available
-src/hash/keccak_simd.o : src/hash/keccak_simd.cpp
+keccak_simd.o : src/hash/keccak_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(KECCAK_FLAG) -c) $<
 
 # SSSE3 available
-src/symmetric/lea_simd.o : src/symmetric/lea_simd.cpp
+lea_simd.o : src/symmetric/lea_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LEA_FLAG) -c) $<
 
 # SSSE3 available
-src/hash/lsh256_sse.o : src/hash/lsh256_sse.cpp
+lsh256_sse.o : src/hash/lsh256_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH256_FLAG) -c) $<
 
 # AVX2 available
-src/hash/lsh256_avx.o : src/hash/lsh256_avx.cpp
+lsh256_avx.o : src/hash/lsh256_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH256_AVX2_FLAG) -c) $<
 
 # SSSE3 available
-src/hash/lsh512_sse.o : src/hash/lsh512_sse.cpp
+lsh512_sse.o : src/hash/lsh512_sse.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH512_FLAG) -c) $<
 
 # AVX2 available
-src/hash/lsh512_avx.o : src/hash/lsh512_avx.cpp
+lsh512_avx.o : src/hash/lsh512_avx.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(LSH512_AVX2_FLAG) -c) $<
 
 # NEON available
-src/core/neon_simd.o : src/core/neon_simd.cpp
+neon_simd.o : src/core/neon_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(NEON_FLAG) -c) $<
 
 # AltiVec available
-src/core/ppc_simd.o : src/core/ppc_simd.cpp
+ppc_simd.o : src/core/ppc_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(ALTIVEC_FLAG) -c) $<
 
 # AESNI or ARMv7a/ARMv8a available
-src/symmetric/rijndael_simd.o : src/symmetric/rijndael_simd.cpp
+rijndael_simd.o : src/symmetric/rijndael_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(AES_FLAG) -c) $<
 
 # SSE4.2/SHA-NI or ARMv8a available
-src/hash/sha_simd.o : src/hash/sha_simd.cpp
+sha_simd.o : src/hash/sha_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA_FLAG) -c) $<
 
 # Cryptogams SHA1/SHA256/SHA512 asm implementation.
-src/hash/sha%_armv4.o : src/hash/sha%_armv4.S
+sha%_armv4.o : src/hash/sha%_armv4.S
 	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_FLAG) -c) $<
 
 # SSE4.2/SHA-NI or ARMv8a available
-src/symmetric/shacal2_simd.o : src/symmetric/shacal2_simd.cpp
+shacal2_simd.o : src/symmetric/shacal2_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SHA_FLAG) -c) $<
 
 # SSSE3, NEON or POWER8 available
-src/symmetric/simon128_simd.o : src/symmetric/simon128_simd.cpp
+simon128_simd.o : src/symmetric/simon128_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SIMON128_FLAG) -c) $<
 
 # SSSE3, NEON or POWER8 available
-src/symmetric/speck128_simd.o : src/symmetric/speck128_simd.cpp
+speck128_simd.o : src/symmetric/speck128_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SPECK128_FLAG) -c) $<
 
 # AESNI available
-src/symmetric/sm4_simd.o : src/symmetric/sm4_simd.cpp
+sm4_simd.o : src/symmetric/sm4_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SM4_FLAG) -c) $<
 
 # IBM XLC -O3 optimization bug
 ifeq ($(XLC_COMPILER),1)
-src/hash/sm3.o : src/hash/sm3.cpp
+sm3.o : src/hash/sm3.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
-src/pubkey/donna_32.o : src/pubkey/donna_32.cpp
+donna_32.o : src/pubkey/donna_32.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
-src/pubkey/donna_64.o : src/pubkey/donna_64.cpp
+donna_64.o : src/pubkey/donna_64.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -O3,-O2,$(CXXFLAGS)) -c) $<
 endif
 
 # SSE2 on i686
-src/core/sse_simd.o : src/core/sse_simd.cpp
+sse_simd.o : src/core/sse_simd.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(SSE2_FLAG) -c) $<
 
 # Don't build Rijndael with UBsan. Too much noise due to unaligned data accesses.
 ifneq ($(findstring -fsanitize=undefined,$(CXXFLAGS)),)
-src/symmetric/rijndael.o : src/symmetric/rijndael.cpp
+rijndael.o : src/symmetric/rijndael.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(subst -fsanitize=undefined,,$(CXXFLAGS)) -c) $<
 endif
 
@@ -1803,12 +1803,12 @@ endif
 # so that is the only file that needs it.
 ifeq ($(findstring -DCRYPTOPP_DATA_DIR, $(CPPFLAGS)$(CXXFLAGS)),)
 ifneq ($(strip $(CRYPTOPP_DATA_DIR)),)
-src/test/test.o : src/test/test.cpp
+test.o : src/test/test.cpp
 	$(CXX) $(strip $(CPPFLAGS) -DCRYPTOPP_DATA_DIR=\"$(CRYPTOPP_DATA_DIR)\" $(CXXFLAGS) -c) $<
 endif
 endif
 
-src/test/validat1.o : src/test/validat1.cpp
+validat1.o : src/test/validat1.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) $(ALTIVEC_FLAG) -c) $<
 
 %.dllonly.o : %.cpp
