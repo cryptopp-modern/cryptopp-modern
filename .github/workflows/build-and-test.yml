@@ -815,6 +815,65 @@ jobs:
     - name: Run test vectors
       run: ./cryptest.exe tv all
 
+  linux-armhf-qemu:
+    # 32-bit ARM hard-float, both build systems, tests under QEMU. Checks that the
+    # Cryptogams asm builds without dropping the FPU and that every program has a
+    # non-executable stack.
+    name: Linux armhf (GCC cross, QEMU)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install cross toolchain and QEMU
+      run: sudo apt-get update && sudo apt-get install -y g++-arm-linux-gnueabihf qemu-user-static ninja-build
+
+    - name: Configure and build (CMake)
+      run: |
+        cmake -S . -B build-armhf -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=armv7l \
+          -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
+          -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ \
+          -DCMAKE_ASM_COMPILER=arm-linux-gnueabihf-gcc \
+          -DCMAKE_EXE_LINKER_FLAGS=-static
+        cmake --build build-armhf -j"$(nproc)"
+
+    - name: Build (GNUmakefile, -Wall)
+      run: |
+        make -j"$(nproc)" CXX=arm-linux-gnueabihf-g++ CC=arm-linux-gnueabihf-gcc \
+          AR=arm-linux-gnueabihf-ar RANLIB=arm-linux-gnueabihf-ranlib \
+          CXXFLAGS="-DNDEBUG -O2 -Wall" LDFLAGS=-static static cryptest.exe
+
+    - name: Check the asm objects and programs have a non-executable stack
+      run: |
+        fail=0
+        for o in $(find build-armhf -name '*_armv4.S.o') aes_armv4.o sha1_armv4.o sha256_armv4.o sha512_armv4.o; do
+          if arm-linux-gnueabihf-readelf -SW "$o" | grep -q '\.note\.GNU-stack'; then
+            echo "ok: $o"
+          else
+            echo "ERROR: $o has no .note.GNU-stack"; fail=1
+          fi
+        done
+        test "$(find build-armhf -name '*_armv4.S.o' | wc -l)" -eq 4 || { echo "ERROR: expected 4 CMake asm objects"; fail=1; }
+        for e in build-armhf/cryptest.exe cryptest.exe; do
+          flags=$(arm-linux-gnueabihf-readelf -lW "$e" | awk '/GNU_STACK/ {print $7}')
+          echo "$e GNU_STACK $flags"
+          test "$flags" = RW || { echo "ERROR: $e stack is not RW"; fail=1; }
+        done
+        exit $fail
+
+    - name: Run validation tests (CMake build)
+      working-directory: build-armhf
+      run: qemu-arm-static ./cryptest.exe v
+
+    - name: Run test vectors (CMake build)
+      working-directory: build-armhf
+      run: qemu-arm-static ./cryptest.exe tv all
+
+    - name: Run validation tests (GNUmakefile build)
+      run: qemu-arm-static ./cryptest.exe v
+
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
     runs-on: ubuntu-24.04
