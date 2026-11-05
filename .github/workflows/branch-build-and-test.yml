@@ -773,6 +773,22 @@ jobs:
           AR=arm-linux-gnueabihf-ar RANLIB=arm-linux-gnueabihf-ranlib \
           CXXFLAGS="-DNDEBUG -O2 -Wall" LDFLAGS=-static static cryptest.exe
 
+    - name: Check -fno-devirtualize is kept with command-line CXXFLAGS
+      shell: bash
+      run: |
+        fail=0
+        check() {
+          want=$1; shift
+          line=$("$@" -Bn CXX=arm-linux-gnueabihf-g++ validat9.o | grep -F validat9.cpp)
+          n=$(printf '%s\n' "$line" | tr ' ' '\n' | grep -cx -- -fno-devirtualize || true)
+          echo "$n: $line"
+          test -n "$line" && test "$n" -eq "$want" || { echo "ERROR: expected $want"; fail=1; }
+        }
+        check 1 make CXXFLAGS="-DNDEBUG -O2 -Wall"
+        check 1 env CXXFLAGS="-DNDEBUG -O2 -Wall" make
+        check 0 make CXXFLAGS="-DNDEBUG -O2 -Wall -fdevirtualize"
+        exit $fail
+
     - name: Check the asm objects and programs have a non-executable stack
       run: |
         fail=0

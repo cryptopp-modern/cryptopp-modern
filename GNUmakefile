@@ -890,13 +890,13 @@ endif
 # Fix for GH #1134 and GH #1141. We need to add -fno-devirtualize because GCC is removing
 # code we are using. https://github.com/weidai11/cryptopp/issues/1134 and
 # https://github.com/weidai11/cryptopp/issues/1141
-ifeq ($(findstring -fno-devirtualize,$(CXXFLAGS)),)
+ifeq ($(filter -fdevirtualize -fno-devirtualize,$(CXXFLAGS)),)
    TPROG = TestPrograms/test_nodevirtualize.cpp
    TOPT = -fno-devirtualize
    HAVE_OPT = $(shell $(TCOMMAND) 2>&1 | wc -w)
    ifeq ($(strip $(HAVE_OPT)),0)
-      CRYPTOPP_CXXFLAGS += -fno-devirtualize
-   endif # CRYPTOPP_CXXFLAGS
+      CRYPTOPP_NODEVIRT_FLAG := -fno-devirtualize
+   endif # CRYPTOPP_NODEVIRT_FLAG
 endif # -fno-devirtualize
 
 # Use -pthread whenever it is available. See http://www.hpl.hp.com/techreports/2004/HPL-2004-209.pdf
@@ -1311,6 +1311,14 @@ CPPFLAGS := $(strip $(CRYPTOPP_CPPFLAGS) $(CPPFLAGS) -Iinclude)
 CXXFLAGS := $(strip $(CRYPTOPP_CXXFLAGS) $(CXXFLAGS))
 ASFLAGS  := $(strip $(CRYPTOPP_ASFLAGS)  $(ASFLAGS))
 LDFLAGS  := $(strip $(CRYPTOPP_LDFLAGS)  $(LDFLAGS))
+
+# Keep the GCC workaround with command-line CXXFLAGS (GH #1134, #1141).
+# Pass -fdevirtualize to opt out.
+ifneq ($(strip $(CRYPTOPP_NODEVIRT_FLAG)),)
+  ifeq ($(filter -fdevirtualize -fno-devirtualize,$(CXXFLAGS)),)
+    override CXXFLAGS += $(CRYPTOPP_NODEVIRT_FLAG)
+  endif
+endif
 
 ###########################################################
 #####                Targets and Recipes              #####
