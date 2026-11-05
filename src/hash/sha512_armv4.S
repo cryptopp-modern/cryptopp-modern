@@ -1859,3 +1859,9 @@ cryptogams_sha512_block_data_order_neon:
 	bx	lr				@ .word	0xe12fff1e
 .size	cryptogams_sha512_block_data_order_neon,.-cryptogams_sha512_block_data_order_neon
 #endif
+
+@ Mark the stack non-executable. The Cryptogams sources leave
+@ this to the build, which does not always pass -Wa,--noexecstack.
+#if defined(__ELF__)
+.section	.note.GNU-stack,"",%progbits
+#endif

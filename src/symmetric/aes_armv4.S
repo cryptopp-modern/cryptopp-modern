@@ -1213,3 +1213,9 @@ _cryptogams_armv4_AES_decrypt_block:
 	sub	r10,r10,#1024
 	ldr	pc,[sp],#4		@ pop and return
 .size	_cryptogams_armv4_AES_decrypt_block,.-_cryptogams_armv4_AES_decrypt_block
+
+@ Mark the stack non-executable. The Cryptogams sources leave
+@ this to the build, which does not always pass -Wa,--noexecstack.
+#if defined(__ELF__)
+.section	.note.GNU-stack,"",%progbits
+#endif

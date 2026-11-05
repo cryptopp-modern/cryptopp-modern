@@ -2668,3 +2668,9 @@ cryptogams_sha256_block_data_order_neon:
 	ldmia	sp!,{r4,r5,r6,r7,r8,r9,r10,r11,r12,pc}
 .size	cryptogams_sha256_block_data_order_neon,.-cryptogams_sha256_block_data_order_neon
 #endif
+
+@ Mark the stack non-executable. The Cryptogams sources leave
+@ this to the build, which does not always pass -Wa,--noexecstack.
+#if defined(__ELF__)
+.section	.note.GNU-stack,"",%progbits
+#endif
