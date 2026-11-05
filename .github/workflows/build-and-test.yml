@@ -314,6 +314,9 @@ jobs:
         test -f build/install/lib/libcryptopp.a
         test -d build/install/include/cryptopp
         test -f build/install/include/cryptopp/aes.h
+        # Every header except validate.h and bench.h, which only serve cryptest, and the
+        # Windows resource.h.
+        test "$(ls include/cryptopp | grep -vxE 'validate\.h|bench\.h|resource\.h')" = "$(ls build/install/include/cryptopp)"
         test -f build/install/lib/cmake/cryptopp-modern/cryptopp-modernConfig.cmake
         # The default install ships cryptest and its data.
         test -f build/install/bin/cryptest.exe
@@ -904,6 +907,11 @@ jobs:
 
     - name: Run test vectors
       run: ./cryptest.exe tv all
+
+    - name: Check the installed headers
+      run: |
+        make install-lib DESTDIR="$PWD/staging" PREFIX=/usr
+        test "$(ls include/cryptopp | grep -vxE 'validate\.h|bench\.h')" = "$(ls staging/usr/include/cryptopp)"
 
   makefile-linux-clang-old:
     name: Makefile Linux Clang ${{ matrix.clang-version }}

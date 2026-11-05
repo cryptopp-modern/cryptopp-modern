@@ -1272,7 +1272,7 @@ OBJS := $(notdir $(OBJS))
 
 # List test.cpp first to tame C++ static initialization problems.
 TESTSRCS := src/test/adhoc.cpp src/test/test.cpp src/test/bench1.cpp src/test/bench2.cpp src/test/bench3.cpp src/test/datatest.cpp src/test/dlltest.cpp src/core/fipsalgt.cpp src/test/fipstest.cpp src/test/validat0.cpp src/test/validat1.cpp src/test/validat2.cpp src/test/validat3.cpp src/test/validat4.cpp src/test/validat5.cpp src/test/validat6.cpp src/test/validat7.cpp src/test/validat8.cpp src/test/validat9.cpp src/test/validat10.cpp src/test/validat11.cpp src/test/validat12.cpp src/test/validat_cve_2024_28285.cpp src/test/regtest1.cpp src/test/regtest2.cpp src/test/regtest3.cpp src/test/regtest4.cpp
-TESTINCL := include/cryptopp/bench.h include/cryptopp/factory.h include/cryptopp/validate.h
+TESTINCL := include/cryptopp/bench.h include/cryptopp/validate.h
 
 # Test objects - strip paths
 TESTOBJS := $(TESTSRCS:.cpp=.o)
@@ -1471,7 +1471,7 @@ install: cryptest.exe install-lib
 .PHONY: install-lib
 install-lib:
 	@-$(MKDIR) $(DESTDIR)$(INCLUDEDIR)/cryptopp
-	$(CP) include/cryptopp/*.h $(DESTDIR)$(INCLUDEDIR)/cryptopp
+	$(CP) $(filter-out $(TESTINCL),$(wildcard include/cryptopp/*.h)) $(DESTDIR)$(INCLUDEDIR)/cryptopp
 	$(CHMOD) u=rw,go=r $(DESTDIR)$(INCLUDEDIR)/cryptopp/*.h
 ifneq ($(wildcard libcryptopp.a),)
 	@-$(MKDIR) $(DESTDIR)$(LIBDIR)
