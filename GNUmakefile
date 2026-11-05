@@ -119,9 +119,11 @@ endif # clean
 endif # CRYPTOPP_DISABLE_ASM
 
 # Strip out -Wall, -Wextra and friends for feature testing. FORTIFY_SOURCE is removed
-# because it requires -O1 or higher, but we use -O0 to tame the optimizer.
+# because it requires -O1 or higher, but we use -O0 to tame the optimizer. LTO is
+# removed because with it GCC's annobin plugin warns that the filtered macros are not
+# defined, and any compiler output fails a probe.
 # Always print testing flags since some tests always happen, like 64-bit.
-TCXXFLAGS := $(filter-out -D_FORTIFY_SOURCE=% -M -MM -Wall -Wextra -Werror% -Wunused -Wconversion -Wp%, $(CPPFLAGS) $(CXXFLAGS))
+TCXXFLAGS := $(filter-out -flto% -D_FORTIFY_SOURCE=% -M -MM -Wall -Wextra -Werror% -Wunused -Wconversion -Wp%, $(CPPFLAGS) $(CXXFLAGS))
 ifneq ($(strip $(TCXXFLAGS)),)
   $(info Using testing flags: $(TCXXFLAGS))
 endif
