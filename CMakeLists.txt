@@ -345,7 +345,10 @@ function(check_compile_link_option opt var prog)
         list(APPEND definitions ${CRYPTOPP_MSVC_COMPILE_DEFINITIONS})
     endif()
     list(TRANSFORM definitions PREPEND "-D")
-    list(APPEND definitions ${opt})
+    # One argument per option. A string such as "-DFOO=1 -march=armv7-a" would
+    # otherwise be passed as a single definition, dropping the flags after it.
+    separate_arguments(opt_args UNIX_COMMAND "${opt}")
+    list(APPEND definitions ${opt_args})
     try_compile(
         COMMAND_SUCCESS
         ${CMAKE_BINARY_DIR}
