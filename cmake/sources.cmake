@@ -355,6 +355,7 @@ set(cryptopp_HEADERS
     include/cryptopp/emsa2.h
     include/cryptopp/eprecomp.h
     include/cryptopp/esign.h
+    include/cryptopp/factory.h
     include/cryptopp/fhmqv.h
     include/cryptopp/files.h
     include/cryptopp/filters.h
@@ -477,6 +478,7 @@ set(cryptopp_HEADERS
     include/cryptopp/wake.h
     include/cryptopp/whrlpool.h
     include/cryptopp/words.h
+    include/cryptopp/xaes_256_gcm.h
     include/cryptopp/xed25519.h
     include/cryptopp/xtr.h
     include/cryptopp/xtrcrypt.h
@@ -490,7 +492,6 @@ set(cryptopp_HEADERS
 # ***** Test headers *****
 set(cryptopp_HEADERS_TEST
     include/cryptopp/bench.h
-    include/cryptopp/factory.h
     include/cryptopp/validate.h
 )
 
