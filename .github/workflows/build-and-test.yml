@@ -768,6 +768,53 @@ jobs:
     - name: Run test vectors
       run: ./cryptest.exe tv all
 
+  makefile-fedora-lto:
+    # With Fedora's RPM flags, -flto in the feature probes made annobin
+    # emit warnings. The probes failed and the build fell back to
+    # -DCRYPTOPP_DISABLE_ASM.
+    name: Makefile Fedora LTO (GCC, rpm optflags)
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Install toolchain
+      run: dnf -y install gcc-c++ make git-core redhat-rpm-config annobin-plugin-gcc rpm-build
+
+    - uses: actions/checkout@v5
+
+    - name: Build library with rpm build flags
+      run: |
+        export CXXFLAGS="$(rpm --eval '%{optflags}') -DNDEBUG"
+        export LDFLAGS="$(rpm --eval '%{build_ldflags}')"
+        export AR=gcc-ar RANLIB=gcc-ranlib
+        make -j"$(nproc)" static dynamic cryptest.exe 2>&1 | tee build.log
+        test "${PIPESTATUS[0]}" -eq 0
+
+    - name: Check LTO was on and the feature probes kept the SIMD paths
+      run: |
+        # grep -c exits 1 on zero matches; keep going so the error below prints
+        lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
+        echo "LTO compile lines: $lto"
+        if [ "$lto" -eq 0 ]; then
+          echo "ERROR: the rpm build flags no longer enable LTO, so this job does not test it"; exit 1
+        fi
+        if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
+          echo "ERROR: feature probes failed under rpm optflags; asm and SIMD disabled"; exit 1
+        fi
+        n=$(grep -cE -- ' -m(sse4\.1|aes|pclmul|sha|avx2) ' build.log || true)
+        echo "SIMD compile lines: $n"
+        test "$n" -gt 0
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
     runs-on: ubuntu-24.04
