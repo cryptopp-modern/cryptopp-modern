@@ -189,8 +189,9 @@ ifeq ($(filter -O% -xO%,$(CPPFLAGS)$(CXXFLAGS)),)
   endif
 endif
 
-# Needed when the assembler is invoked
-ifeq ($(findstring -Wa,--noexecstack,$(ASFLAGS)$(CXXFLAGS)),)
+# Needed when the assembler is invoked. Search for --noexecstack alone: a comma
+# ends the $(findstring) search string, so -Wa,--noexecstack would match -Wall.
+ifeq ($(findstring --noexecstack,$(ASFLAGS)$(CXXFLAGS)),)
   CRYPTOPP_ASFLAGS += -Wa,--noexecstack
 endif
 
