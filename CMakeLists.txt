@@ -860,13 +860,8 @@ if(
     AND NOT CRYPTOPP_DISABLE_ASM
 )
     list(APPEND cryptopp_SOURCES_ASM ${cryptopp_SOURCES_ASM_ARM})
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND CRYPTOGAMS_ARM_FLAG -march=armv7-a)
-        list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG -march=armv7-a -mthumb)
-    else()
-        list(APPEND CRYPTOGAMS_ARM_FLAG -march=armv7-a)
-        list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG -march=armv7-a)
-    endif()
+    # Flags are set after enable_language(ASM), below.
+    set(CRYPTOPP_CRYPTOGAMS_ARM ON)
 endif()
 
 # ##############################################################################
@@ -1253,18 +1248,6 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "${CRYPTOPP_SM4_FLAGS}"
 )
 
-set_source_files_properties(
-    ${cryptopp_SOURCE_DIR}/src/symmetric/aes_armv4.S
-    PROPERTIES COMPILE_OPTIONS "${CRYPTOGAMS_ARM_THUMB_FLAG}"
-)
-
-foreach(file sha1_armv4.S sha256_armv4.S sha512_armv4.S)
-    set_source_files_properties(
-        ${cryptopp_SOURCE_DIR}/src/hash/${file}
-        PROPERTIES COMPILE_OPTIONS "${CRYPTOGAMS_ARM_FLAG}"
-    )
-endforeach()
-
 # IBM XLC -O3 optimization bug
 if(CMAKE_CXX_COMPILER MATCHES "xlC")
     foreach(file sm3.cpp donna_32.cpp donna_64.cpp)
@@ -1291,6 +1274,88 @@ set_source_files_properties(
 # CryptoGAMS ARM sources use GNU assembler syntax.
 if((CRYPTOPP_ARM32 OR CRYPTOPP_ARMV8) AND NOT MSVC AND NOT CRYPTOPP_DISABLE_ASM)
     enable_language(ASM)
+endif()
+
+# Only add -march=armv7-a to the Cryptogams sources when the assembler is not
+# already targeting ARMv7 or later. On a hard-float toolchain it drops the FPU
+# and fails with "selected architecture lacks an FPU". Probe with the ASM command
+# and flags, which build the .S files; the C++ flags can differ. Multi-config
+# generators ask once per configuration.
+if(CRYPTOPP_CRYPTOGAMS_ARM)
+    set(cryptogams_asm_command ${CMAKE_ASM_COMPILER})
+    if(CMAKE_ASM_COMPILER_ARG1)
+        separate_arguments(cryptogams_arg1 UNIX_COMMAND "${CMAKE_ASM_COMPILER_ARG1}")
+        list(APPEND cryptogams_asm_command ${cryptogams_arg1})
+    endif()
+    # CMake passes the target only to compilers that take one, such as Clang. GCC
+    # has no such option, so a toolchain file setting it must not break the probe.
+    if(CMAKE_ASM_COMPILER_TARGET AND CMAKE_ASM_COMPILE_OPTIONS_TARGET)
+        if(CMAKE_ASM_COMPILE_OPTIONS_TARGET MATCHES " $")
+            string(STRIP "${CMAKE_ASM_COMPILE_OPTIONS_TARGET}" cryptogams_target_option)
+            list(APPEND cryptogams_asm_command ${cryptogams_target_option} ${CMAKE_ASM_COMPILER_TARGET})
+        else()
+            list(APPEND cryptogams_asm_command "${CMAKE_ASM_COMPILE_OPTIONS_TARGET}${CMAKE_ASM_COMPILER_TARGET}")
+        endif()
+    endif()
+    set(cryptogams_probe "${CMAKE_BINARY_DIR}/CMakeFiles/cryptogams_arch.S")
+    file(WRITE "${cryptogams_probe}" "")
+
+    get_property(cryptogams_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(cryptogams_multi_config)
+        set(cryptogams_configs ${CMAKE_CONFIGURATION_TYPES})
+    else()
+        set(cryptogams_configs "${CMAKE_BUILD_TYPE}")
+    endif()
+
+    foreach(cryptogams_config IN LISTS cryptogams_configs)
+        set(cryptogams_asm_flags "${CMAKE_ASM_FLAGS}")
+        if(cryptogams_config)
+            string(TOUPPER "${cryptogams_config}" cryptogams_config_upper)
+            string(APPEND cryptogams_asm_flags " ${CMAKE_ASM_FLAGS_${cryptogams_config_upper}}")
+        endif()
+        separate_arguments(cryptogams_asm_flags UNIX_COMMAND "${cryptogams_asm_flags}")
+        execute_process(
+            COMMAND ${cryptogams_asm_command} ${cryptogams_asm_flags} -dM -E "${cryptogams_probe}"
+            RESULT_VARIABLE cryptogams_result
+            OUTPUT_VARIABLE cryptogams_defines
+            ERROR_QUIET
+        )
+        set(cryptogams_armv7 OFF)
+        if(cryptogams_result EQUAL 0 AND cryptogams_defines MATCHES "#define __ARM_ARCH ([0-9]+)")
+            if(CMAKE_MATCH_1 GREATER_EQUAL 7)
+                set(cryptogams_armv7 ON)
+            endif()
+        endif()
+
+        if(cryptogams_multi_config)
+            set(cryptogams_label " (${cryptogams_config})")
+            set(cryptogams_march "$<$<CONFIG:${cryptogams_config}>:-march=armv7-a>")
+        else()
+            set(cryptogams_label "")
+            set(cryptogams_march -march=armv7-a)
+        endif()
+        if(cryptogams_armv7)
+            message(STATUS "[cryptopp-modern] Cryptogams ARM assembler targets ARMv7 or later${cryptogams_label} - yes")
+        else()
+            message(STATUS "[cryptopp-modern] Cryptogams ARM assembler targets ARMv7 or later${cryptogams_label} - no, adding -march=armv7-a")
+            list(APPEND CRYPTOGAMS_ARM_FLAG "${cryptogams_march}")
+            list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG "${cryptogams_march}")
+        endif()
+    endforeach()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG -mthumb)
+    endif()
+
+    set_source_files_properties(
+        ${cryptopp_SOURCE_DIR}/src/symmetric/aes_armv4.S
+        PROPERTIES COMPILE_OPTIONS "${CRYPTOGAMS_ARM_THUMB_FLAG}"
+    )
+    foreach(file sha1_armv4.S sha256_armv4.S sha512_armv4.S)
+        set_source_files_properties(
+            ${cryptopp_SOURCE_DIR}/src/hash/${file}
+            PROPERTIES COMPILE_OPTIONS "${CRYPTOGAMS_ARM_FLAG}"
+        )
+    endforeach()
 endif()
 
 # ------------------------------------------------------------------------------

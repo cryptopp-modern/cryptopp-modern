@@ -1218,9 +1218,10 @@ endif
 # Also see https://www.cryptopp.com/wiki/Cryptogams.
 ifeq ($(IS_ARM32)$(IS_LINUX),11)
   ifeq ($(filter -DCRYPTOPP_DISABLE_ASM -DCRYPTOPP_DISABLE_ARM_NEON,$(CRYPTOPP_CPPFLAGS)$(CPPFLAGS)$(CXXFLAGS)),)
-    # Do not use -march=armv7 if the compiler is already targeting the ISA.
+    # Do not use -march=armv7 if the compiler is already targeting ARMv7 or later.
+    # On a hard-float target it drops the FPU. Ask with the flags the asm recipes use.
     # Also see https://github.com/weidai11/cryptopp/issues/1094
-    ifeq ($(shell $(CXX) -dM -E TestPrograms/test_cxx.cpp 2>/dev/null | grep -E '__ARM_ARCH 7|__ARM_ARCH_7A__'),)
+    ifeq ($(shell $(CXX) $(CPPFLAGS) $(ASFLAGS) $(filter-out -std=% -stdlib=%,$(CXXFLAGS)) -dM -E -x assembler-with-cpp /dev/null 2>/dev/null | grep -E 'define __ARM_ARCH ([7-9]|[1-9][0-9])|__ARM_ARCH_7A__'),)
       CRYPTOGAMS_ARMV7_FLAG = -march=armv7-a
     endif
     ifeq ($(CLANG_COMPILER),1)
