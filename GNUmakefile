@@ -158,14 +158,14 @@ endif
 BUILD ?= relwithdebinfo
 
 # Base CPPFLAGS and CXXFLAGS used if the user did not specify them
-ifeq ($(filter -DDEBUG -DCRYPTOPP_DEBUG -DNDEBUG,$(CPPFLAGS)$(CXXFLAGS)),)
+ifeq ($(filter -DDEBUG -DCRYPTOPP_DEBUG -DNDEBUG,$(CPPFLAGS) $(CXXFLAGS)),)
   ifeq ($(BUILD),debug)
     CRYPTOPP_CPPFLAGS += -DDEBUG
   else
     CRYPTOPP_CPPFLAGS += -DNDEBUG
   endif
 endif
-ifeq ($(filter -g%,$(CPPFLAGS)$(CXXFLAGS)),)
+ifeq ($(filter -g%,$(CPPFLAGS) $(CXXFLAGS)),)
   ifneq ($(BUILD),release)
     ifeq ($(SUN_COMPILER),1)
       CRYPTOPP_CXXFLAGS += -g
@@ -174,7 +174,7 @@ ifeq ($(filter -g%,$(CPPFLAGS)$(CXXFLAGS)),)
     endif
   endif
 endif
-ifeq ($(filter -O% -xO%,$(CPPFLAGS)$(CXXFLAGS)),)
+ifeq ($(filter -O% -xO%,$(CPPFLAGS) $(CXXFLAGS)),)
   ifeq ($(BUILD),debug)
     CRYPTOPP_CXXFLAGS += -O0
     ZOPT = -O0
@@ -1101,7 +1101,7 @@ endif # Valgrind
 
 # Debug testing on GNU systems. Triggered by -DDEBUG.
 #   Newlib test due to http://sourceware.org/bugzilla/show_bug.cgi?id=20268
-ifneq ($(filter -DDEBUG -DDEBUG=1,$(CPPFLAGS)$(CXXFLAGS)),)
+ifneq ($(filter -DDEBUG -DDEBUG=1,$(CPPFLAGS) $(CXXFLAGS)),)
   TPROG = TestPrograms/test_cxx.cpp
   TOPT =
   USING_GLIBCXX := $(shell $(CXX) $(CPPFLAGS) $(CXXFLAGS) -E $(TPROG) -c 2>&1 | $(GREP) -i -c "__GLIBCXX__")
@@ -1217,7 +1217,7 @@ endif
 # Limit to Linux. The source files target the GNU assembler.
 # Also see https://www.cryptopp.com/wiki/Cryptogams.
 ifeq ($(IS_ARM32)$(IS_LINUX),11)
-  ifeq ($(filter -DCRYPTOPP_DISABLE_ASM -DCRYPTOPP_DISABLE_ARM_NEON,$(CRYPTOPP_CPPFLAGS)$(CPPFLAGS)$(CXXFLAGS)),)
+  ifeq ($(filter -DCRYPTOPP_DISABLE_ASM -DCRYPTOPP_DISABLE_ARM_NEON,$(CRYPTOPP_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS)),)
     # Do not use -march=armv7 if the compiler is already targeting ARMv7 or later.
     # On a hard-float target it drops the FPU. Ask with the flags the asm recipes use.
     # Also see https://github.com/weidai11/cryptopp/issues/1094
