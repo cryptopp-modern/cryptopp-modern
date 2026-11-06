@@ -1690,6 +1690,65 @@ bool TestBLAKE2Arguments(const BLAKE2_SizeAnswer *answers, size_t answerCount)
 		std::cout << (fail ? "FAILED   " : "passed   ") << "in-progress hash preserved after a rejected digest size\n";
 	}
 
+	// Salt and personalization sizes, and null pointers with a length, through the constructor
+	{
+		unsigned int rejected = 0;
+		try { HASH hash(key, HASH::MAX_KEYLENGTH, key, HASH::SALTSIZE+1); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(key, HASH::MAX_KEYLENGTH, NULLPTR, 0, key, HASH::PERSONALIZATIONSIZE+1); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(NULLPTR, HASH::MAX_KEYLENGTH); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(key, HASH::MAX_KEYLENGTH, NULLPTR, HASH::SALTSIZE); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(key, HASH::MAX_KEYLENGTH, NULLPTR, 0, NULLPTR, HASH::PERSONALIZATIONSIZE); } catch (const InvalidArgument&) { ++rejected; }
+		fail = rejected != 5;
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "over-long and null salt, personalization and key rejected by the constructor, " << rejected << " of 5\n";
+
+		fail = true;
+		try { HASH hash; hash.SetKey(NULLPTR, HASH::MAX_KEYLENGTH); }
+		catch (const InvalidArgument&) { fail = false; }
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "null key with a length rejected by SetKey\n";
+
+		// Check size limits, state preservation and invalid TreeMode types.
+		// Each parameter set is a temporary of its SetKey() call: a mismatched TreeMode is
+		// never marked used, and AlgorithmParameters throws ParameterNotUsed from its
+		// destructor unless an exception is already unwinding.
+		const byte *keyPtr = key, *nullPtr = NULLPTR;
+		const size_t badParamCount = 5;
+		byte expected[HASH::DIGESTSIZE], actual[HASH::DIGESTSIZE];
+		rejected = 0;
+		fail = false;
+		try
+		{
+			HASH limits(key, HASH::MAX_KEYLENGTH, key, HASH::SALTSIZE, key, HASH::PERSONALIZATIONSIZE);
+			limits.Update(reinterpret_cast<const byte*>("abc"), 3);
+			limits.Final(expected);
+
+			for (size_t i = 0; i < badParamCount; ++i)
+			{
+				HASH hash(key, HASH::MAX_KEYLENGTH, key, HASH::SALTSIZE, key, HASH::PERSONALIZATIONSIZE);
+				hash.Update(reinterpret_cast<const byte*>("abc"), 3);
+				try
+				{
+					switch (i)
+					{
+					case 0: hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::Salt(), ConstByteArrayParameter(keyPtr, HASH::SALTSIZE+1))); break;
+					case 1: hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::Personalization(), ConstByteArrayParameter(keyPtr, HASH::PERSONALIZATIONSIZE+1))); break;
+					case 2: hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::Salt(), ConstByteArrayParameter(nullPtr, HASH::SALTSIZE))); break;
+					case 3: hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::Personalization(), ConstByteArrayParameter(nullPtr, HASH::PERSONALIZATIONSIZE))); break;
+					case 4: hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::TreeMode(), 1)); break;
+					}
+				}
+				catch (const InvalidArgument&) { ++rejected; }
+				hash.Final(actual);
+				fail = fail || std::memcmp(expected, actual, sizeof(expected)) != 0;
+			}
+		}
+		catch (const Exception&) { fail = true; }
+		fail = fail || rejected != badParamCount;
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "limits accepted; " << rejected << " of " << badParamCount << " bad SetKey parameters rejected with the hash preserved\n";
+	}
+
 	return pass;
 }
 
