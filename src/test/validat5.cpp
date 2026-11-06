@@ -1578,6 +1578,121 @@ bool ValidateSipHash()
 	return pass;
 }
 
+// Digest of "abc" at digest size 1 and DIGESTSIZE, unkeyed and with a MAX_KEYLENGTH
+// key of 'A', 'B', ... repeating. Generated with Python 3.12 hashlib.
+struct BLAKE2_SizeAnswer
+{
+	size_t klen, dlen;
+	const char *digest;
+};
+
+const BLAKE2_SizeAnswer blake2sSizeAnswers[] = {
+	{ 0, 1, "\x0d" },
+	{ 0, 32, "\x50\x8c\x5e\x8c\x32\x7c\x14\xe2\xe1\xa7\x2b\xa3\x4e\xeb\x45\x2f\x37\x45\x8b\x20\x9e\xd6\x3a\x29\x4d\x99\x9b\x4c\x86\x67\x59\x82" },
+	{ 32, 1, "\xff" },
+	{ 32, 32, "\xf0\xb0\x2f\xb4\xa8\xbe\x71\x49\x5b\x0b\xbe\x89\x0e\x7b\xe8\x91\x38\xf7\x9f\x29\x81\xf5\x34\x49\xff\x13\x77\xe4\xd7\xa5\x2f\x3a" }
+};
+
+const BLAKE2_SizeAnswer blake2bSizeAnswers[] = {
+	{ 0, 1, "\x6b" },
+	{ 0, 64, "\xba\x80\xa5\x3f\x98\x1c\x4d\x0d\x6a\x27\x97\xb6\x9f\x12\xf6\xe9\x4c\x21\x2f\x14\x68\x5a\xc4\xb7\x4b\x12\xbb\x6f\xdb\xff\xa2\xd1\x7d\x87\xc5\x39\x2a\xab\x79\x2d\xc2\x52\xd5\xde\x45\x33\xcc\x95\x18\xd3\x8a\xa8\xdb\xf1\x92\x5a\xb9\x23\x86\xed\xd4\x00\x99\x23" },
+	{ 64, 1, "\x74" },
+	{ 64, 64, "\xec\x16\x56\xc7\xa1\x6b\xe5\x11\xef\x22\x7c\x70\xff\x20\x94\xd1\x3d\x77\xe1\xa9\xca\x55\xc3\xfb\xc3\x81\xcb\xf1\x31\x68\xb7\x89\x41\x6d\x3d\x0a\x34\xe0\x6b\x70\x69\x75\x14\xcd\xf5\xf6\x87\xf2\x49\xec\x4d\x9d\xbd\xef\x4b\x63\x60\x14\xa1\x97\xda\xdc\x2f\xd1" }
+};
+
+// Check BLAKE2s and BLAKE2b argument validation in release builds.
+template <class HASH>
+bool TestBLAKE2Arguments(const BLAKE2_SizeAnswer *answers, size_t answerCount)
+{
+	bool pass = true, fail;
+	byte key[2*HASH::BLOCKSIZE];
+	for (size_t i = 0; i < sizeof(key); ++i)
+		key[i] = static_cast<byte>(0x41 + i % 26);
+
+	// The second and third lengths overflowed the key buffer in release builds
+	const size_t badKeyLengths[] = { HASH::MAX_KEYLENGTH+1, HASH::BLOCKSIZE+1, sizeof(key), (std::numeric_limits<size_t>::max)() };
+	for (size_t i = 0; i < COUNTOF(badKeyLengths); ++i)
+	{
+		fail = true;
+		try { HASH hash(key, badKeyLengths[i]); }
+		catch (const InvalidKeyLength&) { fail = false; }
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "key length " << badKeyLengths[i] << " rejected\n";
+	}
+
+	// Reject invalid digest sizes through each constructor and SetKey().
+	// 4096 made Final() read past the object; UINT_MAX arrives as -1 through SetKey.
+	const unsigned int badDigestSizes[] = { 0, HASH::DIGESTSIZE+1, 100, 4096, (std::numeric_limits<unsigned int>::max)() };
+	for (size_t i = 0; i < COUNTOF(badDigestSizes); ++i)
+	{
+		const unsigned int digestSize = badDigestSizes[i];
+		unsigned int rejected = 0;
+		try { HASH hash(false, digestSize); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(digestSize); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash(key, HASH::MAX_KEYLENGTH, NULLPTR, 0, NULLPTR, 0, false, digestSize); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash; hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), static_cast<int>(digestSize))); } catch (const InvalidArgument&) { ++rejected; }
+		fail = rejected != 4;
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "digest size " << digestSize << " rejected by " << rejected << " of 4 paths\n";
+	}
+
+	// The limits themselves are still accepted
+	try
+	{
+		HASH keyed(key, HASH::MAX_KEYLENGTH, NULLPTR, 0, NULLPTR, 0, false, HASH::DIGESTSIZE);
+		HASH smallest(1u);
+		HASH viaSetKey;
+		viaSetKey.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), 1));
+		fail = keyed.DigestSize() != HASH::DIGESTSIZE || smallest.DigestSize() != 1 || viaSetKey.DigestSize() != 1;
+	}
+	catch (const Exception&) { fail = true; }
+	pass = pass && !fail;
+	std::cout << (fail ? "FAILED   " : "passed   ") << "maximum key and digest size limits accepted\n";
+
+	// Negative digest sizes through the SetKey() parameter
+	const int negativeDigestSizes[] = { -1, -static_cast<int>(HASH::DIGESTSIZE) };
+	for (size_t i = 0; i < COUNTOF(negativeDigestSizes); ++i)
+	{
+		fail = true;
+		try { HASH hash; hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), negativeDigestSizes[i])); }
+		catch (const InvalidArgument&) { fail = false; }
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "SetKey digest size " << negativeDigestSizes[i] << " rejected\n";
+	}
+
+	// Output at the size limits
+	for (size_t i = 0; i < answerCount; ++i)
+	{
+		byte digest[HASH::DIGESTSIZE];
+		HASH hash(key, answers[i].klen, NULLPTR, 0, NULLPTR, 0, false, static_cast<unsigned int>(answers[i].dlen));
+		hash.Update(reinterpret_cast<const byte*>("abc"), 3);
+		hash.TruncatedFinal(digest, answers[i].dlen);
+		fail = hash.DigestSize() != answers[i].dlen || std::memcmp(digest, answers[i].digest, answers[i].dlen) != 0;
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "key length " << answers[i].klen << " digest size " << answers[i].dlen << " known answer\n";
+	}
+
+	// A rejected SetKey() leaves an in-progress hash untouched
+	{
+		byte expected[HASH::DIGESTSIZE], actual[HASH::DIGESTSIZE];
+		HASH reference;
+		reference.Update(reinterpret_cast<const byte*>("abc"), 3);
+		reference.Final(expected);
+
+		HASH hash;
+		hash.Update(reinterpret_cast<const byte*>("abc"), 3);
+		fail = false;
+		try { hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), 0)); fail = true; }
+		catch (const InvalidArgument&) {}
+		hash.Final(actual);
+		fail = fail || std::memcmp(expected, actual, sizeof(expected)) != 0;
+		pass = pass && !fail;
+		std::cout << (fail ? "FAILED   " : "passed   ") << "in-progress hash preserved after a rejected digest size\n";
+	}
+
+	return pass;
+}
+
 struct BLAKE2_TestTuples
 {
 	const char *key, *message, *digest;
@@ -2035,6 +2150,8 @@ bool ValidateBLAKE2s()
 
 	std::cout << (!pass ? "FAILED   " : "passed   ") << COUNTOF(tests)+1 << " hashes and keyed hashes" << std::endl;
 
+	pass = TestBLAKE2Arguments<BLAKE2s>(blake2sSizeAnswers, COUNTOF(blake2sSizeAnswers)) && pass;
+
 	return pass;
 }
 
@@ -2488,6 +2605,8 @@ bool ValidateBLAKE2b()
 	}
 
 	std::cout << (!pass ? "FAILED   " : "passed   ") << COUNTOF(tests)+1 << " hashes and keyed hashes" << std::endl;
+
+	pass = TestBLAKE2Arguments<BLAKE2b>(blake2bSizeAnswers, COUNTOF(blake2bSizeAnswers)) && pass;
 
 	return pass;
 }
