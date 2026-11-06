@@ -359,9 +359,6 @@ BLAKE2s::BLAKE2s(const byte *key, size_t keyLength, const byte* salt, size_t sal
     const byte* personalization, size_t personalizationLength, bool treeMode, unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(static_cast<unsigned int>(keyLength)), m_treeMode(treeMode)
 {
-    CRYPTOPP_ASSERT(saltLength <= SALTSIZE);
-    CRYPTOPP_ASSERT(personalizationLength <= PERSONALIZATIONSIZE);
-
     ThrowIfInvalidKeyLength(keyLength);
     UncheckedSetKey(key, static_cast<unsigned int>(keyLength), MakeParameters
         (Name::DigestSize(),(int)digestSize)
@@ -374,9 +371,6 @@ BLAKE2b::BLAKE2b(const byte *key, size_t keyLength, const byte* salt, size_t sal
     const byte* personalization, size_t personalizationLength, bool treeMode, unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(static_cast<unsigned int>(keyLength)), m_treeMode(treeMode)
 {
-    CRYPTOPP_ASSERT(saltLength <= SALTSIZE);
-    CRYPTOPP_ASSERT(personalizationLength <= PERSONALIZATIONSIZE);
-
     ThrowIfInvalidKeyLength(keyLength);
     UncheckedSetKey(key, static_cast<unsigned int>(keyLength), MakeParameters
         (Name::DigestSize(),(int)digestSize)
@@ -387,10 +381,22 @@ BLAKE2b::BLAKE2b(const byte *key, size_t keyLength, const byte* salt, size_t sal
 
 void BLAKE2s::UncheckedSetKey(const byte *key, unsigned int length, const CryptoPP::NameValuePairs& params)
 {
-    // Validate the digest size before modifying the state.
+    // Validate parameters before modifying the state.
     const int digestSize = params.GetIntValueWithDefault(Name::DigestSize(), static_cast<int>(m_digestSize));
     if (digestSize < 1 || digestSize > static_cast<int>(DIGESTSIZE))
         throw InvalidArgument("BLAKE2s: digest size must be 1 to 32 bytes");
+
+    ConstByteArrayParameter salt, personalization;
+    (void)params.GetValue(Name::Salt(), salt);
+    (void)params.GetValue(Name::Personalization(), personalization);
+    bool treeMode = m_treeMode;
+    (void)params.GetValue(Name::TreeMode(), treeMode);
+    if (salt.size() > SALTSIZE)
+        throw InvalidArgument("BLAKE2s: salt must be at most 8 bytes");
+    if (personalization.size() > PERSONALIZATIONSIZE)
+        throw InvalidArgument("BLAKE2s: personalization must be at most 8 bytes");
+    if ((!key && length) || (!salt.begin() && salt.size()) || (!personalization.begin() && personalization.size()))
+        throw InvalidArgument("BLAKE2s: key, salt and personalization must not be null with a length");
 
     if (key && length)
     {
@@ -409,14 +415,13 @@ void BLAKE2s::UncheckedSetKey(const byte *key, unsigned int length, const Crypto
 
     m_state.Reset();
     m_block.Reset(m_digestSize, m_keyLength);
-    (void)params.GetValue(Name::TreeMode(), m_treeMode);
+    m_treeMode = treeMode;
 
-    ConstByteArrayParameter t;
-    if (params.GetValue(Name::Salt(), t) && t.begin() && t.size())
-        memcpy_s(m_block.salt(), SALTSIZE, t.begin(), t.size());
+    if (salt.size())
+        std::memcpy(m_block.salt(), salt.begin(), salt.size());
 
-    if (params.GetValue(Name::Personalization(), t) && t.begin() && t.size())
-        memcpy_s(m_block.personalization(), PERSONALIZATIONSIZE, t.begin(), t.size());
+    if (personalization.size())
+        std::memcpy(m_block.personalization(), personalization.begin(), personalization.size());
 
     Restart();
 }
@@ -427,6 +432,18 @@ void BLAKE2b::UncheckedSetKey(const byte *key, unsigned int length, const Crypto
     if (digestSize < 1 || digestSize > static_cast<int>(DIGESTSIZE))
         throw InvalidArgument("BLAKE2b: digest size must be 1 to 64 bytes");
 
+    ConstByteArrayParameter salt, personalization;
+    (void)params.GetValue(Name::Salt(), salt);
+    (void)params.GetValue(Name::Personalization(), personalization);
+    bool treeMode = m_treeMode;
+    (void)params.GetValue(Name::TreeMode(), treeMode);
+    if (salt.size() > SALTSIZE)
+        throw InvalidArgument("BLAKE2b: salt must be at most 16 bytes");
+    if (personalization.size() > PERSONALIZATIONSIZE)
+        throw InvalidArgument("BLAKE2b: personalization must be at most 16 bytes");
+    if ((!key && length) || (!salt.begin() && salt.size()) || (!personalization.begin() && personalization.size()))
+        throw InvalidArgument("BLAKE2b: key, salt and personalization must not be null with a length");
+
     if (key && length)
     {
         m_key.New(BLOCKSIZE);
@@ -444,14 +461,13 @@ void BLAKE2b::UncheckedSetKey(const byte *key, unsigned int length, const Crypto
 
     m_state.Reset();
     m_block.Reset(m_digestSize, m_keyLength);
-    (void)params.GetValue(Name::TreeMode(), m_treeMode);
+    m_treeMode = treeMode;
 
-    ConstByteArrayParameter t;
-    if (params.GetValue(Name::Salt(), t) && t.begin() && t.size())
-        memcpy_s(m_block.salt(), SALTSIZE, t.begin(), t.size());
+    if (salt.size())
+        std::memcpy(m_block.salt(), salt.begin(), salt.size());
 
-    if (params.GetValue(Name::Personalization(), t) && t.begin() && t.size())
-        memcpy_s(m_block.personalization(), PERSONALIZATIONSIZE, t.begin(), t.size());
+    if (personalization.size())
+        std::memcpy(m_block.personalization(), personalization.begin(), personalization.size());
 
     Restart();
 }

@@ -277,7 +277,9 @@ public:
     /// \param treeMode flag indicating tree mode
     /// \param digestSize the digest size, in bytes
     /// \throw InvalidKeyLength if keyLength is larger than MAX_KEYLENGTH
-    /// \throw InvalidArgument if digestSize is 0 or larger than DIGESTSIZE
+    /// \throw InvalidArgument if digestSize is 0 or larger than DIGESTSIZE, if saltLength is
+    ///   larger than SALTSIZE or personalizationLength larger than PERSONALIZATIONSIZE, or if
+    ///   key, salt or personalization is null with a nonzero length
     /// \since Crypto++ 5.6.4
     BLAKE2s(const byte *key, size_t keyLength, const byte* salt = NULLPTR, size_t saltLength = 0,
         const byte* personalization = NULLPTR, size_t personalizationLength = 0,
@@ -388,7 +390,9 @@ public:
     /// \param treeMode flag indicating tree mode
     /// \param digestSize the digest size, in bytes
     /// \throw InvalidKeyLength if keyLength is larger than MAX_KEYLENGTH
-    /// \throw InvalidArgument if digestSize is 0 or larger than DIGESTSIZE
+    /// \throw InvalidArgument if digestSize is 0 or larger than DIGESTSIZE, if saltLength is
+    ///   larger than SALTSIZE or personalizationLength larger than PERSONALIZATIONSIZE, or if
+    ///   key, salt or personalization is null with a nonzero length
     /// \since Crypto++ 5.6.4
     BLAKE2b(const byte *key, size_t keyLength, const byte* salt = NULLPTR, size_t saltLength = 0,
         const byte* personalization = NULLPTR, size_t personalizationLength = 0,
