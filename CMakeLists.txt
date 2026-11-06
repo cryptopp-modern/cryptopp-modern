@@ -855,11 +855,13 @@ if(CRYPTOPP_ARM32 AND NOT CRYPTOPP_DISABLE_ARM_NEON)
     endif()
 endif()
 
-# Cryptogams source files for ARM
+# Cryptogams source files for ARM. Without NEON the C++ build defines
+# CRYPTOPP_DISABLE_ARM_NEON and never calls them, so leave them out.
 if(
     CRYPTOPP_ARM32
     AND (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR ANDROID)
     AND NOT CRYPTOPP_DISABLE_ARM_NEON
+    AND CRYPTOPP_HAVE_ARM_NEON
     AND NOT CRYPTOPP_DISABLE_ASM
 )
     list(APPEND cryptopp_SOURCES_ASM ${cryptopp_SOURCES_ASM_ARM})
@@ -1293,6 +1295,8 @@ if(CRYPTOPP_CRYPTOGAMS_ARM)
     # CMake passes the target only to compilers that take one, such as Clang. GCC
     # has no such option, so a toolchain file setting it must not break the probe.
     if(CMAKE_ASM_COMPILER_TARGET AND CMAKE_ASM_COMPILE_OPTIONS_TARGET)
+        # CMake can use "-target " for Clang ASM; the trailing space
+        # means the target is a separate argument.
         if(CMAKE_ASM_COMPILE_OPTIONS_TARGET MATCHES " $")
             string(STRIP "${CMAKE_ASM_COMPILE_OPTIONS_TARGET}" cryptogams_target_option)
             list(APPEND cryptogams_asm_command ${cryptogams_target_option} ${CMAKE_ASM_COMPILER_TARGET})
@@ -1300,7 +1304,7 @@ if(CRYPTOPP_CRYPTOGAMS_ARM)
             list(APPEND cryptogams_asm_command "${CMAKE_ASM_COMPILE_OPTIONS_TARGET}${CMAKE_ASM_COMPILER_TARGET}")
         endif()
     endif()
-    set(cryptogams_probe "${CMAKE_BINARY_DIR}/CMakeFiles/cryptogams_arch.S")
+    set(cryptogams_probe "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/cryptogams_arch.S")
     file(WRITE "${cryptogams_probe}" "")
 
     get_property(cryptogams_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -1345,7 +1349,7 @@ if(CRYPTOPP_CRYPTOGAMS_ARM)
             list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG "${cryptogams_march}")
         endif()
     endforeach()
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if(CMAKE_ASM_COMPILER_ID MATCHES "Clang")
         list(APPEND CRYPTOGAMS_ARM_THUMB_FLAG -mthumb)
     endif()
 

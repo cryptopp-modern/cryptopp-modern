@@ -893,6 +893,89 @@ jobs:
     - name: Run validation tests (GNUmakefile build)
       run: qemu-arm-static ./cryptest.exe v
 
+    - name: Check incremental rebuilds keep the per-file recipes
+      shell: bash
+      run: |
+        fail=0
+        touch src/symmetric/chacha_simd.cpp src/test/test.cpp src/hash/sha256_armv4.S
+        out=$(make -n CXX=arm-linux-gnueabihf-g++ CC=arm-linux-gnueabihf-gcc \
+          AR=arm-linux-gnueabihf-ar RANLIB=arm-linux-gnueabihf-ranlib \
+          CXXFLAGS="-DNDEBUG -O2 -Wall" CRYPTOPP_DATA_DIR=/usr/share/cryptopp/ static cryptest.exe)
+        check() {
+          line=$(printf '%s\n' "$out" | grep -F -- "$1" || true)
+          echo "$line"
+          printf '%s\n' "$line" | grep -q -- "$2" || { echo "ERROR: $1 rebuild lacks $2"; fail=1; }
+        }
+        check src/symmetric/chacha_simd.cpp -mfpu=neon
+        check src/test/test.cpp -DCRYPTOPP_DATA_DIR=
+        check src/hash/sha256_armv4.S '^arm-linux-gnueabihf-g++ '
+        exit $fail
+
+  linux-armel-cryptogams:
+    # 32-bit ARM soft-float, library only. The NEON probe fails with the soft-float
+    # ABI, so both build systems leave the Cryptogams asm out. The NEON probe
+    # succeeds with softfp, but the toolchain still defaults to ARMv5, so both take
+    # the probe's "no" branch and add -march=armv7-a.
+    name: Linux armel (GCC cross, Cryptogams probe)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install cross toolchain
+      run: sudo apt-get update && sudo apt-get install -y g++-arm-linux-gnueabi ninja-build
+
+    - name: Check soft-float leaves the Cryptogams asm out (CMake)
+      shell: bash
+      run: |
+        cmake -S . -B build-soft -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
+          -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc \
+          -DCMAKE_CXX_COMPILER=arm-linux-gnueabi-g++ \
+          -DCMAKE_ASM_COMPILER=arm-linux-gnueabi-gcc \
+          -DCRYPTOPP_BUILD_TESTING=OFF | tee soft.log
+        targets=$(ninja -C build-soft -t targets all)
+        n=$(printf '%s\n' "$targets" | grep -c '_armv4\.S\.o' || true)
+        echo "soft-float asm objects: $n"
+        test "$n" -eq 0
+
+    - name: Configure and build the library with softfp (CMake)
+      shell: bash
+      run: |
+        cmake -S . -B build-softfp -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
+          -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc \
+          -DCMAKE_CXX_COMPILER=arm-linux-gnueabi-g++ \
+          -DCMAKE_ASM_COMPILER=arm-linux-gnueabi-gcc \
+          -DCMAKE_C_FLAGS=-mfloat-abi=softfp -DCMAKE_CXX_FLAGS=-mfloat-abi=softfp \
+          -DCMAKE_ASM_FLAGS=-mfloat-abi=softfp \
+          -DCRYPTOPP_BUILD_TESTING=OFF | tee softfp.log
+        grep -F "Cryptogams ARM assembler targets ARMv7 or later - no, adding -march=armv7-a" softfp.log
+        cmake --build build-softfp -j"$(nproc)" --target cryptopp
+
+    - name: Check the softfp Cryptogams objects
+      shell: bash
+      run: |
+        o=$(find build-softfp -name 'sha1_armv4.S.o')
+        test -n "$o"
+        arm-linux-gnueabi-nm "$o" | grep -w cryptogams_sha1_block_data_order_neon
+
+    - name: Check the GNUmakefile Cryptogams decisions
+      shell: bash
+      run: |
+        # The NEON probe fails with the soft-float ABI, so the asm is left out, also
+        # with CXXFLAGS on the command line.
+        out=$(make -Bn CXX=arm-linux-gnueabi-g++ CXXFLAGS="-DNDEBUG -O2" static)
+        n=$(printf '%s\n' "$out" | grep -c '_armv4\.S' || true)
+        echo "soft-float asm compiles: $n"
+        test "$n" -eq 0
+        # The NEON probe succeeds with softfp, but the toolchain defaults to ARMv5,
+        # so the probe adds -march=armv7-a.
+        line=$(make -n CXX=arm-linux-gnueabi-g++ CXXFLAGS="-DNDEBUG -O2 -mfloat-abi=softfp" sha1_armv4.o | grep -F sha1_armv4.S)
+        echo "$line"
+        printf '%s\n' "$line" | grep -q -- -march=armv7-a
+
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
     runs-on: ubuntu-24.04
