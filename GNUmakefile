@@ -1836,6 +1836,11 @@ validat1.o : src/test/validat1.cpp
 %.o : %.cpp
 	$(CXX) $(strip $(CPPFLAGS) $(CXXFLAGS) -c) $<
 
+# The per-file asm rules above take precedence. This one replaces Make's built-in
+# $(CC) rule, so a lost per-file rule still builds the .S with the asm recipe.
+%.o : %.S
+	$(CXX) $(strip $(CPPFLAGS) $(ASFLAGS) $(NOSTD_CXXFLAGS) $(CRYPTOGAMS_ARM_FLAG) -c) $<
+
 .PHONY: so_warning
 so_warning:
 ifeq ($(HAS_SOLIB_VERSION),1)
