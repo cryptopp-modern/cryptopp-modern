@@ -800,11 +800,13 @@ jobs:
     - name: Check LTO was on and the feature probes kept the SIMD paths
       run: |
         # grep -c exits 1 on zero matches; keep going so the error below prints
+        total=$(grep -cE -- ' -c ' build.log || true)
         lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
-        echo "LTO compile lines: $lto"
+        echo "compile lines: $total, with -flto: $lto"
         if [ "$lto" -eq 0 ]; then
           echo "ERROR: the rpm build flags no longer enable LTO, so this job does not test it"; exit 1
         fi
+        test "$lto" -eq "$total"
         if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
           echo "ERROR: feature probes failed under rpm optflags; asm and SIMD disabled"; exit 1
         fi
@@ -817,6 +819,138 @@ jobs:
 
     - name: Run test vectors
       run: ./cryptest.exe tv all
+
+  makefile-clang-lto:
+    # Clang link-time optimisation through the GNUmakefile. CXXFLAGS is exported
+    # rather than passed as a make argument: a make argument overrides the
+    # makefile's CXXFLAGS fold, drops -fPIC, and the shared library then fails
+    # with "recompile with -fPIC".
+    name: Makefile Clang LTO
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install toolchain
+      run: sudo apt-get update && sudo apt-get install -y clang llvm
+
+    - name: Build library (Clang, LTO, llvm archiver)
+      run: |
+        export CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib
+        export CXXFLAGS="-DNDEBUG -O2 -flto"
+        make -j"$(nproc)" static dynamic cryptest.exe 2>&1 | tee build.log
+        test "${PIPESTATUS[0]}" -eq 0
+
+    - name: Check LTO was on, -fPIC was kept and the feature probes kept the SIMD paths
+      run: |
+        total=$(grep -cE -- ' -c ' build.log || true)
+        lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
+        echo "compile lines: $total, with -flto: $lto"
+        test "$total" -gt 0
+        test "$lto" -eq "$total"
+        fpic=$(grep -E -- ' -c ' build.log | grep -cE -- ' -fPIC( |$)' || true)
+        echo "compile lines with -fPIC: $fpic"
+        test "$fpic" -eq "$total"
+        if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
+          echo "ERROR: feature probes failed under LTO; asm and SIMD disabled"; exit 1
+        fi
+        n=$(grep -cE -- ' -m(sse4\.1|aes|pclmul|sha|avx2) ' build.log || true)
+        echo "SIMD compile lines: $n"
+        test "$n" -gt 0
+
+    - name: Run validation tests
+      run: ./cryptest.exe v
+
+    - name: Run test vectors
+      run: ./cryptest.exe tv all
+
+  cmake-lto-flags:
+    # -flto in the compiler flags with the GCC archiver wrapper. Checks that
+    # CMake's feature probes keep the SIMD paths under -flto.
+    name: CMake LTO flags (GCC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Configure (-flto in CMAKE_CXX_FLAGS)
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-flto" \
+          -DCMAKE_AR="$(command -v gcc-ar)" -DCMAKE_RANLIB="$(command -v gcc-ranlib)"
+
+    - name: Build (verbose, for the flag checks)
+      run: |
+        cmake --build build -j"$(nproc)" -v 2>&1 | tee build.log
+        test "${PIPESTATUS[0]}" -eq 0
+
+    - name: Check LTO was on and the feature probes kept the SIMD paths
+      run: |
+        total=$(grep -cE -- ' -c ' build.log || true)
+        lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
+        echo "compile lines: $total, with -flto: $lto"
+        test "$total" -gt 0
+        test "$lto" -eq "$total"
+        if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
+          echo "ERROR: feature probes failed under -flto; asm and SIMD disabled"; exit 1
+        fi
+        n=$(grep -cE -- ' -m(sse4\.1|aes|pclmul|sha|avx2) ' build.log || true)
+        echo "SIMD compile lines: $n"
+        test "$n" -gt 0
+
+    - name: Run validation tests
+      run: ./build/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/cryptest.exe tv all
+
+  cmake-ipo:
+    # CMake-native interprocedural optimisation. CMake adds the LTO flags and
+    # the archiver wrapper for the compiler itself.
+    name: CMake IPO (GCC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Configure (CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON)
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+
+    - name: Build (verbose, for the flag checks)
+      run: |
+        cmake --build build -j"$(nproc)" -v 2>&1 | tee build.log
+        test "${PIPESTATUS[0]}" -eq 0
+
+    - name: Check LTO was on and the feature probes kept the SIMD paths
+      run: |
+        total=$(grep -cE -- ' -c ' build.log || true)
+        lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
+        echo "compile lines: $total, with -flto: $lto"
+        test "$total" -gt 0
+        test "$lto" -eq "$total"
+        if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
+          echo "ERROR: feature probes failed under IPO; asm and SIMD disabled"; exit 1
+        fi
+        n=$(grep -cE -- ' -m(sse4\.1|aes|pclmul|sha|avx2) ' build.log || true)
+        echo "SIMD compile lines: $n"
+        test "$n" -gt 0
+
+    - name: Run validation tests
+      run: ./build/cryptest.exe v
+
+    - name: Run test vectors
+      run: ./build/cryptest.exe tv all
 
   linux-armhf-qemu:
     # 32-bit ARM hard-float, both build systems, tests under QEMU. Checks that the
