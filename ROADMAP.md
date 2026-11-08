@@ -1,6 +1,6 @@
 # cryptopp-modern Development Roadmap
 
-**Current Version:** 2026.11.0
+**Current Version:** 2026.11.1
 
 ---
 
@@ -183,6 +183,12 @@ See [FORK.md](FORK.md) for project details and direction.
 ---
 
 ## Version History
+
+### 2026.11.1 (November 2026) - BLAKE2 Argument Validation, SLH-DSA Stack Wipes, Link-Time Optimisation
+- **BLAKE2** - Digest size validated at run time through every constructor and `SetKey`, and key length through the keyed constructors; release builds accepted an over-length key or an over-maximum digest size (GHSA-796q-fcgc-jpr9)
+- **SLH-DSA** - Stack secrets wiped on every exit, including exceptions (#133)
+- **Link-time optimisation** - Tested in CI with GCC through both build systems and Clang through the GNUmakefile, with no need to disable assembly (#134, #136)
+- **Builds** - Installed headers aligned across build systems (#139); GNUmakefile per-file rules (#137), `-fno-devirtualize` with a command-line `CXXFLAGS` (#141), flag filtering and CMake probe option splitting (#142), single `DataDir()` (#135); Cryptogams ARM non-executable stack and armhf and ARMv8 builds (#138); 32-bit ARM NEON detection for Clang and soft-float (#142)
 
 ### 2026.11.0 (November 2026) - EAX Resynchronisation, BLAKE3 Without AVX, 32-bit x86 LTO Builds
 - **EAX and AES-CTR-HMAC** - CMAC restarted before the EAX nonce tag and AES-CTR-HMAC one-shot state reset; ciphertext from the faulty EAX one-shot path will not verify through the corrected path (#119); no debug assertions on empty AEAD messages (#124); CMAC `Restart` without a block encryption (#128)

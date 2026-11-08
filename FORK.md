@@ -26,6 +26,14 @@
 
 ### cryptopp-modern Releases
 
+**2026.11.1** (November 2026) - BLAKE2 Argument Validation, SLH-DSA Stack Wipes, Link-Time Optimisation (Patch)
+- Validated BLAKE2b and BLAKE2s digest size at run time through every constructor and `SetKey`, and key length through the keyed constructors; release builds accepted an over-length key or an over-maximum digest size (GHSA-796q-fcgc-jpr9)
+- Wiped SLH-DSA stack secrets on every exit, including exceptions (#133)
+- Supported link-time optimisation, tested in CI with GCC through both build systems and Clang through the GNUmakefile, without disabling assembly; the GNUmakefile feature probes no longer fail under `-flto` (#134, #136)
+- Stopped installing `validate.h` and `bench.h` from the GNUmakefile and added `factory.h` and `xaes_256_gcm.h` to the CMake install (#139)
+- Fixed GNUmakefile per-file rules on rebuilds (#137), kept `-fno-devirtualize` with a command-line `CXXFLAGS` (#141), fixed flag filtering and CMake probe option splitting (#142), and defined `DataDir()` once (#135)
+- Marked the Cryptogams ARM asm stack non-executable and built it on armhf and ARMv8 (#138); fixed 32-bit ARM NEON detection for Clang and soft-float CMake builds (#142)
+
 **2026.11.0** (November 2026) - EAX Resynchronisation, BLAKE3 Without AVX, 32-bit x86 LTO Builds (Minor)
 - Restarted the CMAC in EAX resynchronisation and reset the AES-CTR-HMAC one-shot state; ciphertext produced through the faulty EAX one-shot path will not verify through the corrected path (#119); debug builds no longer assert on empty AEAD messages (#124)
 - Added a CMAC `Restart` override that performs no block encryption (#128)
@@ -215,10 +223,10 @@ This is a maintained fork to:
 
 ### cryptopp-modern vs. Upstream Crypto++
 
-| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.11.0 |
+| Aspect | Crypto++ 8.9.0 | cryptopp-modern 2026.11.1 |
 |--------|----------------|---------------------------|
 | **Last Release** | October 1, 2023 | November 2026 |
-| **Versioning** | Semantic (8.9.0) | Calendar (2026.11.0) |
+| **Versioning** | Semantic (8.9.0) | Calendar (2026.11.1) |
 | **BLAKE3** | ❌ | ✅ with AVX-512 (over 4000 MiB/s) |
 | **Argon2** | ❌ | ✅ RFC 9106 |
 | **XAES-256-GCM** | ❌ | ✅ C2SP spec |
@@ -252,6 +260,6 @@ This is a maintained fork to:
 
 ---
 
-**Last Updated:** 2026-11-01
+**Last Updated:** 2026-11-07
 **Fork Point:** Crypto++ 8.9.0 (commit 60f81a77)
-**Current Version:** 2026.11.0
+**Current Version:** 2026.11.1
