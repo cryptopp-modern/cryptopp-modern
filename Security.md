@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Currently supported:
-- 2026.11.0 (current release)
+- 2026.11.1 (current release)
 
 Older releases are not actively supported. Users on earlier versions should upgrade to receive security fixes. We incorporate critical security fixes from upstream Crypto++ and monitor for security issues in the cryptographic algorithms we implement.
 
@@ -21,8 +21,8 @@ Check the fingerprint, import the key, then verify the archive:
 ```sh
 gpg --show-keys --with-fingerprint KEYS
 gpg --import KEYS
-gpg --verify cryptopp-modern-2026.11.0.zip.sig cryptopp-modern-2026.11.0.zip
-gpg --verify cryptopp-modern-2026.11.0.tar.gz.sig cryptopp-modern-2026.11.0.tar.gz
+gpg --verify cryptopp-modern-2026.11.1.zip.sig cryptopp-modern-2026.11.1.zip
+gpg --verify cryptopp-modern-2026.11.1.tar.gz.sig cryptopp-modern-2026.11.1.tar.gz
 ```
 
 Make sure the fingerprint matches the value above before trusting the archive.
@@ -39,6 +39,18 @@ If we receive a report of a security-related bug then we will:
 We will publish details after a fix is available.
 
 ## Security Advisories
+
+### BLAKE2 argument validation (fixed in 2026.11.1)
+
+BLAKE2b and BLAKE2s accepted invalid digest sizes and keyed constructor key lengths in release builds. Oversized digests could cause out-of-bounds reads, and sufficiently long keys could cause heap-buffer overflows.
+
+**Severity:** CVSS 3.1 5.9 Medium. Availability impact; no confidentiality or integrity impact demonstrated. Reachable only where an application passes an attacker-controlled digest size or key length.
+
+**Affected versions:** 2025.11.0 through 2026.11.0. The same code is present in upstream Crypto++.
+
+**Fix:** Validate digest sizes and keyed constructor key lengths at runtime.
+
+**Advisory:** GHSA-796q-fcgc-jpr9.
 
 ### Argon2i and Argon2id non-standard output (fixed in 2026.10.0)
 

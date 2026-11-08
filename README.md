@@ -2,7 +2,7 @@
 
 **A maintained, modernized fork of Crypto++ with new algorithms and security improvements**
 
-[![Version](https://img.shields.io/badge/version-2026.11.0-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
+[![Version](https://img.shields.io/badge/version-2026.11.1-blue.svg)](https://github.com/cryptopp-modern/cryptopp-modern/releases)
 [![License](https://img.shields.io/badge/license-Boost-green.svg)](LICENSE)
 
 ---
@@ -24,7 +24,16 @@
 ---
 
 
-## What's New in 2026.11.0
+## What's New in 2026.11.1
+
+- **BLAKE2** - The BLAKE2b and BLAKE2s constructors and `SetKey` now validate digest size at run time, and the keyed constructors validate key length; release builds previously accepted an over-length key or an over-maximum digest size (GHSA-796q-fcgc-jpr9).
+- **SLH-DSA** - Stack secrets are wiped on every exit, including exceptions (#133).
+- **Link-time optimisation** - LTO is tested in CI with GCC through both build systems and with Clang through the GNUmakefile, with no need to disable assembly; pass `CXXFLAGS` to the GNUmakefile through the environment, not as a `make` argument (#134, #136).
+- **Packagers** - The GNUmakefile no longer installs `validate.h` and `bench.h`; CMake now installs `factory.h` and `xaes_256_gcm.h` (#139).
+- **Builds** - GNUmakefile per-file rules work on rebuilds (#137), `-fno-devirtualize` survives a command-line `CXXFLAGS` (#141), flag filtering and CMake probe option splitting are fixed (#142), and `DataDir()` is defined once (#135).
+- **ARM** - The Cryptogams asm no longer requests an executable stack and builds on armhf and ARMv8 (#138); 32-bit ARM NEON detection is fixed for Clang and soft-float CMake builds, so configure a fresh build directory (#142).
+
+### Previously in 2026.11.0
 
 - **EAX and AES-CTR-HMAC** - Repeated EAX resynchronisation carried stale CMAC state into the nonce tag, and AES-CTR-HMAC one-shot calls threw `BadState` when an object was reused. Ciphertext produced through the faulty EAX one-shot path will not verify through the corrected path (#119). Debug builds no longer assert on empty AEAD messages (#124).
 - **CMAC** - `Restart` no longer runs a block encryption, which makes EAX resynchronisation cheaper (#128).
@@ -40,14 +49,6 @@
 - **ML-DSA and ML-KEM stack wipes** - Secret stack buffers are wiped on normal exits and exceptions, and additional sensitive intermediates are cleared (#113).
 - **ML-DSA key state** - Failed key generation or private-key import leaves the previous key unchanged, or a fresh key unset (#110).
 - **Build fixes** - LM-OTS hash length bounded before sizing buffers, fixing GCC `-Wstringop-overflow` on ARM-32 (#106); the Apple machine-info helper is compiled only on PowerPC (#107).
-
-### Previously in 2026.9.1
-
-- **ARM acceleration restored** - The CRC32 and PMULL feature probes could not find `arm_simd.h` since 2025.12.0, so default CMake and GNUmakefile builds left CRC32 and GCM multiplication on the software paths (#91).
-- **Apple arm64 hardware dispatch** - Hardware AES, PMULL, SHA-1 and SHA-256 on Apple Silicon, with the optional CRC32, SHA-3 and SHA-512 extensions detected through `sysctl` (#92).
-- **HSS error paths** - Signer caches are rebuilt after a failed signing attempt, so a retry no longer produces an invalid signature and a burned index; LMS and HSS key generation leaves the key unchanged on failure (#99).
-- **Shared and static in one pass** - `CRYPTOPP_BUILD_STATIC` alongside `CRYPTOPP_BUILD_SHARED`, and `BUILD_SHARED_LIBS` honoured when selecting the library type (#86, #90).
-- **CMake packaging and detection** - The configured include directory is exported (#94), pkg-config output is per configuration and carries the Debug postfix (#95, #96), the feature probes no longer fail on warnings under `-Werror` (#100), a failed AVX-512 probe falls back cleanly (#101), and a new `CRYPTOPP_WERROR` option turns warnings into errors for the library build (#100).
 
 ---
 

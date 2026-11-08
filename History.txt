@@ -4,6 +4,33 @@ The History file contains the items that comprise the release notes. The
 items in the list below used to be in Readme.txt. Readme.txt now contains the
 last several releases.
 
+2026.11.1 - November 2026
+      - patch release (BLAKE2 argument validation, SLH-DSA stack wipes,
+        link-time optimisation, build fixes)
+      - validated BLAKE2b and BLAKE2s digest size at run time through every
+        constructor and SetKey, and key length through the keyed
+        constructors (advisory GHSA-796q-fcgc-jpr9)
+        * release builds accepted invalid key lengths and digest sizes;
+          sufficiently long keys could overflow the key buffer, and
+          oversized digests could read past the hash state
+      - wiped SLH-DSA stack secrets on every exit, including exceptions
+        (PR 133)
+      - supported link-time optimisation, tested in CI with GCC through
+        both build systems and Clang through the GNUmakefile, without
+        disabling assembly; the GNUmakefile feature probes no longer fail
+        under -flto (PR 136, issue 134)
+        * pass CXXFLAGS to the GNUmakefile through the environment, not
+          as a make argument, which drops the makefile's own flags
+      - stopped installing validate.h and bench.h from the GNUmakefile and
+        added factory.h and xaes_256_gcm.h to the CMake install (PR 139)
+      - fixed GNUmakefile per-file rules on rebuilds (PR 137), kept
+        -fno-devirtualize with a command-line CXXFLAGS (PR 141), fixed
+        flag filtering and CMake probe option splitting (PR 142), defined
+        DataDir once (PR 135)
+      - marked the Cryptogams ARM asm stack non-executable and built it on
+        armhf and ARMv8 (PR 138); fixed 32-bit ARM NEON detection for Clang
+        and soft-float CMake builds (PR 142)
+
 2026.11.0 - November 2026
       - minor release (EAX and AES-CTR-HMAC resynchronisation, BLAKE3 on
         CPUs without AVX, 32-bit x86 LTO builds, ML-DSA known-answer tests)
