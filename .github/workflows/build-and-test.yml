@@ -18,11 +18,13 @@ jobs:
   cmake-linux:
     name: CMake Linux (GCC)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure
@@ -103,6 +105,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install Ninja and QEMU
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build qemu-user-static
 
     - name: Configure
@@ -120,11 +123,13 @@ jobs:
   cmake-linux-gcc14:
     name: CMake Linux (GCC 14)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install GCC 14 and Ninja
+      timeout-minutes: 10
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-14 g++-14 ninja-build
@@ -147,11 +152,13 @@ jobs:
   cmake-linux-clang19:
     name: CMake Linux (Clang 19)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Clang 19 and Ninja
+      timeout-minutes: 10
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-19 ninja-build
@@ -186,11 +193,13 @@ jobs:
   cmake-macos:
     name: CMake macOS (Clang)
     runs-on: macos-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: brew install ninja
 
     - name: Configure
@@ -233,6 +242,7 @@ jobs:
   cmake-windows:
     name: CMake Windows (MSVC)
     runs-on: windows-2022
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
@@ -254,6 +264,7 @@ jobs:
     # toolset the reporter used.
     name: CMake Windows ARM64 host (MSVC, ${{ matrix.target }})
     runs-on: windows-11-arm
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -271,11 +282,13 @@ jobs:
   cmake-no-asm:
     name: CMake No-ASM (Pure C++)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (No ASM)
@@ -293,11 +306,13 @@ jobs:
   cmake-install:
     name: CMake Install Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure
@@ -395,11 +410,13 @@ jobs:
   cmake-shared:
     name: CMake Shared Library Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (shared, tests on)
@@ -498,11 +515,13 @@ jobs:
   cmake-dual:
     name: CMake Dual Shared and Static Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (shared and static in one pass)
@@ -608,11 +627,13 @@ jobs:
   cmake-build-shared-libs:
     name: CMake BUILD_SHARED_LIBS Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (BUILD_SHARED_LIBS only, tests on)
@@ -656,6 +677,7 @@ jobs:
   makefile-macos-dylib:
     name: Makefile macOS dylib
     runs-on: macos-latest
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
@@ -682,11 +704,13 @@ jobs:
   cmake-android-arm64-v8a:
     name: CMake Android (arm64-v8a)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (Android arm64-v8a)
@@ -698,11 +722,13 @@ jobs:
   cmake-android-armeabi-v7a:
     name: CMake Android (armeabi-v7a)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (Android armeabi-v7a)
@@ -719,6 +745,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (Android x86_64)
@@ -730,11 +757,13 @@ jobs:
   cmake-android-x86:
     name: CMake Android (x86)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure (Android x86)
@@ -760,6 +789,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install multilib
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
 
     - name: Build library (32-bit, LTO, one function per partition)
@@ -785,6 +815,7 @@ jobs:
 
     steps:
     - name: Install toolchain
+      timeout-minutes: 10
       run: dnf -y install gcc-c++ make git-core redhat-rpm-config annobin-plugin-gcc rpm-build
 
     - uses: actions/checkout@v5
@@ -836,6 +867,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install toolchain
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y clang llvm
 
     - name: Build library (Clang, LTO, llvm archiver)
@@ -976,6 +1008,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install cross toolchain and QEMU
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y g++-arm-linux-gnueabihf qemu-user-static ninja-build
 
     - name: Configure and build (CMake)
@@ -1070,6 +1103,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install cross toolchain
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y g++-arm-linux-gnueabi ninja-build
 
     - name: Check soft-float leaves the Cryptogams asm out (CMake)
@@ -1125,6 +1159,7 @@ jobs:
   makefile-linux-gcc:
     name: Makefile Linux GCC ${{ matrix.gcc-version }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1135,6 +1170,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install GCC ${{ matrix.gcc-version }}
+      timeout-minutes: 10
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get update
@@ -1161,6 +1197,7 @@ jobs:
   makefile-linux-clang-old:
     name: Makefile Linux Clang ${{ matrix.clang-version }}
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1171,6 +1208,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install Clang ${{ matrix.clang-version }}
+      timeout-minutes: 10
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
@@ -1193,6 +1231,7 @@ jobs:
   makefile-linux-clang-new:
     name: Makefile Linux Clang ${{ matrix.clang-version }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1203,6 +1242,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install Clang ${{ matrix.clang-version }}
+      timeout-minutes: 10
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-${{ matrix.clang-version }}
@@ -1223,6 +1263,7 @@ jobs:
   makefile-macos:
     name: Makefile macOS (Apple Clang)
     runs-on: macos-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1246,6 +1287,7 @@ jobs:
   makefile-windows-msvc:
     name: Makefile Windows MSVC
     runs-on: windows-2022
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1276,6 +1318,7 @@ jobs:
   sanitizers:
     name: Sanitizer ${{ matrix.sanitizer }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1285,6 +1328,7 @@ jobs:
     - uses: actions/checkout@v5
 
     - name: Install GCC 13
+      timeout-minutes: 10
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-13 g++-13
@@ -1315,6 +1359,7 @@ jobs:
   avx512-test:
     name: AVX512 Feature Test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v5
@@ -1337,6 +1382,7 @@ jobs:
         fi
 
     - name: Install Ninja
+      timeout-minutes: 10
       run: sudo apt-get update && sudo apt-get install -y ninja-build
 
     - name: Configure
