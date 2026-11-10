@@ -86,7 +86,7 @@ void AlignedDeallocate(void *p)
 	}
 }
 
-void * UnalignedAllocate(size_t size)
+CRYPTOPP_NOINLINE void * UnalignedAllocate(size_t size)
 {
 	void *p;
 	while ((p = malloc(size)) == NULLPTR)
