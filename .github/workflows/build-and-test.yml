@@ -908,6 +908,12 @@ jobs:
     - name: Run validation tests
       run: ./build/cryptest.exe v
 
+    - name: Test HSS rebuild recovery
+      run: ./build/cryptopp-hss-recovery
+
+    - name: Test ML-DSA key state after allocation failures
+      run: ./build/cryptopp-mldsa-recovery
+
     - name: Run test vectors
       run: ./build/cryptest.exe tv all
 
@@ -948,6 +954,12 @@ jobs:
 
     - name: Run validation tests
       run: ./build/cryptest.exe v
+
+    - name: Test HSS rebuild recovery
+      run: ./build/cryptopp-hss-recovery
+
+    - name: Test ML-DSA key state after allocation failures
+      run: ./build/cryptopp-mldsa-recovery
 
     - name: Run test vectors
       run: ./build/cryptest.exe tv all

@@ -11,8 +11,8 @@ bool countAllocations = false;
 size_t allocationCount = 0;
 size_t failurePosition = 0;
 
-// CTest treats SKIP_EXIT as a skipped test. CI runs the program directly,
-// where any non-zero exit fails the step.
+// SKIP_EXIT reports a run where the allocation hook intercepted nothing.
+// CTest and CI treat it as a failure like any other non-zero exit.
 enum Result { PASSED, FAILED, SKIPPED };
 const int SKIP_EXIT = 77;
 

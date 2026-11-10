@@ -1671,14 +1671,15 @@ if(CRYPTOPP_BUILD_TESTING)
             else()
                 target_link_libraries(cryptopp-${recovery}-recovery PRIVATE cryptopp)
             endif()
+            # One LTO partition per object keeps the allocator calls linker-visible for --wrap.
             target_link_options(cryptopp-${recovery}-recovery PRIVATE
-                "-Wl,--wrap=_ZN8CryptoPP17UnalignedAllocateEm")
+                "-Wl,--wrap=_ZN8CryptoPP17UnalignedAllocateEm"
+                $<$<CXX_COMPILER_ID:GNU>:-flto-partition=1to1>)
             add_dependencies(cryptest cryptopp-${recovery}-recovery)
             add_test(NAME cryptopp-modern-${recovery}-recovery
                 COMMAND $<TARGET_FILE:cryptopp-${recovery}-recovery>)
             set_tests_properties(cryptopp-modern-${recovery}-recovery PROPERTIES
                 FIXTURES_REQUIRED cryptest-build
-                SKIP_RETURN_CODE 77
                 LABELS "cryptopp-modern;cryptopp-${recovery}")
         endforeach()
     endif()
