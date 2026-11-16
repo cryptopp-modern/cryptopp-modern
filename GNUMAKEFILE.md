@@ -140,26 +140,26 @@ make -j$(nproc) BUILD=debug
 | `release` | `-O3` | none | `-DNDEBUG` | Production deployment |
 | `debug` | `-O0` | `-g2` | `-DDEBUG` | Debugging and diagnostics |
 
-You can also override flags manually:
+You can also set flags manually. Set `CXXFLAGS` in the environment, as shown below, to retain the makefile's own flags. Passing `CXXFLAGS` as a `make` argument instead overrides those flags, potentially dropping `-fPIC` and `-pthread` and causing shared-library builds to fail.
 
 ### Custom CXXFLAGS
 
 ```bash
-make CXXFLAGS="-g3 -O0 -DDEBUG"
-make CXXFLAGS="-O3 -DNDEBUG"
+CXXFLAGS="-g3 -O0 -DDEBUG" make
+CXXFLAGS="-O3 -DNDEBUG" make
 ```
 
 ### Specify C++ Standard
 
 ```bash
 # C++14
-make CXXFLAGS="-std=c++14 -g2 -O3 -DNDEBUG"
+CXXFLAGS="-std=c++14 -g2 -O3 -DNDEBUG" make
 
 # C++17
-make CXXFLAGS="-std=c++17 -g2 -O3 -DNDEBUG"
+CXXFLAGS="-std=c++17 -g2 -O3 -DNDEBUG" make
 
 # C++20
-make CXXFLAGS="-std=c++20 -g2 -O3 -DNDEBUG"
+CXXFLAGS="-std=c++20 -g2 -O3 -DNDEBUG" make
 ```
 
 ### Use Clang Instead of GCC
@@ -190,7 +190,7 @@ make no-asm
 
 Or with explicit flag:
 ```bash
-make CXXFLAGS="-DCRYPTOPP_DISABLE_ASM -g2 -O3"
+CXXFLAGS="-DCRYPTOPP_DISABLE_ASM -g2 -O3" make
 ```
 
 ## Sanitizer Builds
@@ -338,13 +338,13 @@ You can disable specific SIMD features via CXXFLAGS:
 
 ```bash
 # Disable AES-NI
-make CXXFLAGS="-DCRYPTOPP_DISABLE_AESNI -g2 -O3"
+CXXFLAGS="-DCRYPTOPP_DISABLE_AESNI -g2 -O3" make
 
 # Disable SHA-NI
-make CXXFLAGS="-DCRYPTOPP_DISABLE_SHANI -g2 -O3"
+CXXFLAGS="-DCRYPTOPP_DISABLE_SHANI -g2 -O3" make
 
 # Disable all assembly
-make CXXFLAGS="-DCRYPTOPP_DISABLE_ASM -g2 -O3"
+CXXFLAGS="-DCRYPTOPP_DISABLE_ASM -g2 -O3" make
 ```
 
 Available disable flags:

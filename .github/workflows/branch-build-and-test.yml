@@ -711,7 +711,25 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
 
     - name: Build library (32-bit, LTO, one function per partition)
-      run: make -j"$(nproc)" CXXFLAGS="-DNDEBUG -m32 -O2 -flto=auto -flto-partition=max" static dynamic cryptest.exe
+      shell: bash
+      run: |
+        export CXXFLAGS="-DNDEBUG -m32 -O2 -flto=auto -flto-partition=max"
+        make -j"$(nproc)" static dynamic cryptest.exe 2>&1 | tee build.log
+        test "${PIPESTATUS[0]}" -eq 0
+
+    - name: Check LTO was on and the feature probes kept the SIMD paths
+      run: |
+        total=$(grep -cE -- ' -c ' build.log || true)
+        lto=$(grep -E -- ' -c ' build.log | grep -cE -- ' -flto(=| |$)' || true)
+        echo "compile lines: $total, with -flto: $lto"
+        test "$total" -gt 0
+        test "$lto" -eq "$total"
+        if grep -q -- '-DCRYPTOPP_DISABLE_ASM' build.log; then
+          echo "ERROR: feature probes failed under LTO; asm and SIMD disabled"; exit 1
+        fi
+        n=$(grep -cE -- ' -m(sse4\.1|aes|pclmul|sha|avx2) ' build.log || true)
+        echo "SIMD compile lines: $n"
+        test "$n" -gt 0
 
     - name: Run validation tests
       run: ./cryptest.exe v

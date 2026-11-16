@@ -93,7 +93,7 @@ If you target 32-bit IA-32 machines (i386, i586 or i686), then the makefile forg
 
     CXXFLAGS="-DNDEBUG -g2 -O3 -fPIC" make
 
-You can also override a variable so that only your flags are present. That is, the makefile will not add additional flags. For example, the following builds with only -std=c++11:
+You can also override the normal makefile flags by passing `CXXFLAGS` as a `make` argument. This can omit flags such as `-fPIC` and `-pthread`, so shared-library builds may fail. For example, to specify only the C++11 standard in `CXXFLAGS`:
 
     make CXXFLAGS="-std=c++11"
 
