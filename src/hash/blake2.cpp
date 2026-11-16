@@ -323,11 +323,18 @@ void BLAKE2b_ParameterBlock::Reset(size_t digestLen, size_t keyLen)
     m_data[FanoutOff] = m_data[DepthOff] = 1;
 }
 
+// Sizes above the maximum are passed as -1 so UncheckedSetKey rejects
+// them without an out-of-range unsigned to int conversion.
+static int DigestSizeParameter(unsigned int digestSize, unsigned int maxDigestSize)
+{
+    return digestSize > maxDigestSize ? -1 : static_cast<int>(digestSize);
+}
+
 BLAKE2s::BLAKE2s(bool treeMode, unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(0), m_treeMode(treeMode)
 {
     UncheckedSetKey(NULLPTR, 0, MakeParameters
-        (Name::DigestSize(), (int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(), treeMode));
 }
 
@@ -335,7 +342,7 @@ BLAKE2b::BLAKE2b(bool treeMode, unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(0), m_treeMode(treeMode)
 {
     UncheckedSetKey(NULLPTR, 0, MakeParameters
-        (Name::DigestSize(), (int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(), treeMode));
 }
 
@@ -343,7 +350,7 @@ BLAKE2s::BLAKE2s(unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(0), m_treeMode(false)
 {
     UncheckedSetKey(NULLPTR, 0, MakeParameters
-        (Name::DigestSize(), (int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(), false));
 }
 
@@ -351,7 +358,7 @@ BLAKE2b::BLAKE2b(unsigned int digestSize)
     : m_digestSize(digestSize), m_keyLength(0), m_treeMode(false)
 {
     UncheckedSetKey(NULLPTR, 0, MakeParameters
-        (Name::DigestSize(), (int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(), false));
 }
 
@@ -361,7 +368,7 @@ BLAKE2s::BLAKE2s(const byte *key, size_t keyLength, const byte* salt, size_t sal
 {
     ThrowIfInvalidKeyLength(keyLength);
     UncheckedSetKey(key, static_cast<unsigned int>(keyLength), MakeParameters
-        (Name::DigestSize(),(int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(),treeMode)
         (Name::Salt(), ConstByteArrayParameter(salt, saltLength))
         (Name::Personalization(), ConstByteArrayParameter(personalization, personalizationLength)));
@@ -373,7 +380,7 @@ BLAKE2b::BLAKE2b(const byte *key, size_t keyLength, const byte* salt, size_t sal
 {
     ThrowIfInvalidKeyLength(keyLength);
     UncheckedSetKey(key, static_cast<unsigned int>(keyLength), MakeParameters
-        (Name::DigestSize(),(int)digestSize)
+        (Name::DigestSize(), DigestSizeParameter(digestSize, DIGESTSIZE))
         (Name::TreeMode(),treeMode)
         (Name::Salt(), ConstByteArrayParameter(salt, saltLength))
         (Name::Personalization(), ConstByteArrayParameter(personalization, personalizationLength)));
@@ -382,7 +389,8 @@ BLAKE2b::BLAKE2b(const byte *key, size_t keyLength, const byte* salt, size_t sal
 void BLAKE2s::UncheckedSetKey(const byte *key, unsigned int length, const CryptoPP::NameValuePairs& params)
 {
     // Validate parameters before modifying the state.
-    const int digestSize = params.GetIntValueWithDefault(Name::DigestSize(), static_cast<int>(m_digestSize));
+    const int digestSize = params.GetIntValueWithDefault(
+        Name::DigestSize(), DigestSizeParameter(m_digestSize, DIGESTSIZE));
     if (digestSize < 1 || digestSize > static_cast<int>(DIGESTSIZE))
         throw InvalidArgument("BLAKE2s: digest size must be 1 to 32 bytes");
 
@@ -428,7 +436,8 @@ void BLAKE2s::UncheckedSetKey(const byte *key, unsigned int length, const Crypto
 
 void BLAKE2b::UncheckedSetKey(const byte *key, unsigned int length, const CryptoPP::NameValuePairs& params)
 {
-    const int digestSize = params.GetIntValueWithDefault(Name::DigestSize(), static_cast<int>(m_digestSize));
+    const int digestSize = params.GetIntValueWithDefault(
+        Name::DigestSize(), DigestSizeParameter(m_digestSize, DIGESTSIZE));
     if (digestSize < 1 || digestSize > static_cast<int>(DIGESTSIZE))
         throw InvalidArgument("BLAKE2b: digest size must be 1 to 64 bytes");
 

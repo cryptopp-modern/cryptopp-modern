@@ -1630,7 +1630,7 @@ bool TestBLAKE2Arguments(const BLAKE2_SizeAnswer *answers, size_t answerCount)
 		try { HASH hash(false, digestSize); } catch (const InvalidArgument&) { ++rejected; }
 		try { HASH hash(digestSize); } catch (const InvalidArgument&) { ++rejected; }
 		try { HASH hash(key, HASH::MAX_KEYLENGTH, NULLPTR, 0, NULLPTR, 0, false, digestSize); } catch (const InvalidArgument&) { ++rejected; }
-		try { HASH hash; hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), static_cast<int>(digestSize))); } catch (const InvalidArgument&) { ++rejected; }
+		try { HASH hash; hash.SetKey(key, HASH::MAX_KEYLENGTH, MakeParameters(Name::DigestSize(), digestSize > static_cast<unsigned int>((std::numeric_limits<int>::max)()) ? -1 : static_cast<int>(digestSize))); } catch (const InvalidArgument&) { ++rejected; }
 		fail = rejected != 4;
 		pass = pass && !fail;
 		std::cout << (fail ? "FAILED   " : "passed   ") << "digest size " << digestSize << " rejected by " << rejected << " of 4 paths\n";
