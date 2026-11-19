@@ -794,6 +794,7 @@ struct ed25519Verifier : public PK_Verifier
     /// \param signature a pointer to the signature over the message
     /// \param signatureLen the size of the signature
     /// \return true if the signature is valid, false otherwise
+    /// \details Verification fails for a public key of small order.
     /// \details VerifyStream() handles large streams. The Stream functions were added to
     ///  ed25519 for signing and verifying files that are too large for a memory allocation.
     ///  The functions are not present in other library signers and verifiers.

@@ -760,23 +760,23 @@ bool ValidateEd25519()
 		const bool v_pplus1 = k_pplus1.Validate(NullRNG(), 1);
 		const bool v_top = k_top.Validate(NullRNG(), 1);
 
-		// R = identity, S = 0 verifies against the identity key and any of its aliases.
+		// R = identity, S = 0 is the forgery for the identity key and its aliases.
+		// The verifier's small-order check stops y = p and p + 1 before Donna;
+		// y = 2^255 - 1 reaches Donna's canonical check.
 		byte sig[64] = { 0 };
 		sig[0] = 0x01;
 		const byte msg[] = { 't','e','s','t' };
 
-		ed25519Verifier ver_id(pk_id);
 		ed25519Verifier ver_p(pk_p);
 		ed25519Verifier ver_pplus1(pk_pplus1);
 		ed25519Verifier ver_top(pk_top);
 
-		const bool s_id = ver_id.VerifyMessage(msg, sizeof(msg), sig, sizeof(sig));
 		const bool s_p = ver_p.VerifyMessage(msg, sizeof(msg), sig, sizeof(sig));
 		const bool s_pplus1 = ver_pplus1.VerifyMessage(msg, sizeof(msg), sig, sizeof(sig));
 		const bool s_top = ver_top.VerifyMessage(msg, sizeof(msg), sig, sizeof(sig));
 
 		fail = !(v_id && v_pminus1 && !v_p && !v_pplus1 && !v_top &&
-		         s_id && !s_p && !s_pplus1 && !s_top);
+		         !s_p && !s_pplus1 && !s_top);
 	}
 	catch (const Exception&) {
 		fail = true;
@@ -805,6 +805,10 @@ bool ValidateEd25519()
 			  0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x7f }
 		};
 
+		// R = identity, S = 0 verifies under a key of order n for one message in n.
+		byte forged[64] = { 0 };
+		forged[0] = 0x01;
+
 		bool rejected = true;
 		for (size_t i = 0; i < 7; i++) {
 			for (int sign = 0; sign < 2; sign++) {
@@ -815,6 +819,14 @@ bool ValidateEd25519()
 				ed25519PublicKey key; key.SetPublicElement(y);
 				rejected = !key.Validate(NullRNG(), 2) && rejected;
 				rejected = ed25519PrivateKey().IsSmallOrder(y) && rejected;
+
+				ed25519Verifier verifier(y);
+				for (unsigned int m = 0; m < 64; m++) {
+					const byte msg[1] = { (byte)m };
+					rejected = !verifier.VerifyMessage(msg, 1, forged, 64) && rejected;
+					std::istringstream stream(std::string(1, (char)m));
+					rejected = !verifier.VerifyStream(stream, forged, 64) && rejected;
+				}
 			}
 		}
 
@@ -830,6 +842,20 @@ bool ValidateEd25519()
 		ed25519Verifier fresh(freshSigner);
 		bool freshOk = fresh.GetPublicKey().Validate(NullRNG(), 2);
 		freshOk = freshSigner.GetPrivateKey().Validate(NullRNG(), 1) && freshOk;
+
+		// A rejected call leaves the accumulator empty for the next message.
+		const byte msg[] = { 't','e','s','t' };
+		byte sig[64];
+		freshSigner.SignMessage(GlobalRNG(), msg, sizeof(msg), sig);
+
+		ed25519Verifier small(smallOrder[1]);
+		member_ptr<PK_MessageAccumulator> acc(small.NewVerificationAccumulator());
+		small.InputSignature(*acc, forged, 64);
+		acc->Update(msg, sizeof(msg));
+		rejected = !small.VerifyAndRestart(*acc) && rejected;
+		fresh.InputSignature(*acc, sig, 64);
+		acc->Update(msg, sizeof(msg));
+		freshOk = fresh.VerifyAndRestart(*acc) && freshOk;
 
 		fail = !(rejected && freshOk);
 	}
