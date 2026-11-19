@@ -934,7 +934,11 @@ bool ed25519Verifier::VerifyAndRestart(PK_MessageAccumulator &messageAccumulator
 {
     ed25519_MessageAccumulator& accum = static_cast<ed25519_MessageAccumulator&>(messageAccumulator);
     const ed25519PublicKey& pk = dynamic_cast<const ed25519PublicKey&>(GetPublicKey());
-    int ret = Donna::ed25519_sign_open(accum.data(), accum.size(), pk.GetPublicKeyBytePtr(), accum.signature());
+
+    // A small-order key verifies one signature for many messages.
+    int ret = -1;
+    if (!HasSmallOrderEd25519(pk.GetPublicKeyBytePtr()))
+        ret = Donna::ed25519_sign_open(accum.data(), accum.size(), pk.GetPublicKeyBytePtr(), accum.signature());
     accum.Restart();
 
     return ret == 0;
@@ -946,6 +950,9 @@ bool ed25519Verifier::VerifyStream(std::istream& stream, const byte *signature, 
     CRYPTOPP_UNUSED(signatureLen);
 
     const ed25519PublicKey& pk = static_cast<const ed25519PublicKey&>(GetPublicKey());
+    if (HasSmallOrderEd25519(pk.GetPublicKeyBytePtr()))
+        return false;
+
     int ret = Donna::ed25519_sign_open(stream, pk.GetPublicKeyBytePtr(), signature);
 
     return ret == 0;
