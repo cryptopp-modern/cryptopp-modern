@@ -369,7 +369,7 @@ public:
 	/// \brief Flushes data buffered by this object, without signal propagation
 	/// \param hardFlush indicates whether all data should be flushed
 	/// \param blocking specifies whether the object should block when processing input
-	/// \return true if the Flush was successful, false otherwise
+	/// \return false if the flush completed, true if it blocked
 	/// \details IsolatedFlush() calls ForceNextPut() if hardFlush is true
 	/// \note  hardFlush must be used with care
 	bool IsolatedFlush(bool hardFlush, bool blocking);

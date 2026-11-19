@@ -1743,6 +1743,7 @@ public:
 		/// \brief Signals the end of messages to the object
 		/// \param propagation the number of attached transformations the MessageEnd() signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
+		/// \return false if the message end was processed, true if processing blocked
 		/// \details propagation count includes this object. Setting propagation to <tt>1</tt> means this
 		///  object only. Setting propagation to <tt>-1</tt> means unlimited propagation.
 		bool MessageEnd(int propagation=-1, bool blocking=true)
@@ -1826,14 +1827,14 @@ public:
 		/// \brief Flushes data buffered by this object, without signal propagation
 		/// \param hardFlush indicates whether all data should be flushed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return true if the flush was successful, false otherwise
+		/// \return false if the flush completed, true if it blocked
 		/// \note hardFlush must be used with care
 		virtual bool IsolatedFlush(bool hardFlush, bool blocking) =0;
 
 		/// \brief Marks the end of a series of messages, without signal propagation
 		/// \param blocking specifies whether the object should block when completing the processing on
 		///  the current series of messages
-		/// \return true if the message was successful, false otherwise
+		/// \return false if the signal was processed, true if processing blocked
 		virtual bool IsolatedMessageSeriesEnd(bool blocking)
 			{CRYPTOPP_UNUSED(blocking); return false;}
 
@@ -1852,7 +1853,7 @@ public:
 		/// \param propagation the number of attached transformations the Flush()
 		///  signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return true if the flush was successful, false otherwise
+		/// \return false if the flush completed, true if it blocked
 		/// \details propagation count includes this object. Setting propagation to
 		///  <tt>1</tt> means this object only. Setting propagation to <tt>-1</tt>
 		///  means unlimited propagation.
@@ -1871,7 +1872,7 @@ public:
 		/// \brief Marks the end of a series of messages, with signal propagation
 		/// \param propagation the number of attached transformations the MessageSeriesEnd() signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return true if the message was successful, false otherwise
+		/// \return false if the signal was processed, true if processing blocked
 		/// \details Each object that receives the signal will perform its processing, decrement
 		///  propagation, and then pass the signal on to attached transformations if the value is not 0.
 		/// \details propagation count includes this object. Setting propagation to <tt>1</tt> means this
@@ -2250,8 +2251,7 @@ public:
 		/// \param channel the channel to process the data.
 		/// \param propagation the number of attached transformations the ChannelMessageEnd() signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return 0 indicates all bytes were processed during the call. Non-0 indicates the
-		///  number of bytes that were not processed.
+		/// \return false if the message end was processed, true if processing blocked
 		/// \details propagation count includes this object. Setting propagation to <tt>1</tt> means this
 		///  object only. Setting propagation to <tt>-1</tt> means unlimited propagation.
 		bool ChannelMessageEnd(const std::string &channel, int propagation=-1, bool blocking=true)
@@ -2305,7 +2305,7 @@ public:
 		/// \param hardFlush is used to indicate whether all data should be flushed
 		/// \param propagation the number of attached transformations the ChannelFlush() signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return true of the Flush was successful
+		/// \return false if the flush completed, true if it blocked
 		/// \details propagation count includes this object. Setting propagation to <tt>1</tt> means this
 		///  object only. Setting propagation to <tt>-1</tt> means unlimited propagation.
 		virtual bool ChannelFlush(const std::string &channel, bool hardFlush, int propagation=-1, bool blocking=true);
@@ -2314,7 +2314,7 @@ public:
 		/// \param channel the channel to signal the end of a series of messages
 		/// \param propagation the number of attached transformations the ChannelMessageSeriesEnd() signal should be passed
 		/// \param blocking specifies whether the object should block when processing input
-		/// \return true if the message was successful, false otherwise
+		/// \return false if the signal was processed, true if processing blocked
 		/// \details Each object that receives the signal will perform its processing, decrement
 		///  propagation, and then pass the signal on to attached transformations if the value is not 0.
 		/// \details propagation count includes this object. Setting propagation to <tt>1</tt> means this
