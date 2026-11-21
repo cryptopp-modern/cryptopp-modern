@@ -648,7 +648,7 @@ for the record back to Crypto++ 1.0.
         * over 4000 MiB/s on supported processors
         * automatic runtime CPU detection with fallback
       - added XAES-256-GCM extended-nonce authenticated encryption
-        * 256-bit (32-byte) nonces safe for random generation
+        * 192-bit (24-byte) nonces safe for random generation
         * C2SP specification
       - added AES-CTR-HMAC authenticated encryption
         * encrypt-then-MAC construction using AES-CTR + HMAC

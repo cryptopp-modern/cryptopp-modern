@@ -131,7 +131,8 @@ size_t HKDF<T>::DeriveKey(byte *derived, size_t derivedLen, const byte *secret, 
 
 	ThrowIfInvalidDerivedKeyLength(derivedLen);
 
-	// HKDF business logic. NULL is different than empty.
+	// HKDF business logic. A NULL salt selects the default salt of DIGESTSIZE
+	// zero bytes. An empty salt gives the same PRK.
 	if (salt == NULLPTR)
 	{
 		salt = GetNullVector();

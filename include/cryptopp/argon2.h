@@ -11,7 +11,7 @@
 /// \sa <A HREF="https://tools.ietf.org/html/rfc9106">RFC 9106, Argon2 Memory-Hard Function for
 ///   Password Hashing and Proof-of-Work Applications</A>,
 ///   <A HREF="https://github.com/P-H-C/phc-winner-argon2">PHC Argon2 Reference Implementation</A>
-/// \since Crypto++ 8.8
+/// \since cryptopp-modern 2025.11.0
 
 #ifndef CRYPTOPP_ARGON2_H
 #define CRYPTOPP_ARGON2_H
@@ -33,7 +33,7 @@ NAMESPACE_BEGIN(CryptoPP)
 ///   and 64 MiB memory for memory-constrained environments.
 /// \sa <A HREF="https://tools.ietf.org/html/rfc9106">RFC 9106, Argon2 Memory-Hard Function for
 ///   Password Hashing and Proof-of-Work Applications</A>
-/// \since Crypto++ 8.8
+/// \since cryptopp-modern 2025.11.0
 class Argon2 : public KeyDerivationFunction
 {
 public:

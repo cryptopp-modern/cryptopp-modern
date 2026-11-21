@@ -268,7 +268,7 @@ size_t BERDecodeBitString(BufferedTransformation &bt, SecByteBlock &str, unsigne
 	return bc-1;
 }
 
-// Max nested constructed BER depth, matching OpenSSL ASN1_MAX_CONSTRUCTED_NEST.
+// Max nested constructed BER depth. OpenSSL's ASN1_MAX_CONSTRUCTED_NEST is 30.
 // See weidai11/cryptopp#1353.
 static const unsigned int DER_REENCODE_MAX_DEPTH = 32;
 

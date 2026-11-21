@@ -351,7 +351,7 @@ last several releases.
         * over 4000 MiB/s on supported processors
         * automatic runtime CPU detection with graceful fallback
       - added XAES-256-GCM extended-nonce authenticated encryption
-        * 256-bit (32-byte) nonces safe for random generation
+        * 192-bit (24-byte) nonces safe for random generation
         * C2SP specification
         * solves nonce management problem for AES-GCM users
       - added AES-CTR-HMAC authenticated encryption
@@ -701,7 +701,7 @@ last several releases.
       - cleared most Clang warnings with -Wall
       - cleared most MSVC warnings with /W4
       - added -fPIC 64-bit builds. Off by default for i386
-      - added HKDF class from RFC 5868
+      - added HKDF class from RFC 5869
       - switched to member_ptr due to C++ 11 warnings for auto_ptr
       - initialization of C++ static objects, off by default
          * GCC and init_priotirty/constructor attributes

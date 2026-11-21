@@ -27,7 +27,7 @@
 /// as it does not change the nonce and would result in catastrophic nonce reuse.
 ///
 /// \sa <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM specification</A>
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 
 #ifndef CRYPTOPP_XAES_256_GCM_H
 #define CRYPTOPP_XAES_256_GCM_H
@@ -50,7 +50,7 @@ NAMESPACE_BEGIN(CryptoPP)
 ///  implementations of XAES-256-GCM authenticated encryption.
 /// \sa XAES_256_GCM, <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM
 ///  specification</A>
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 template <bool T_IsEncryption>
 class XAES_256_GCM_Final : public AuthenticatedSymmetricCipher
 {
@@ -235,7 +235,7 @@ protected:
 ///  See XAES_256_GCM_Final for the AuthenticatedSymmetricCipher implementation.
 /// \sa XAES_256_GCM_Final, <A HREF="https://c2sp.org/XAES-256-GCM">C2SP XAES-256-GCM
 ///  specification</A>
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 struct XAES_256_GCM : public AuthenticatedSymmetricCipherDocumentation
 {
 	/// \brief XAES-256-GCM encryption
