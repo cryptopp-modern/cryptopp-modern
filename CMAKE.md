@@ -4,7 +4,7 @@ This document describes the CMake build system for cryptopp-modern.
 
 ## Requirements
 
-- **CMake 3.20** or higher
+- **CMake 3.20** or higher (3.25 or higher to use the presets)
 - **C++11** compatible compiler (C++14 or higher recommended)
 - **Ninja** (recommended) or Make for Linux/macOS
 - **Visual Studio 2022** for Windows MSVC builds
