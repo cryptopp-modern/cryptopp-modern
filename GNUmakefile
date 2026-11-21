@@ -1593,7 +1593,7 @@ cryptopp.pc libcryptopp.pc:
 	@echo 'Libs: -L$${libdir} -lcryptopp' >> libcryptopp.pc
 
 # This recipe prepares the distro files
-TEXT_FILES := *.h *.cpp *.S GNUmakefile GNUmakefile-cross LICENSE Readme.txt Install.txt Filelist.txt Doxyfile cryptest* cryptlib* dlltest* cryptdll* *.sln *.vcxproj *.filters cryptopp.rc TestVectors/*.txt TestData/*.dat TestPrograms/*.cpp
+TEXT_FILES := *.h *.cpp *.S GNUmakefile LICENSE Readme.txt Install.txt Filelist.txt Doxyfile cryptest* cryptlib* dlltest* cryptdll* *.sln *.vcxproj *.filters cryptopp.rc TestVectors/*.txt TestData/*.dat TestPrograms/*.cpp
 EXEC_FILES := TestScripts/*.sh TestScripts/*.cmd
 ifneq ($(wildcard *.sh),)
   EXEC_FILES += $(wildcard *.sh)
@@ -1608,12 +1608,12 @@ endif
 trim:
 ifneq ($(IS_DARWIN),0)
 	$(SED) -i '' -e's/[[:space:]]*$$//' *.supp *.txt .*.yml *.h *.cpp *.asm *.S
-	$(SED) -i '' -e's/[[:space:]]*$$//' *.sln *.vcxproj *.filters *.rc GNUmakefile GNUmakefile-cross
+	$(SED) -i '' -e's/[[:space:]]*$$//' *.sln *.vcxproj *.filters *.rc GNUmakefile
 	$(SED) -i '' -e's/[[:space:]]*$$//' TestData/*.dat TestVectors/*.txt TestPrograms/*.cpp TestScripts/*.*
 	make convert
 else
 	$(SED) -i -e's/[[:space:]]*$$//' *.supp *.txt .*.yml *.h *.cpp *.asm *.S
-	$(SED) -i -e's/[[:space:]]*$$//' *.sln *.vcxproj *.filters *.rc GNUmakefile GNUmakefile-cross
+	$(SED) -i -e's/[[:space:]]*$$//' *.sln *.vcxproj *.filters *.rc GNUmakefile
 	$(SED) -i -e's/[[:space:]]*$$//' TestData/*.dat TestVectors/*.txt TestPrograms/*.cpp TestScripts/*.*
 	make convert
 endif
@@ -1624,7 +1624,7 @@ convert:
 	@-$(CHMOD) u=rw,go=r $(TEXT_FILES) *.supp .*.yml *.asm *.zip TestVectors/*.txt TestData/*.dat TestPrograms/*.cpp
 	@-$(CHMOD) u=rwx,go=rx $(EXEC_FILES)
 	-unix2dos --keepdate --quiet $(TEXT_FILES) .*.yml *.asm TestScripts/*.cmd TestScripts/*.txt TestScripts/*.cpp
-	-dos2unix --keepdate --quiet GNUmakefile GNUmakefile-cross *.sh *.S *.supp *.mapfile TestScripts/*.sh
+	-dos2unix --keepdate --quiet GNUmakefile *.sh *.S *.supp *.mapfile TestScripts/*.sh
 ifneq ($(IS_DARWIN),0)
 	@-xattr -c *
 endif

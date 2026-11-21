@@ -777,7 +777,6 @@ WARN_LOGFILE           =
 
 INPUT                  = . \
                          GNUmakefile \
-                         GNUmakefile-cross \
                          rdrand.asm
 
 # This tag can be used to specify the character encoding of the source files
