@@ -1047,6 +1047,115 @@ bool ValidateElGamal()
 		privC.AccessKey().LoadPrecomputation(queue);
 
 		pass = CryptoSystemValidate(privC, pubC) && pass;
+
+		// Messages past FixedMaxPlaintextLength() must be rejected by
+		// Encrypt(), the encryption filter and SymmetricEncrypt().
+		const size_t maxLen = pubC.FixedMaxPlaintextLength();
+		const size_t modulusLen = privC.GetKey().GetGroupParameters().GetModulus().ByteCount();
+		const size_t lengths[] = {maxLen+1, modulusLen-1, 1000};
+		bool ok = (maxLen == modulusLen-3);
+
+		for (size_t i = 0; i < COUNTOF(lengths); ++i)
+		{
+			const std::string message(lengths[i], 'A');
+			const byte *ptr = reinterpret_cast<const byte *>(message.data());
+			SecByteBlock ciphertext(pubC.FixedCiphertextLength());
+			ok = (pubC.CiphertextLength(lengths[i]) == 0) && ok;
+
+			bool threw = false;
+			try { pubC.Encrypt(GlobalRNG(), ptr, message.size(), ciphertext); }
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+
+			threw = false;
+			try
+			{
+				std::string sink;
+				StringSource(message, true, new PK_EncryptorFilter(GlobalRNG(), pubC, new StringSink(sink)));
+			}
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+
+			threw = false;
+			try
+			{
+				SecByteBlock key(modulusLen);
+				pubC.SymmetricEncrypt(GlobalRNG(), key, ptr, message.size(), ciphertext, g_nullNameValuePairs);
+			}
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+		}
+
+		// A message of exactly the maximum length still round trips.
+		{
+			const std::string message(maxLen, 'A');
+			std::string ciphertext, recovered;
+			StringSource(message, true, new PK_EncryptorFilter(GlobalRNG(), pubC, new StringSink(ciphertext)));
+			StringSource(ciphertext, true, new PK_DecryptorFilter(GlobalRNG(), privC, new StringSink(recovered)));
+			ok = (recovered == message) && ok;
+		}
+
+		// A modulus of 258 bytes or more caps the maximum length at 255.
+		// This is the 3072-bit MODP group from RFC 3526.
+		{
+			const Integer p("0x"
+				"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74"
+				"020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F1437"
+				"4FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
+				"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF05"
+				"98DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB"
+				"9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"
+				"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF695581718"
+				"3995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33"
+				"A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7"
+				"ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864"
+				"D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E2"
+				"08E24FA074E5AB3143DB5BFCE0FD108E4B82D120A93AD2CAFFFFFFFFFFFFFFFF");
+			ElGamalDecryptor priv;
+			priv.AccessKey().Initialize(p, Integer(2), Integer(GlobalRNG(), Integer::One(), (p-1)/2-1));
+			ElGamalEncryptor pub(priv);
+			ok = (pub.FixedMaxPlaintextLength() == 255) && ok;
+
+			const std::string message(255, 'A');
+			std::string ciphertext, recovered;
+			StringSource(message, true, new PK_EncryptorFilter(GlobalRNG(), pub, new StringSink(ciphertext)));
+			StringSource(ciphertext, true, new PK_DecryptorFilter(GlobalRNG(), priv, new StringSink(recovered)));
+			ok = (recovered == message) && ok;
+
+			bool threw = false;
+			try
+			{
+				std::string sink;
+				StringSource(message + "A", true, new PK_EncryptorFilter(GlobalRNG(), pub, new StringSink(sink)));
+			}
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+		}
+
+		// A modulus shorter than 3 bytes cannot encrypt anything, not even
+		// an empty message.
+		const word32 primes[] = {23, 467};
+		for (size_t i = 0; i < COUNTOF(primes); ++i)
+		{
+			ElGamalDecryptor priv;
+			priv.AccessKey().Initialize(Integer(primes[i]), Integer(4), Integer(7));
+			ElGamalEncryptor pub(priv);
+			ok = (pub.CiphertextLength(0) == 0 && pub.FixedMaxPlaintextLength() == 0) && ok;
+
+			byte ciphertext[8];
+			bool threw = false;
+			try { pub.Encrypt(GlobalRNG(), NULLPTR, 0, ciphertext); }
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+
+			threw = false;
+			try { pub.SymmetricEncrypt(GlobalRNG(), ciphertext, NULLPTR, 0, ciphertext, g_nullNameValuePairs); }
+			catch (const InvalidArgument&) { threw = true; }
+			ok = threw && ok;
+		}
+
+		std::cout << (ok ? "passed    " : "FAILED    ") << "messages past the maximum length are rejected\n";
+		pass = ok && pass;
 	}
 	return pass;
 }

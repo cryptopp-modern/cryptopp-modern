@@ -44,7 +44,7 @@ public:
 	size_t GetSymmetricCiphertextLength(size_t plainTextLength) const
 	{
 		unsigned int len = GetGroupParameters().GetModulus().ByteCount();
-		if (plainTextLength <= GetMaxSymmetricPlaintextLength(len))
+		if (len >= 3 && plainTextLength <= GetMaxSymmetricPlaintextLength(len))
 			return len;
 		else
 			return 0;
@@ -53,9 +53,8 @@ public:
 	size_t GetMaxSymmetricPlaintextLength(size_t cipherTextLength) const
 	{
 		unsigned int len = GetGroupParameters().GetModulus().ByteCount();
-		CRYPTOPP_ASSERT(len >= 3);
 
-		if (cipherTextLength == len)
+		if (len >= 3 && cipherTextLength == len)
 			return STDMIN(255U, len-3);
 		else
 			return 0;
@@ -67,9 +66,16 @@ public:
 		const Integer &p = GetGroupParameters().GetModulus();
 		unsigned int modulusLen = p.ByteCount();
 
+		if (modulusLen < 3)
+			throw InvalidArgument("ElGamal: this key is too short to encrypt any messages");
+		if (plainTextLength > GetMaxSymmetricPlaintextLength(modulusLen))
+			throw InvalidArgument("ElGamal: message length of " + IntToString(plainTextLength) + " exceeds the maximum of " + IntToString(GetMaxSymmetricPlaintextLength(modulusLen)) + " for this public key");
+
 		SecByteBlock block(modulusLen-1);
-		rng.GenerateBlock(block, modulusLen-2-plainTextLength);
-		std::memcpy(block+modulusLen-2-plainTextLength, plainText, plainTextLength);
+		const size_t paddingLen = modulusLen-2-plainTextLength;
+		rng.GenerateBlock(block, paddingLen);
+		if (plainTextLength != 0)
+			std::memcpy(block+paddingLen, plainText, plainTextLength);
 		block[modulusLen-2] = (byte)plainTextLength;
 
 		a_times_b_mod_c(Integer(key, modulusLen), Integer(block, modulusLen-1), p).Encode(cipherText, modulusLen);
@@ -147,6 +153,43 @@ public:
 
 	DecodingResult FixedLengthDecrypt(RandomNumberGenerator &rng, const byte *cipherText, byte *plainText) const
 		{return Decrypt(rng, cipherText, FixedCiphertextLength(), plainText);}
+
+protected:
+	const DL_KeyAgreementAlgorithm<Integer> & GetKeyAgreementAlgorithm() const {return *this;}
+	const DL_KeyDerivationAlgorithm<Integer> & GetKeyDerivationAlgorithm() const {return *this;}
+	const DL_SymmetricEncryptionAlgorithm & GetSymmetricEncryptionAlgorithm() const {return *this;}
+};
+
+/// \brief ElGamal encryptor implementation
+/// \tparam SCHEME_OPTIONS Scheme options
+/// \tparam KEY ElGamal key classes
+/// \details Encrypt() throws InvalidArgument if the message is longer than
+///  FixedMaxPlaintextLength() or the key is too short to encrypt any message.
+template <class SCHEME_OPTIONS, class KEY>
+class ElGamalObjectImpl<DL_EncryptorBase<Integer>, SCHEME_OPTIONS, KEY> :
+	public DL_ObjectImplBase<DL_EncryptorBase<Integer>, SCHEME_OPTIONS, KEY>,
+	public ElGamalBase
+{
+public:
+	virtual ~ElGamalObjectImpl() {}
+
+	size_t FixedMaxPlaintextLength() const {return this->MaxPlaintextLength(FixedCiphertextLength());}
+	size_t FixedCiphertextLength() const {return this->CiphertextLength(0);}
+
+	const DL_GroupParameters_GFP & GetGroupParameters() const {return this->GetKey().GetGroupParameters();}
+
+	DecodingResult FixedLengthDecrypt(RandomNumberGenerator &rng, const byte *cipherText, byte *plainText) const
+		{return Decrypt(rng, cipherText, FixedCiphertextLength(), plainText);}
+
+	void Encrypt(RandomNumberGenerator &rng, const byte *plaintext, size_t plaintextLength, byte *ciphertext, const NameValuePairs &parameters = g_nullNameValuePairs) const
+	{
+		if (FixedCiphertextLength() == 0)
+			throw InvalidArgument(this->AlgorithmName() + ": this key is too short to encrypt any messages");
+		if (plaintextLength > FixedMaxPlaintextLength())
+			throw InvalidArgument(this->AlgorithmName() + ": message length of " + IntToString(plaintextLength) + " exceeds the maximum of " + IntToString(FixedMaxPlaintextLength()) + " for this public key");
+
+		DL_EncryptorBase<Integer>::Encrypt(rng, plaintext, plaintextLength, ciphertext, parameters);
+	}
 
 protected:
 	const DL_KeyAgreementAlgorithm<Integer> & GetKeyAgreementAlgorithm() const {return *this;}
