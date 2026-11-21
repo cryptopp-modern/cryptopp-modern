@@ -1255,19 +1255,13 @@ set_source_files_properties(
 
 # IBM XLC -O3 optimization bug
 if(CMAKE_CXX_COMPILER MATCHES "xlC")
-    foreach(file sm3.cpp donna_32.cpp donna_64.cpp)
-        get_source_file_property(
-            xlc_compile_options
-            ${cryptopp_SOURCE_DIR}/src/pubkey/${file}
-            COMPILE_OPTIONS
-        )
-        list(REMOVE_ITEM xlc_compile_options "-O3")
-        list(APPEND xlc_compile_options "-O2")
-        set_source_files_properties(
-            ${cryptopp_SOURCE_DIR}/src/pubkey/${file}
-            PROPERTIES COMPILE_OPTIONS "${xlc_compile_options}"
-        )
-    endforeach()
+    set_property(
+        SOURCE
+            ${cryptopp_SOURCE_DIR}/src/hash/sm3.cpp
+            ${cryptopp_SOURCE_DIR}/src/pubkey/donna_32.cpp
+            ${cryptopp_SOURCE_DIR}/src/pubkey/donna_64.cpp
+        APPEND PROPERTY COMPILE_OPTIONS "-O2"
+    )
 endif()
 
 # SSE2 on i686
