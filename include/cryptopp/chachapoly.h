@@ -271,10 +271,12 @@ private:
 /// \brief IETF XChaCha20Poly1305 cipher final implementation
 /// \tparam T_IsEncryption flag indicating cipher direction
 /// \details XChaCha20Poly1305 is an authenticated encryption scheme that combines
-///  XChaCha20 and Poly1305-TLS. The scheme is defined in RFC 8439, section 2.8,
-///  AEAD_CHACHA20_POLY1305 construction, and uses the IETF versions of ChaCha20
-///  and Poly1305.
-/// \sa <A HREF="http://tools.ietf.org/html/rfc8439">RFC 8439, ChaCha20 and Poly1305
+///  XChaCha20 and Poly1305-TLS. The scheme is AEAD_XChaCha20_Poly1305 from the
+///  Internet-Draft draft-irtf-cfrg-xchacha. It is the RFC 8439, section 2.8,
+///  construction with XChaCha20 and a 24-byte nonce.
+/// \sa <A HREF="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha">XChaCha:
+///  eXtended-nonce ChaCha and AEAD_XChaCha20_Poly1305</A>,
+///  <A HREF="http://tools.ietf.org/html/rfc8439">RFC 8439, ChaCha20 and Poly1305
 ///  for IETF Protocols</A>.
 /// \since Crypto++ 8.1
 template <bool T_IsEncryption>
@@ -303,10 +305,12 @@ private:
 
 /// \brief IETF XChaCha20/Poly1305 AEAD scheme
 /// \details XChaCha20Poly1305 is an authenticated encryption scheme that combines
-///  XChaCha20 and Poly1305-TLS. The scheme is defined in RFC 8439, section 2.8,
-///  AEAD_XCHACHA20_POLY1305 construction, and uses the IETF versions of ChaCha20
-///  and Poly1305.
-/// \sa <A HREF="http://tools.ietf.org/html/rfc8439">RFC 8439, ChaCha20 and Poly1305
+///  XChaCha20 and Poly1305-TLS. The scheme is AEAD_XChaCha20_Poly1305 from the
+///  Internet-Draft draft-irtf-cfrg-xchacha. It is the RFC 8439, section 2.8,
+///  construction with XChaCha20 and a 24-byte nonce.
+/// \sa <A HREF="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha">XChaCha:
+///  eXtended-nonce ChaCha and AEAD_XChaCha20_Poly1305</A>,
+///  <A HREF="http://tools.ietf.org/html/rfc8439">RFC 8439, ChaCha20 and Poly1305
 ///  for IETF Protocols</A>.
 /// \since Crypto++ 8.1
 struct XChaCha20Poly1305 : public AuthenticatedSymmetricCipherDocumentation

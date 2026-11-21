@@ -12,9 +12,11 @@
 /// - 24 bytes → AES-192
 /// - 32 bytes → AES-256
 ///
-/// Key lengths are validated against the block cipher's valid key lengths.
+/// The mode does not check the master key length. AES checks it when CTR is
+/// initialised with the IV, and throws InvalidKeyLength. SetKey() without an IV
+/// throws InvalidArgument, because the mode requires an IV.
 /// The derived keys are:
-/// - Encryption key: same size as the (validated) master key length
+/// - Encryption key: same size as the master key
 /// - MAC key: T_HashFunction::DIGESTSIZE bytes (e.g. 32 bytes for SHA-256)
 ///
 /// The HKDF info parameter includes the hash algorithm name for domain separation
@@ -37,11 +39,14 @@
 /// 6. Length block: len(AAD) || len(Ciphertext) as two 64-bit big-endian integers
 ///
 /// \par Tag Size
-/// Default tag size is 16 bytes. Tag size must be between 12 bytes and
+/// On the concrete type, TagSize() returns 16 bytes. Final() uses DigestSize(),
+/// and the authenticated filters use that length by default. For a 16-byte tag,
+/// request it explicitly with TruncatedFinal() or the filter's
+/// truncatedDigestSize argument. Tag size must be between 12 bytes and
 /// the full HMAC digest size (32 bytes for SHA-256, 64 bytes for SHA-512).
 /// Values outside this range throw InvalidArgument.
 ///
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 
 #ifndef CRYPTOPP_AES_CTR_HMAC_H
 #define CRYPTOPP_AES_CTR_HMAC_H
@@ -62,7 +67,7 @@ NAMESPACE_BEGIN(CryptoPP)
 
 /// \brief AES-CTR-HMAC block cipher base implementation
 /// \details Base implementation of the AuthenticatedSymmetricCipher interface
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 template <class T_BlockCipher, class T_HashFunction>
 class CRYPTOPP_NO_VTABLE AES_CTR_HMAC_Base : public AuthenticatedSymmetricCipherBase
 {
@@ -196,7 +201,7 @@ protected:
 /// \tparam T_BlockCipher block cipher
 /// \tparam T_HashFunction hash function for HMAC
 /// \tparam T_IsEncryption direction in which to operate the cipher
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 template <class T_BlockCipher, class T_HashFunction, bool T_IsEncryption>
 class AES_CTR_HMAC_Final : public AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>
 {
@@ -224,7 +229,7 @@ private:
 ///  implementation.
 /// \details The AES variant (128/192/256) is determined by the master key length
 ///  passed to SetKey (16, 24, or 32 bytes respectively).
-/// \since cryptopp-modern 2025.12.0
+/// \since cryptopp-modern 2026.1.0
 template <class T_BlockCipher = AES, class T_HashFunction = SHA256>
 struct AES_CTR_HMAC : public AuthenticatedSymmetricCipherDocumentation
 {
@@ -248,8 +253,8 @@ void AES_CTR_HMAC_Base<T_BlockCipher, T_HashFunction>::DeriveKeys(
 {
 	HKDF<T_HashFunction> hkdf;
 
-	// masterKeyLen is already validated by SetKey/GetValidKeyLength,
-	// so it directly determines the AES key size (16, 24, or 32 bytes)
+	// masterKeyLen is used as the AES key size. It is not checked here;
+	// the block cipher rejects an invalid length in Resync().
 	size_t encKeyLen = masterKeyLen;
 	size_t macKeyLen = T_HashFunction::DIGESTSIZE;
 

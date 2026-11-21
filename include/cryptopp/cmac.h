@@ -11,8 +11,9 @@
 #include <cryptopp/secblock.h>
 
 /// \brief Enable CMAC and wide block ciphers
-/// \details CMAC is only defined for AES. The library can support wide
-///  block ciphers like Kaylna and Threefish since we know the polynomials.
+/// \details NIST SP 800-38B defines CMAC for block ciphers with 64-bit and
+///  128-bit blocks. The library can support wide block ciphers like Kalyna
+///  and Threefish since we know the polynomials.
 #ifndef CRYPTOPP_CMAC_WIDE_BLOCK_CIPHERS
 # define CRYPTOPP_CMAC_WIDE_BLOCK_CIPHERS 1
 #endif  // CRYPTOPP_CMAC_WIDE_BLOCK_CIPHERS

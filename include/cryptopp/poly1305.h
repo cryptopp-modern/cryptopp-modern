@@ -92,7 +92,7 @@ protected:
 /// \details Poly1305-AES is a state-of-the-art message-authentication code suitable for a wide
 ///   variety of applications. Poly1305-AES computes a 16-byte authenticator of a variable-length
 ///   message, using a 16-byte AES key, a 16-byte additional key, and a 16-byte nonce.
-/// \details The key is 32 bytes and a concatenation <tt>key = {k,s}</tt>, where
+/// \details The key is 32 bytes and a concatenation <tt>key = {k,r}</tt>, where
 ///   <tt>k</tt> is the AES key and <tt>r</tt> is additional key that gets clamped.
 ///   The key is clamped internally so there is no need to perform the operation
 ///   before setting the key.
@@ -144,9 +144,9 @@ public:
 	/// \brief Construct a Poly1305
 	/// \param key a byte array used to key the cipher
 	/// \param keyLength the size of the byte array, in bytes
-	/// \param nonce a byte array used to key the cipher
+	/// \param nonce a byte array used as the nonce
 	/// \param nonceLength the size of the byte array, in bytes
-	/// \details The key is 32 bytes and a concatenation <tt>key = {k,s}</tt>, where
+	/// \details The key is 32 bytes and a concatenation <tt>key = {k,r}</tt>, where
 	///   <tt>k</tt> is the AES key and <tt>r</tt> is additional key that gets clamped.
 	///   The key is clamped internally so there is no need to perform the operation
 	///   before setting the key.

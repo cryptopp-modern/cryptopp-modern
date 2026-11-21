@@ -7,7 +7,7 @@
 /// \details This implementation follows the BLAKE3 specification and reference
 ///   implementation. BLAKE3 supports standard hashing, keyed hashing (MAC), and
 ///   key derivation, with variable-length output.
-/// \since Crypto++ 8.9
+/// \since cryptopp-modern 2025.11.0
 
 #ifndef CRYPTOPP_BLAKE3_H
 #define CRYPTOPP_BLAKE3_H
@@ -19,7 +19,7 @@
 NAMESPACE_BEGIN(CryptoPP)
 
 /// \brief BLAKE3 hash information
-/// \since Crypto++ 8.9
+/// \since cryptopp-modern 2025.11.0
 struct BLAKE3_Info : public FixedKeyLength<32,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE>
 {
 	typedef FixedKeyLength<32,SimpleKeyingInterface::NOT_RESYNCHRONIZABLE> KeyBase;
@@ -38,7 +38,7 @@ struct BLAKE3_Info : public FixedKeyLength<32,SimpleKeyingInterface::NOT_RESYNCH
 /// \details BLAKE3 processes input in 1024-byte chunks. Each chunk is further
 ///   divided into 64-byte blocks. The chunk state tracks the progress through
 ///   a single chunk and produces a chaining value when the chunk is complete.
-/// \since Crypto++ 8.9
+/// \since cryptopp-modern 2025.11.0
 struct CRYPTOPP_NO_VTABLE BLAKE3_ChunkState
 {
 	CRYPTOPP_CONSTANT(BLOCKSIZE = BLAKE3_Info::BLOCKSIZE);
@@ -72,7 +72,7 @@ struct CRYPTOPP_NO_VTABLE BLAKE3_ChunkState
 ///   a Merkle tree structure. As chunks are processed, their CVs are merged in a
 ///   tree pattern. The maximum depth of 54 allows for 2^54 chunks, supporting
 ///   exabyte-scale inputs.
-/// \since Crypto++ 8.9
+/// \since cryptopp-modern 2025.11.0
 struct CRYPTOPP_NO_VTABLE BLAKE3_State
 {
 	CRYPTOPP_CONSTANT(MAX_DEPTH = 54);
@@ -106,7 +106,7 @@ struct CRYPTOPP_NO_VTABLE BLAKE3_State
 ///   input. Restart() preserves the current mode and key.
 /// \sa BLAKE3 specification at <A HREF="https://github.com/BLAKE3-team/BLAKE3-specs">
 ///   BLAKE3-specs</A>
-/// \since Crypto++ 8.9
+/// \since cryptopp-modern 2025.11.0
 class BLAKE3 : public SimpleKeyingInterfaceImpl<MessageAuthenticationCode, BLAKE3_Info>
 {
 public:
@@ -127,7 +127,7 @@ public:
 	/// \brief Construct a BLAKE3 hash
 	/// \param digestSize the digest size, in bytes (default 32)
 	/// \throw InvalidArgument if digestSize is 0 or larger than 1024
-	/// \since Crypto++ 8.9
+	/// \since cryptopp-modern 2025.11.0
 	BLAKE3(unsigned int digestSize = DIGESTSIZE);
 
 	/// \brief Construct a BLAKE3 keyed hash (MAC)
@@ -136,14 +136,14 @@ public:
 	/// \param digestSize the digest size, in bytes (default 32)
 	/// \throw InvalidKeyLength if keyLength is not 32
 	/// \throw InvalidArgument if key is null, or if digestSize is 0 or larger than 1024
-	/// \since Crypto++ 8.9
+	/// \since cryptopp-modern 2025.11.0
 	BLAKE3(const byte *key, size_t keyLength, unsigned int digestSize = DIGESTSIZE);
 
 	/// \brief Construct a BLAKE3 key derivation function
 	/// \param context a string identifying the KDF context; a fixed, globally unique application string
 	/// \param digestSize the digest size, in bytes (default 32)
 	/// \throw InvalidArgument if context is null, or if digestSize is 0 or larger than 1024
-	/// \since Crypto++ 8.9
+	/// \since cryptopp-modern 2025.11.0
 	BLAKE3(const char* context, unsigned int digestSize = DIGESTSIZE);
 
 	/// \brief Retrieve the object's name

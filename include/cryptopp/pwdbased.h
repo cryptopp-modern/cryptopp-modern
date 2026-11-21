@@ -24,7 +24,7 @@ NAMESPACE_BEGIN(CryptoPP)
 /// \sa PasswordBasedKeyDerivationFunction, <A
 ///  HREF="https://www.cryptopp.com/wiki/PKCS5_PBKDF1">PKCS5_PBKDF1</A>
 ///  on the Crypto++ wiki
-/// \since Crypto++ 2.0
+/// \since Crypto++ 5.0
 template <class T>
 class PKCS5_PBKDF1 : public PasswordBasedKeyDerivationFunction
 {
@@ -159,7 +159,7 @@ size_t PKCS5_PBKDF1<T>::DeriveKey(byte *derived, size_t derivedLen, byte purpose
 /// \sa PasswordBasedKeyDerivationFunction, <A
 ///  HREF="https://www.cryptopp.com/wiki/PKCS5_PBKDF2_HMAC">PKCS5_PBKDF2_HMAC</A>
 ///  on the Crypto++ wiki
-/// \since Crypto++ 2.0
+/// \since Crypto++ 5.0
 template <class T>
 class PKCS5_PBKDF2_HMAC : public PasswordBasedKeyDerivationFunction
 {

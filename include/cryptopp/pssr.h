@@ -84,7 +84,8 @@ public:
 
 /// \brief Probabilistic Signature Scheme with Recovery
 /// \details Signature Schemes with Recovery encode the message with the signature.
-/// \sa <a href="http://www.weidai.com/scan-mirror/sig.html#sem_PSSR-MGF1">PSSR-MGF1</a>
+/// \details The message encoding follows ISO/IEC 9796-2 signature scheme 2, as IEEE 1363a
+///  EMSA4 does.
 /// \since Crypto++ 2.1
 struct PSSR : public SignatureStandard
 {
@@ -93,8 +94,10 @@ struct PSSR : public SignatureStandard
 
 /// \brief Probabilistic Signature Scheme with Appendix
 /// \details Signature Schemes with Appendix require the message to be provided during verification.
-/// \sa <a href="http://www.weidai.com/scan-mirror/sig.html#sem_PSS-MGF1">PSS-MGF1</a>
-/// \since Crypto++ 2.1
+/// \details The encoding is EMSA-PSS from RFC 8017.
+/// \sa <a href="https://www.rfc-editor.org/rfc/rfc8017">RFC 8017, PKCS #1: RSA Cryptography
+///  Specifications Version 2.2</a>
+/// \since Crypto++ 5.1
 struct PSS : public SignatureStandard
 {
 	typedef PSSR_MEM<false> SignatureMessageEncodingMethod;
