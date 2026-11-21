@@ -67,8 +67,7 @@ unsigned long int getauxval(unsigned long int) { return 0; }
 
 // The cpu-features header and source file are located in
 // "$ANDROID_NDK_ROOT/sources/android/cpufeatures".
-// setenv-android.sh will copy the header and source file
-// into PWD and the makefile will build it in place.
+// The CMake build stages the header and source file from the NDK.
 #if defined(__ANDROID__)
 # include "cpu-features.h"
 #endif
