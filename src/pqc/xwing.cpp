@@ -218,14 +218,11 @@ bool XWingDecapsulator::Decapsulate(const byte *ciphertext, byte *sharedSecret) 
     mlkem_decaps.Decapsulate(mlkem_ct, mlkem_ss.begin());
 
     // 3. X25519 key exchange: DH(recipient_private, ephemeral_public)
-    // Per X-Wing spec Section 6.2: decapsulation MUST NOT return a failure.
-    // Always proceed through the combiner regardless of X25519 result.
-    // If the ephemeral key is small-order, Agree() returns false and x25519_ss
-    // is all-zeros; the combiner still produces a pseudorandom shared secret.
+    // X-Wing uses the raw X25519 result, including zero for small-order shares.
     SecByteBlock x25519_ss(32);
 
     x25519 x25519_agreement;
-    x25519_agreement.Agree(x25519_ss.begin(), m_key.GetX25519PrivateKeyPtr(), x25519_ct);
+    x25519_agreement.Agree(x25519_ss.begin(), m_key.GetX25519PrivateKeyPtr(), x25519_ct, false);
 
     // 4. Combine shared secrets using X-Wing combiner
     XWingInternal::Combiner(sharedSecret, mlkem_ss.begin(), x25519_ss.begin(),
