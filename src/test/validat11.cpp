@@ -11,6 +11,7 @@
 #include <cryptopp/filters.h>
 #include <cstring>
 #include <cryptopp/sha.h>
+#include <cryptopp/sha3.h>
 
 #include <cryptopp/mlkem.h>
 #include <cryptopp/mldsa.h>
@@ -2151,6 +2152,198 @@ static bool TestXWingMultipleRounds()
 	}
 }
 
+struct XWingKatRecord
+{
+	std::string name, seed, pk, eseed, ct, ss;
+};
+
+// Encapsulation draws the ML-KEM message and then the X25519 ephemeral key,
+// which is the layout of the draft's 64-byte eseed.
+static bool XWingKatVector(const XWingKatRecord& r)
+{
+	const SecByteBlock seed = MLKEMFromHex(r.seed), pk = MLKEMFromHex(r.pk),
+		eseed = MLKEMFromHex(r.eseed), ct = MLKEMFromHex(r.ct), ss = MLKEMFromHex(r.ss);
+
+	if (seed.size() != XWING_Constants::SEED_SIZE || pk.size() != XWING_Constants::PUBLIC_KEY_SIZE ||
+		eseed.size() != 64 || ct.size() != XWING_Constants::CIPHERTEXT_SIZE ||
+		ss.size() != XWING_Constants::SHARED_SECRET_SIZE)
+		return false;
+
+	XWingDecapsulator decapsulator;
+	decapsulator.AccessPrivateKey().GenerateFromSeed(seed.begin());
+
+	SecByteBlock publicKey(XWING_Constants::PUBLIC_KEY_SIZE);
+	decapsulator.GetKey().GetPublicKey(publicKey);
+	if (publicKey != pk)
+		return false;
+
+	ByteQueue source;
+	source.Put(eseed.begin(), eseed.size());
+	MLKEMKatRNG rng(source);
+
+	XWingEncapsulator encapsulator(pk.begin(), pk.size());
+	SecByteBlock ciphertext(encapsulator.CiphertextLength());
+	SecByteBlock sent(encapsulator.SharedSecretLength());
+	encapsulator.Encapsulate(rng, ciphertext, sent);
+
+	if (source.AnyRetrievable() || ciphertext != ct || sent != ss)
+		return false;
+
+	SecByteBlock received(decapsulator.SharedSecretLength());
+	return decapsulator.Decapsulate(ct, received) && received == ss;
+}
+
+// draft-connolly-cfrg-xwing-kem-09, Appendix C.
+static bool TestXWingKAT()
+{
+	const char* name = "X-Wing draft";
+
+	std::ifstream file(DataDir("TestVectors/xwing.txt").c_str());
+	if (!file) {
+		std::cout << "FAILED:  " << name << " cannot open TestVectors/xwing.txt" << std::endl;
+		return false;
+	}
+
+	std::string line;
+	XWingKatRecord r;
+	unsigned int count = 0;
+
+	try {
+		while (std::getline(file, line)) {
+			if (!line.empty() && line[line.size() - 1] == '\r')
+				line.erase(line.size() - 1);
+			if (line.empty() || line[0] == '#')
+				continue;
+
+			std::string::size_type colon = line.find(':');
+			if (colon == std::string::npos)
+				continue;
+			std::string key = line.substr(0, colon);
+			std::string val = line.substr(colon + 1);
+			while (!val.empty() && val[0] == ' ')
+				val.erase(0, 1);
+
+			if (key == "Name") r.name = val;
+			else if (key == "Seed") r.seed = val;
+			else if (key == "PublicKey") r.pk = val;
+			else if (key == "Eseed") r.eseed = val;
+			else if (key == "Ciphertext") r.ct = val;
+			else if (key == "SharedSecret") r.ss = val;
+			else if (key == "Test") {
+				if (!XWingKatVector(r)) {
+					std::cout << "FAILED:  " << name << " " << r.name << " mismatch" << std::endl;
+					return false;
+				}
+				count++;
+				r = XWingKatRecord();
+			}
+		}
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+
+	// Pinned so that a truncated vector file fails.
+	const unsigned int expected = 3;
+	if (count != expected) {
+		std::cout << "FAILED:  " << name << " coverage (" << count
+			<< " vectors; expected " << expected << ")" << std::endl;
+		return false;
+	}
+
+	std::cout << "passed:  " << name << " KAT (" << count << " vectors)" << std::endl;
+	return true;
+}
+
+// X25519 maps a small-order point to 32 zero bytes, so a ciphertext carrying
+// one must decapsulate to the combiner value over that all-zero secret.
+static bool TestXWingSmallOrderShare()
+{
+	const char* name = "X-Wing small-order X25519 share";
+
+	// u = 0, u = 1, a point of order 8, and u = p - 1.
+	static const byte shares[][32] = {
+		{0x00},
+		{0x01},
+		{0xe0,0xeb,0x7a,0x7c,0x3b,0x41,0xb8,0xae,0x16,0x56,0xe3,0xfa,0xf1,0x9f,0xc4,0x6a,
+		 0xda,0x09,0x8d,0xeb,0x9c,0x32,0xb1,0xfd,0x86,0x62,0x05,0x16,0x5f,0x49,0xb8,0x00},
+		{0xec,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+		 0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x7f}
+	};
+	static const byte label[] = {0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c};
+	static const byte zero[32] = {0};
+
+	try {
+		byte seed[XWING_Constants::SEED_SIZE], eseed[64];
+		for (size_t i = 0; i < sizeof(seed); i++)
+			seed[i] = static_cast<byte>(i);
+		for (size_t i = 0; i < sizeof(eseed); i++)
+			eseed[i] = static_cast<byte>(0x80 + i);
+
+		XWingDecapsulator decapsulator;
+		decapsulator.AccessPrivateKey().GenerateFromSeed(seed);
+
+		SecByteBlock pubKey(XWING_Constants::PUBLIC_KEY_SIZE);
+		decapsulator.GetKey().GetPublicKey(pubKey);
+
+		ByteQueue source;
+		source.Put(eseed, sizeof(eseed));
+		MLKEMKatRNG rng(source);
+
+		XWingEncapsulator encapsulator(pubKey.begin(), pubKey.size());
+		SecByteBlock ciphertext(encapsulator.CiphertextLength());
+		SecByteBlock sent(encapsulator.SharedSecretLength());
+		encapsulator.Encapsulate(rng, ciphertext, sent);
+
+		// The ML-KEM half of the ciphertext is left alone, so its secret is
+		// the same for every case.
+		MLKEMDecapsulator<MLKEM_768> mlkem(
+			decapsulator.GetPrivateKey().GetMLKEMPrivateKeyPtr(), MLKEM_768::SECRET_KEY_SIZE);
+		SecByteBlock mlkemSecret(mlkem.SharedSecretLength());
+		mlkem.Decapsulate(ciphertext, mlkemSecret);
+
+		byte* share = ciphertext.begin() + MLKEM_768::CIPHERTEXT_SIZE;
+		const byte* x25519Public = pubKey.begin() + MLKEM_768::PUBLIC_KEY_SIZE;
+
+		// The first pass keeps the sender's share, which must not give the
+		// all-zero value.
+		for (size_t i = 0; i <= COUNTOF(shares); i++) {
+			const bool honest = (i == 0);
+			if (!honest)
+				std::memcpy(share, shares[i - 1], 32);
+
+			byte expected[32];
+			SHA3_256 hash;
+			hash.Update(mlkemSecret, mlkemSecret.size());
+			hash.Update(zero, sizeof(zero));
+			hash.Update(share, 32);
+			hash.Update(x25519Public, 32);
+			hash.Update(label, sizeof(label));
+			hash.Final(expected);
+
+			SecByteBlock received(decapsulator.SharedSecretLength());
+			if (!decapsulator.Decapsulate(ciphertext, received)) {
+				std::cout << "FAILED:  " << name << " - decapsulation returned false" << std::endl;
+				return false;
+			}
+
+			const bool match = std::memcmp(received, expected, sizeof(expected)) == 0;
+			if (honest ? (match || received != sent) : !match) {
+				std::cout << "FAILED:  " << name << " - case " << i << std::endl;
+				return false;
+			}
+		}
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " - " << e.what() << std::endl;
+		return false;
+	}
+
+	std::cout << "passed:  " << name << std::endl;
+	return true;
+}
+
 bool ValidateXWing()
 {
 	std::cout << "\nX-Wing (Hybrid KEM) validation suite running...\n\n";
@@ -2159,6 +2352,8 @@ bool ValidateXWing()
 	pass = TestXWingKeyGen() && pass;
 	pass = TestXWingEncapsDecaps() && pass;
 	pass = TestXWingMultipleRounds() && pass;
+	pass = TestXWingKAT() && pass;
+	pass = TestXWingSmallOrderShare() && pass;
 
 	return pass;
 }
