@@ -301,9 +301,12 @@ struct ed25519_MessageAccumulator : public PK_MessageAccumulator
     }
 
     /// \brief Reset the accumulator
+    /// \details The signature storage is filled with a value that cannot
+    ///  verify, so verification fails until a signature is supplied.
     void Restart() {
         m_msg.reserve(RESERVE_SIZE);
         m_msg.resize(SIGNATURE_LENGTH);
+        std::memset(&m_msg[0], 0xFF, SIGNATURE_LENGTH);
     }
 
     /// \brief Retrieve pointer to signature buffer
@@ -780,11 +783,12 @@ struct ed25519Verifier : public PK_Verifier
     }
 
     void InputSignature(PK_MessageAccumulator &messageAccumulator, const byte *signature, size_t signatureLength) const {
-        CRYPTOPP_ASSERT(signature != NULLPTR);
-        CRYPTOPP_ASSERT(signatureLength == SIGNATURE_LENGTH);
         ed25519_MessageAccumulator& accum = static_cast<ed25519_MessageAccumulator&>(messageAccumulator);
-        if (signature && signatureLength)
-            std::memcpy(accum.signature(), signature, STDMIN((size_t)SIGNATURE_LENGTH, signatureLength));
+        // An all-ones S is rejected as non-canonical.
+        if (signature && signatureLength == SIGNATURE_LENGTH)
+            std::memcpy(accum.signature(), signature, SIGNATURE_LENGTH);
+        else
+            std::memset(accum.signature(), 0xFF, SIGNATURE_LENGTH);
     }
 
     bool VerifyAndRestart(PK_MessageAccumulator &messageAccumulator) const;
@@ -794,7 +798,8 @@ struct ed25519Verifier : public PK_Verifier
     /// \param signature a pointer to the signature over the message
     /// \param signatureLen the size of the signature
     /// \return true if the signature is valid, false otherwise
-    /// \details Verification fails for a public key of small order.
+    /// \details Verification fails for a public key of small order, and for a
+    ///  signature that is not SIGNATURE_LENGTH bytes.
     /// \details VerifyStream() handles large streams. The Stream functions were added to
     ///  ed25519 for signing and verifying files that are too large for a memory allocation.
     ///  The functions are not present in other library signers and verifiers.

@@ -946,8 +946,8 @@ bool ed25519Verifier::VerifyAndRestart(PK_MessageAccumulator &messageAccumulator
 
 bool ed25519Verifier::VerifyStream(std::istream& stream, const byte *signature, size_t signatureLen) const
 {
-    CRYPTOPP_ASSERT(signatureLen == SIGNATURE_LENGTH);
-    CRYPTOPP_UNUSED(signatureLen);
+    if (signature == NULLPTR || signatureLen != SIGNATURE_LENGTH)
+        return false;
 
     const ed25519PublicKey& pk = static_cast<const ed25519PublicKey&>(GetPublicKey());
     if (HasSmallOrderEd25519(pk.GetPublicKeyBytePtr()))
