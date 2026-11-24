@@ -161,6 +161,135 @@ bool ValidateNR()
 	return pass;
 }
 
+namespace {
+
+std::string DSADerSignature(const Integer &r, const Integer &s)
+{
+	std::string der;
+	StringSink sink(der);
+	DERSequenceEncoder seq(sink);
+	r.DEREncode(seq);
+	s.DEREncode(seq);
+	seq.MessageEnd();
+	return der;
+}
+
+// True if the conversion returns 0 and writes nothing.
+bool DSAConvertRefused(size_t outSize, DSASignatureFormat to, const std::string &in, DSASignatureFormat from)
+{
+	std::vector<byte> out(outSize + 1, 0xA5);
+	const size_t ret = DSAConvertSignatureFormat(&out[0], outSize, to,
+		(const byte *)in.data(), in.size(), from);
+	for (size_t i = 0; i < out.size(); ++i)
+		if (out[i] != 0xA5) return false;
+	return ret == 0;
+}
+
+std::string DSAConvert(size_t outSize, DSASignatureFormat to, const std::string &in, DSASignatureFormat from)
+{
+	std::vector<byte> out(outSize + 1);
+	const size_t ret = DSAConvertSignatureFormat(&out[0], outSize, to,
+		(const byte *)in.data(), in.size(), from);
+	return std::string((const char *)&out[0], ret);
+}
+
+bool TestDSAConvertSignatureFormat()
+{
+	bool pass = true;
+
+	try
+	{
+		// r = 1 and s = 0x80FF in every format.
+		const std::string p1363("\x00\x01\x80\xFF", 4);
+		const std::string der("\x30\x08\x02\x01\x01\x02\x03\x00\x80\xFF", 10);
+		const std::string pgp("\x00\x01\x01\x00\x10\x80\xFF", 7);
+
+		pass = DSAConvert(64, DSA_DER, p1363, DSA_P1363) == der && pass;
+		pass = DSAConvert(64, DSA_OPENPGP, p1363, DSA_P1363) == pgp && pass;
+		pass = DSAConvert(4, DSA_P1363, der, DSA_DER) == p1363 && pass;
+		pass = DSAConvert(4, DSA_P1363, pgp, DSA_OPENPGP) == p1363 && pass;
+		pass = DSAConvert(64, DSA_OPENPGP, der, DSA_DER) == pgp && pass;
+		pass = DSAConvert(64, DSA_DER, pgp, DSA_OPENPGP) == der && pass;
+
+		// Signature-sized values, with a leading zero byte and with the top bit set.
+		const size_t sizes[] = { 40, 64 };
+		for (size_t i = 0; i < 2; ++i)
+		{
+			std::string sig(sizes[i], '\x5A');
+			sig[0] = '\x00';
+			sig[sizes[i]/2] = '\xF1';
+			const std::string viaDer = DSAConvert(128, DSA_DER, sig, DSA_P1363);
+			const std::string viaPgp = DSAConvert(128, DSA_OPENPGP, viaDer, DSA_DER);
+			pass = !viaDer.empty() && !viaPgp.empty() && pass;
+			pass = DSAConvert(sizes[i], DSA_P1363, viaDer, DSA_DER) == sig && pass;
+			pass = DSAConvert(sizes[i], DSA_P1363, viaPgp, DSA_OPENPGP) == sig && pass;
+		}
+
+		// An exact fit converts. One byte less writes nothing.
+		pass = DSAConvert(10, DSA_DER, p1363, DSA_P1363) == der && pass;
+		pass = DSAConvert(7, DSA_OPENPGP, p1363, DSA_P1363) == pgp && pass;
+		pass = DSAConvertRefused(9, DSA_DER, p1363, DSA_P1363) && pass;
+		pass = DSAConvertRefused(6, DSA_OPENPGP, p1363, DSA_P1363) && pass;
+		pass = DSAConvertRefused(0, DSA_DER, p1363, DSA_P1363) && pass;
+		pass = DSAConvertRefused(0, DSA_P1363, der, DSA_DER) && pass;
+
+		// A component wider than its P1363 field.
+		const Integer wide = Integer::Power2(160) + Integer::One();
+		pass = DSAConvertRefused(40, DSA_P1363, DSADerSignature(wide, 5), DSA_DER) && pass;
+		pass = DSAConvertRefused(40, DSA_P1363, DSADerSignature(5, wide), DSA_DER) && pass;
+		pass = DSAConvert(42, DSA_P1363, DSADerSignature(wide, 5), DSA_DER).size() == 42 && pass;
+
+		// Negative components.
+		pass = DSAConvertRefused(40, DSA_P1363, DSADerSignature(-1, 5), DSA_DER) && pass;
+		pass = DSAConvertRefused(40, DSA_P1363, DSADerSignature(5, -1), DSA_DER) && pass;
+		pass = DSAConvertRefused(64, DSA_OPENPGP, DSADerSignature(-1, 5), DSA_DER) && pass;
+
+		// P1363 lengths that do not split into two fields.
+		pass = DSAConvertRefused(64, DSA_DER, std::string(41, '\x11'), DSA_P1363) && pass;
+		pass = DSAConvertRefused(64, DSA_DER, std::string(), DSA_P1363) && pass;
+		pass = DSAConvertRefused(41, DSA_P1363, DSADerSignature(5, 7), DSA_DER) && pass;
+
+		// A value with more bits than an OpenPGP MPI header can state.
+		const std::string huge(2*8192, '\xFF');
+		pass = DSAConvertRefused(2*8192+16, DSA_OPENPGP, huge, DSA_P1363) && pass;
+		pass = DSAConvert(2*8192+16, DSA_DER, huge, DSA_P1363).size() > 2*8192 && pass;
+
+		// BER input stays accepted: long-form length, padded integers, trailing bytes.
+		const std::string ber("\x30\x81\x08\x02\x02\x00\x01\x02\x02\x00\x02", 11);
+		pass = DSAConvert(4, DSA_P1363, ber, DSA_DER) == std::string("\x00\x01\x00\x02", 4) && pass;
+		pass = DSAConvert(4, DSA_P1363, der + std::string(2, '\x7E'), DSA_DER) == p1363 && pass;
+
+		// A zero component is converted. The verifier rejects it.
+		const std::string zero("\x00\x00\x00\x05", 4);
+		const std::string zeroDer("\x30\x06\x02\x01\x00\x02\x01\x05", 8);
+		pass = DSAConvert(64, DSA_DER, zero, DSA_P1363) == zeroDer && pass;
+		pass = DSAConvert(4, DSA_P1363, zeroDer, DSA_DER) == zero && pass;
+	}
+	catch (const Exception&)
+	{
+		pass = false;
+	}
+
+	// Malformed input throws.
+	bool threw = false;
+	try
+	{
+		DSAConvert(40, DSA_P1363, std::string("\x30\x08\x02\x01\x01", 5), DSA_DER);
+	}
+	catch (const BERDecodeErr&)
+	{
+		threw = true;
+	}
+	pass = threw && pass;
+
+	std::cout << (pass ? "passed    " : "FAILED    ");
+	std::cout << "signature format conversion\n";
+
+	return pass;
+}
+
+}  // namespace
+
 bool ValidateDSA(bool thorough)
 {
 	std::cout << "\nDSA validation suite running...\n\n";
@@ -173,6 +302,7 @@ bool ValidateDSA(bool thorough)
 	DSA::Verifier pub1(fs2);
 	CRYPTOPP_ASSERT(pub.GetKey() == pub1.GetKey());
 	pass = SignatureValidate(priv, pub, thorough) && pass;
+	pass = TestDSAConvertSignatureFormat() && pass;
 
 	return pass;
 }
