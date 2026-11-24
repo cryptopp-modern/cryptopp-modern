@@ -33,15 +33,22 @@ enum DSASignatureFormat {
 /// \param signature byte buffer for the existing signature encoding
 /// \param signatureLen the length of the existing signature encoding buffer
 /// \param fromFormat the source signature format
-/// \return the number of bytes written during encoding
+/// \return the number of bytes written during encoding, or 0 if the signature
+///  cannot be converted
 /// \details This function converts between these formats, and returns length
 ///  of signature in the target format. If <tt>toFormat == DSA_P1363</tt>, then
 ///  <tt>bufferSize</tt> must equal <tt>publicKey.SignatureLength()</tt> or
 ///  <tt>verifier.SignatureLength()</tt>.
-/// \details If the destination buffer is too small then the output of the
-///  encoded <tt>r</tt> and <tt>s</tt> will be truncated. Be sure to provide
-///  an adequately sized buffer and check the return value for the number of
-///  bytes written.
+/// \details The function returns 0 and leaves <tt>buffer</tt> unchanged if the
+///  destination buffer is too small, if <tt>r</tt> or <tt>s</tt> is negative
+///  or does not fit the target format, or if a P1363 signature or buffer has
+///  an empty or odd length. Check the return value before using the buffer.
+///  Malformed DER or OpenPGP input throws <tt>BERDecodeErr</tt> or
+///  <tt>OpenPGPDecodeErr</tt>.
+/// \details The function checks that <tt>r</tt> and <tt>s</tt> can be
+///  represented in the target format.
+/// \details Zero-valued components are preserved. The verifier checks
+///  whether <tt>r</tt> and <tt>s</tt> are in range for the key.
 /// \sa <A HREF="http://www.cryptopp.com/wiki/DSAConvertSignatureFormat">DSAConvertSignatureFormat</A>
 ///  on the Crypto++ wiki.
 /// \since Crypto++ 1.0
