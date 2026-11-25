@@ -24,6 +24,8 @@
 #include <cryptopp/xed25519.h>
 #include <cryptopp/sha3.h>
 
+#include <cstring>
+
 NAMESPACE_BEGIN(CryptoPP)
 
 // ******************** X-Wing Constants ************************* //
@@ -66,6 +68,13 @@ struct XWingPrivateKey : public PrivateKey
     CRYPTOPP_CONSTANT(SECRET_KEYLENGTH = XWING_Constants::SECRET_KEY_SIZE);
     CRYPTOPP_CONSTANT(PUBLIC_KEYLENGTH = XWING_Constants::PUBLIC_KEY_SIZE);
     CRYPTOPP_CONSTANT(SEED_LENGTH = XWING_Constants::SEED_SIZE);
+
+    /// \brief Create an unset private key with zeroed buffers
+    XWingPrivateKey() {
+        std::memset(m_mlkem_sk, 0, m_mlkem_sk.size());
+        std::memset(m_x25519_sk, 0, m_x25519_sk.size());
+        std::memset(m_x25519_pk, 0, m_x25519_pk.size());
+    }
 
     virtual ~XWingPrivateKey() {}
 
@@ -135,6 +144,9 @@ protected:
 struct XWingPublicKey : public PublicKey
 {
     CRYPTOPP_CONSTANT(PUBLIC_KEYLENGTH = XWING_Constants::PUBLIC_KEY_SIZE);
+
+    /// \brief Create an unset public key with zeroed buffers
+    XWingPublicKey() { std::memset(m_pk, 0, m_pk.size()); }
 
     virtual ~XWingPublicKey() {}
 
