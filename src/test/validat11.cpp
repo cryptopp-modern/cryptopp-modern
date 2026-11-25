@@ -2344,6 +2344,30 @@ static bool TestXWingSmallOrderShare()
 	return true;
 }
 
+static bool TestXWingUnsetKeys()
+{
+	// Heap objects, so a run with malloc fill shows any storage left unwritten.
+	member_ptr<XWingPrivateKey> priv(new XWingPrivateKey);
+	member_ptr<XWingPublicKey> pub(new XWingPublicKey);
+
+	byte acc = 0;
+	for (size_t i = 0; i < MLKEM_768::SECRET_KEY_SIZE; ++i)
+		acc |= priv->GetMLKEMPrivateKeyPtr()[i];
+	for (size_t i = 0; i < 32; ++i)
+		acc |= priv->GetX25519PrivateKeyPtr()[i] | priv->GetX25519PublicKeyPtr()[i];
+	for (size_t i = 0; i < XWING_Constants::PUBLIC_KEY_SIZE; ++i)
+		acc |= pub->GetPublicKeyBytePtr()[i];
+
+	if (acc != 0)
+	{
+		std::cout << "FAILED:  X-Wing unset keys are all zero" << std::endl;
+		return false;
+	}
+
+	std::cout << "passed:  X-Wing unset keys are all zero" << std::endl;
+	return true;
+}
+
 bool ValidateXWing()
 {
 	std::cout << "\nX-Wing (Hybrid KEM) validation suite running...\n\n";
@@ -2354,6 +2378,7 @@ bool ValidateXWing()
 	pass = TestXWingMultipleRounds() && pass;
 	pass = TestXWingKAT() && pass;
 	pass = TestXWingSmallOrderShare() && pass;
+	pass = TestXWingUnsetKeys() && pass;
 
 	return pass;
 }
