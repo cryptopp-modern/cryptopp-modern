@@ -875,6 +875,21 @@ void mlkem_decaps(byte *ss, const byte *ct, const byte *sk)
         ss[i] = kr[i] ^ (failMask & (kr[i] ^ k_bar[i]));
 }
 
+// FIPS 203 Section 7.3 hash check: H(ek) must equal the hash stored in the key.
+template <class PARAMS>
+bool mlkem_check_decaps_key(const byte *sk)
+{
+    typedef typename ParamTraits<PARAMS>::Internal InternalParams;
+    const byte *pk = sk + InternalParams::INDCPA_SECRETKEYBYTES;
+    const byte *h_pk = pk + InternalParams::PUBLICKEYBYTES;
+
+    byte h[MLKEM_SYMBYTES];
+    SHA3_256 sha3;
+    sha3.Update(pk, InternalParams::PUBLICKEYBYTES);
+    sha3.TruncatedFinal(h, MLKEM_SYMBYTES);
+    return VerifyBufsEqual(h, h_pk, MLKEM_SYMBYTES);
+}
+
 }  // namespace MLKEM_Internal
 
 // ******************** Public API Implementation ************************* //
@@ -896,9 +911,11 @@ template <class PARAMS>
 bool MLKEMPrivateKey<PARAMS>::Validate(RandomNumberGenerator &rng, unsigned int level) const
 {
     CRYPTOPP_UNUSED(rng);
-    CRYPTOPP_UNUSED(level);
-    // Basic validation: key data exists and has correct size
-    return m_sk.size() == SECRET_KEYLENGTH;
+    if (m_sk.size() != SECRET_KEYLENGTH)
+        return false;
+    if (level >= 1 && !mlkem_check_decaps_key<PARAMS>(m_sk.begin()))
+        return false;
+    return true;
 }
 
 template <class PARAMS>
@@ -932,6 +949,9 @@ void MLKEMPrivateKey<PARAMS>::SetPrivateKey(const byte *key, size_t len)
 {
     if (len != SECRET_KEYLENGTH)
         throw InvalidKeyLength(PARAMS::StaticAlgorithmName(), len);
+    // Check before the copy so a rejected key leaves the object unchanged.
+    if (!mlkem_check_decaps_key<PARAMS>(key))
+        throw InvalidArgument("MLKEMPrivateKey: decapsulation key hash check failed");
     std::memcpy(m_sk.begin(), key, SECRET_KEYLENGTH);
 }
 
@@ -1147,6 +1167,10 @@ bool MLKEMDecapsulator<PARAMS>::Decapsulate(const byte *ciphertext, byte *shared
 {
     CRYPTOPP_ASSERT(ciphertext != NULLPTR);
     CRYPTOPP_ASSERT(sharedSecret != NULLPTR);
+
+    // An all-zero buffer means no private key is set.
+    if (IsAllZero(m_key.GetPrivateKeyBytePtr(), SECRET_KEYLENGTH))
+        throw InvalidArgument(PARAMS::StaticAlgorithmName() + ": decapsulation key is not set");
 
     mlkem_decaps<PARAMS>(sharedSecret, ciphertext, m_key.GetPrivateKeyBytePtr());
     return true;  // ML-KEM uses implicit rejection, always "succeeds"

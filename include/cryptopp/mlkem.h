@@ -103,6 +103,8 @@ struct MLKEMPrivateKey : public PrivateKey
     /// \param rng a RandomNumberGenerator for objects which use randomized testing
     /// \param level the level of thoroughness
     /// \return true if the tests pass
+    /// \details Level 0 checks the size. Level 1 and above also perform the
+    ///  FIPS 203 Section 7.3 hash check, which a key that was never set fails.
     bool Validate(RandomNumberGenerator &rng, unsigned int level) const;
 
     /// \brief Get a named value
@@ -124,6 +126,9 @@ struct MLKEMPrivateKey : public PrivateKey
     /// \brief Set the private key bytes
     /// \param key pointer to the private key data
     /// \param len length of the private key (must be SECRET_KEYLENGTH)
+    /// \throw InvalidKeyLength if len is not SECRET_KEYLENGTH
+    /// \throw InvalidArgument if the key fails the FIPS 203 Section 7.3 hash check
+    /// \details A rejected key leaves the object unchanged.
     void SetPrivateKey(const byte *key, size_t len);
 
     /// \brief Get pointer to private key bytes
@@ -341,7 +346,8 @@ struct MLKEMDecapsulator
     /// \brief Decapsulate to recover shared secret from ciphertext
     /// \param ciphertext input ciphertext (CIPHERTEXT_LENGTH bytes)
     /// \param sharedSecret output buffer for shared secret (SHARED_SECRET_LENGTH bytes)
-    /// \returns true on success (always returns true for ML-KEM due to implicit rejection)
+    /// \returns true on completion, including implicit rejection
+    /// \throw InvalidArgument if no private key has been set
     /// \details ML-KEM uses implicit rejection: if decapsulation fails internally,
     ///  a pseudorandom value is returned instead. This prevents side-channel attacks.
     bool Decapsulate(const byte *ciphertext, byte *sharedSecret) const;

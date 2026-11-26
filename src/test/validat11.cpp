@@ -243,7 +243,9 @@ static bool TestPqcEncodeGuard(const char* name, bool zeroIsUnset)
 			pub.SetPublicKey(zeros, zeros.size());
 			pass = ExpectPqcEncodeReject(name, "all-zero public", pub) && pass;
 			zeros.CleanNew(PARAMS::SECRET_KEY_SIZE);
-			priv.SetPrivateKey(zeros, zeros.size());
+			// A setter that checks the key refuses it here; the object stays unset.
+			try { priv.SetPrivateKey(zeros, zeros.size()); }
+			catch (const InvalidArgument&) {}
 			pass = ExpectPqcEncodeReject(name, "all-zero private", priv) && pass;
 			cases += 2;
 		}
@@ -292,18 +294,16 @@ static bool ExpectDerDigest(const char* name, const char* label, const Key& key,
 }
 
 template <class PARAMS, class PubKey, class PrivKey>
-static bool TestPqcDerFixtures(const char* name, byte privSeed, const char* privDigest,
-	byte pubSeed, const char* pubDigest)
+static bool TestPqcDerFixtures(const char* name, const SecByteBlock& privMaterial,
+	const char* privDigest, byte pubSeed, const char* pubDigest)
 {
 	try {
 		PrivKey priv;
-		SecByteBlock material(PARAMS::SECRET_KEY_SIZE);
-		FillPattern(material, privSeed);
-		priv.SetPrivateKey(material, material.size());
+		priv.SetPrivateKey(privMaterial, privMaterial.size());
 		bool pass = ExpectDerDigest(name, "private", priv, privDigest);
 
 		PubKey pub;
-		material.New(PARAMS::PUBLIC_KEY_SIZE);
+		SecByteBlock material(PARAMS::PUBLIC_KEY_SIZE);
 		FillPattern(material, pubSeed);
 		pub.SetPublicKey(material, material.size());
 		pass = ExpectDerDigest(name, "public", pub, pubDigest) && pass;
@@ -316,6 +316,16 @@ static bool TestPqcDerFixtures(const char* name, byte privSeed, const char* priv
 		std::cout << "FAILED:  " << name << " DER fixtures - " << e.what() << std::endl;
 		return false;
 	}
+}
+
+template <class PARAMS, class PubKey, class PrivKey>
+static bool TestPqcDerFixtures(const char* name, byte privSeed, const char* privDigest,
+	byte pubSeed, const char* pubDigest)
+{
+	SecByteBlock material(PARAMS::SECRET_KEY_SIZE);
+	FillPattern(material, privSeed);
+	return TestPqcDerFixtures<PARAMS, PubKey, PrivKey>(name, material, privDigest,
+		pubSeed, pubDigest);
 }
 
 // ******************** PQC stack wipe guard ************************* //
@@ -630,7 +640,7 @@ static SecByteBlock MLKEMFromHex(const std::string& hex)
 
 struct MLKEMKatRecord
 {
-	std::string name, comment, d, z, m, ek, dk, ct, ss;
+	std::string name, comment, d, z, m, ek, dk, ct, ss, keyCheck;
 };
 
 // Unlike FixedRNG, throws when asked for more bytes than the seed holds.
@@ -713,6 +723,24 @@ static bool MLKEMDecapsVector(const SecByteBlock& dk, const SecByteBlock& ct,
 	return sharedSecret == expected;
 }
 
+// FIPS 203 Section 7.3 hash check.
+template <class PARAMS>
+static bool MLKEMKeyCheckVector(const SecByteBlock& dk, const std::string& expected)
+{
+	if (dk.size() != PARAMS::SECRET_KEY_SIZE || (expected != "pass" && expected != "fail"))
+		return false;
+
+	bool accepted = true;
+	try {
+		MLKEMPrivateKey<PARAMS> key;
+		key.SetPrivateKey(dk.begin(), dk.size());
+	}
+	catch (const InvalidArgument&) {
+		accepted = false;
+	}
+	return accepted == (expected == "pass");
+}
+
 template <class PARAMS>
 static bool MLKEMKatVector(const std::string& test, const MLKEMKatRecord& r)
 {
@@ -725,6 +753,8 @@ static bool MLKEMKatVector(const std::string& test, const MLKEMKatRecord& r)
 	if (test == "Decapsulate")
 		return MLKEMDecapsVector<PARAMS>(MLKEMFromHex(r.dk), MLKEMFromHex(r.ct),
 			MLKEMFromHex(r.ss));
+	if (test == "DecapsulationKeyCheck")
+		return MLKEMKeyCheckVector<PARAMS>(MLKEMFromHex(r.dk), r.keyCheck);
 	throw Exception(Exception::OTHER_ERROR, "ML-KEM KAT: unknown test " + test);
 }
 
@@ -778,6 +808,7 @@ static bool TestMLKEMKAT()
 			else if (key == "DecapsulationKey") r.dk = val;
 			else if (key == "Ciphertext") r.ct = val;
 			else if (key == "SharedSecret") r.ss = val;
+			else if (key == "KeyCheck") r.keyCheck = val;
 			else if (key == "Test") {
 				if (!MLKEMDispatchKat(val, r)) {
 					std::cout << "FAILED:  " << name << " " << val << " " << r.name
@@ -796,22 +827,24 @@ static bool TestMLKEMKAT()
 
 	// Guard against a truncated or partially converted vector file. The count is
 	// pinned deliberately: adding vectors should mean updating it here too.
-	static const char* const expectedTests[] = { "KeyGen", "Encapsulate", "Decapsulate" };
+	static const struct { const char* test; unsigned int perSet; } expected[] = {
+		{ "KeyGen", 3 }, { "Encapsulate", 3 }, { "Decapsulate", 3 },
+		{ "DecapsulationKeyCheck", 10 }
+	};
 	static const char* const expectedSets[] = { "ML-KEM-512", "ML-KEM-768", "ML-KEM-1024" };
-	const unsigned int expectedPerSet = 3;
 
-	for (size_t t = 0; t < COUNTOF(expectedTests); t++) {
+	for (size_t t = 0; t < COUNTOF(expected); t++) {
 		for (size_t i = 0; i < COUNTOF(expectedSets); i++) {
-			const std::string id = std::string(expectedTests[t]) + " " + expectedSets[i];
-			if (coverage[id] != expectedPerSet) {
+			const std::string id = std::string(expected[t].test) + " " + expectedSets[i];
+			if (coverage[id] != expected[t].perSet) {
 				std::cout << "FAILED:  " << name << " " << id
 					<< " coverage (" << coverage[id]
-					<< " vectors; expected " << expectedPerSet << ")" << std::endl;
+					<< " vectors; expected " << expected[t].perSet << ")" << std::endl;
 				return false;
 			}
 		}
-		std::cout << "passed:  " << name << " " << expectedTests[t] << " KAT ("
-			<< expectedPerSet * COUNTOF(expectedSets) << " vectors, "
+		std::cout << "passed:  " << name << " " << expected[t].test << " KAT ("
+			<< expected[t].perSet * COUNTOF(expectedSets) << " vectors, "
 			<< COUNTOF(expectedSets) << " parameter sets)" << std::endl;
 	}
 	return true;
@@ -838,6 +871,131 @@ static bool TestMLKEMDecodeState(const char* name)
 	}
 }
 
+// A decapsulation key is dkPKE || ek || H(ek) || z. Import must refuse one whose
+// hash field does not match its ek (FIPS 203 Section 7.3) and leave the object
+// as it was; a key that was never set must not decapsulate.
+template <class PARAMS>
+static bool TestMLKEMKeyCheck(const char* name)
+{
+	AutoSeededRandomPool rng;
+	try {
+		const size_t skLen = PARAMS::SECRET_KEY_SIZE, pkLen = PARAMS::PUBLIC_KEY_SIZE;
+		const size_t hashOffset = skLen - 64, ekOffset = hashOffset - pkLen;
+
+		MLKEMDecapsulator<PARAMS> original(rng);
+		const SecByteBlock sk(original.GetKey().GetPrivateKeyBytePtr(), skLen);
+
+		MLKEMEncapsulator<PARAMS> encapsulator(original.GetKey().GetPublicKeyBytePtr(), pkLen);
+		SecByteBlock ct(encapsulator.CiphertextLength());
+		SecByteBlock expected(encapsulator.SharedSecretLength()), got(expected.size());
+		encapsulator.Encapsulate(rng, ct.begin(), expected.begin());
+
+		std::string der;
+		StringSink sink(der);
+		original.GetKey().DEREncode(sink);
+		if (der.size() < skLen ||
+			!VerifyBufsEqual(reinterpret_cast<const byte*>(der.data()) + der.size() - skLen, sk, skLen)) {
+			std::cout << "FAILED:  " << name << " key check: DER does not end with the key (setup)" << std::endl;
+			return false;
+		}
+
+		bool pass = true;
+		static const struct { bool hash; const char* label; } cases[] = {
+			{ true, "altered H(ek)" }, { false, "altered ek" }
+		};
+		for (size_t i = 0; i < COUNTOF(cases); i++)
+		{
+			const size_t offset = cases[i].hash ? hashOffset : ekOffset;
+			SecByteBlock raw(sk);
+			raw[offset] ^= 0x01;
+			std::string badDer(der);
+			badDer[der.size() - skLen + offset] ^= 0x01;
+
+			MLKEMDecapsulator<PARAMS> target(sk.begin(), skLen);
+
+			bool rejected = false;
+			try { target.AccessPrivateKey().SetPrivateKey(raw, skLen); }
+			catch (const InvalidArgument&) { rejected = true; }
+			if (!rejected) {
+				std::cout << "FAILED:  " << name << " key check: " << cases[i].label
+					<< ", raw import accepted" << std::endl;
+				pass = false;
+			}
+			if (!VerifyBufsEqual(target.GetKey().GetPrivateKeyBytePtr(), sk, skLen)) {
+				std::cout << "FAILED:  " << name << " key check: " << cases[i].label
+					<< ", key changed after rejected raw import" << std::endl;
+				pass = false;
+			}
+
+			rejected = false;
+			try {
+				StringSource source(badDer, true);
+				target.AccessPrivateKey().BERDecode(source);
+			}
+			catch (const InvalidArgument&) { rejected = true; }
+			if (!rejected) {
+				std::cout << "FAILED:  " << name << " key check: " << cases[i].label
+					<< ", DER import accepted" << std::endl;
+				pass = false;
+			}
+			if (!VerifyBufsEqual(target.GetKey().GetPrivateKeyBytePtr(), sk, skLen)) {
+				std::cout << "FAILED:  " << name << " key check: " << cases[i].label
+					<< ", key changed after rejected DER import" << std::endl;
+				pass = false;
+			}
+		}
+
+		{
+			MLKEMDecapsulator<PARAMS> target;
+			StringSource source(der, true);
+			target.AccessPrivateKey().BERDecode(source);
+			target.Decapsulate(ct.begin(), got.begin());
+			if (got != expected) {
+				std::cout << "FAILED:  " << name << " key check: unaltered DER import" << std::endl;
+				pass = false;
+			}
+		}
+
+		MLKEMPrivateKey<PARAMS> unset;
+		if (!original.GetKey().Validate(rng, 0) || !original.GetKey().Validate(rng, 1) ||
+			!unset.Validate(rng, 0) || unset.Validate(rng, 1)) {
+			std::cout << "FAILED:  " << name << " key check: Validate" << std::endl;
+			pass = false;
+		}
+
+		MLKEMDecapsulator<PARAMS> empty;
+		bool threw = false;
+		try { empty.Decapsulate(ct.begin(), got.begin()); }
+		catch (const InvalidArgument&) { threw = true; }
+		if (!threw) {
+			std::cout << "FAILED:  " << name << " key check: unset key decapsulated" << std::endl;
+			pass = false;
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " decapsulation key check" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " decapsulation key check - " << e.what() << std::endl;
+		return false;
+	}
+}
+
+// The private DER fixture must be a key that passes the hash check. This is the
+// key of NIST ACVP keyGen tcId=1 (TestVectors/mlkem.txt), from its d and z.
+static SecByteBlock MLKEM512FixtureKey()
+{
+	const SecByteBlock d = MLKEMFromHex("bba3c0f5df044cdf4d9caa53ca15fde26f34eb3541555cfc54ca9c31b964d0c8");
+	const SecByteBlock z = MLKEMFromHex("0a64fdd51a8d91b3166c4958a94efc3166a4f5df680980b878db8371b7624c96");
+	ByteQueue seed;
+	seed.Put(d.begin(), d.size());
+	seed.Put(z.begin(), z.size());
+	MLKEMKatRNG rng(seed);
+	MLKEMDecapsulator<MLKEM_512> decapsulator(rng);
+	return SecByteBlock(decapsulator.GetKey().GetPrivateKeyBytePtr(), MLKEM_512::SECRET_KEY_SIZE);
+}
+
 bool ValidateMLKEM()
 {
 	std::cout << "\nML-KEM (FIPS 203) validation suite running...\n\n";
@@ -851,18 +1009,21 @@ bool ValidateMLKEM()
 	pass = TestMLKEMEncapsDecaps<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestMLKEMSerialization<MLKEM_512>("ML-KEM-512") && pass;
 	pass = TestMLKEMSaveLoad<MLKEM_512>("ML-KEM-512") && pass;
+	pass = TestMLKEMKeyCheck<MLKEM_512>("ML-KEM-512") && pass;
 
 	// ML-KEM-768
 	pass = TestMLKEMKeyGen<MLKEM_768>("ML-KEM-768") && pass;
 	pass = TestMLKEMEncapsDecaps<MLKEM_768>("ML-KEM-768") && pass;
 	pass = TestMLKEMSerialization<MLKEM_768>("ML-KEM-768") && pass;
 	pass = TestMLKEMSaveLoad<MLKEM_768>("ML-KEM-768") && pass;
+	pass = TestMLKEMKeyCheck<MLKEM_768>("ML-KEM-768") && pass;
 
 	// ML-KEM-1024
 	pass = TestMLKEMKeyGen<MLKEM_1024>("ML-KEM-1024") && pass;
 	pass = TestMLKEMEncapsDecaps<MLKEM_1024>("ML-KEM-1024") && pass;
 	pass = TestMLKEMSerialization<MLKEM_1024>("ML-KEM-1024") && pass;
 	pass = TestMLKEMSaveLoad<MLKEM_1024>("ML-KEM-1024") && pass;
+	pass = TestMLKEMKeyCheck<MLKEM_1024>("ML-KEM-1024") && pass;
 
 	// ACVP known-answer vectors, covering the implicit-rejection path
 	pass = TestMLKEMKAT() && pass;
@@ -871,7 +1032,7 @@ bool ValidateMLKEM()
 	pass = TestPqcEncodeGuard<MLKEM_512, MLKEMPublicKey<MLKEM_512>, MLKEMPrivateKey<MLKEM_512> >(
 		"ML-KEM-512", true) && pass;
 	pass = TestPqcDerFixtures<MLKEM_512, MLKEMPublicKey<MLKEM_512>, MLKEMPrivateKey<MLKEM_512> >("ML-KEM-512",
-		0x99, "444E0F29B287FF094184F0D3D35F72EE1E9B49844FB2228791A1AD0AD3663BD8",
+		MLKEM512FixtureKey(), "A2753D4328E90F030DCF3965622CCDD693EE4E16B5F5C6D0CC793FF84B349C56",
 		0xaa, "6543C03D1B41D8D953760972D8230E53C81BFFACE194D07C560137D20AF10D48") && pass;
 
 	return pass;
@@ -2368,6 +2529,28 @@ static bool TestXWingUnsetKeys()
 	return true;
 }
 
+// The ML-KEM half of an unset X-Wing key is all zero, which fails the ML-KEM
+// decapsulation key check.
+static bool TestXWingUnsetDecapsulate()
+{
+	XWingDecapsulator decapsulator;
+	SecByteBlock ct(decapsulator.CiphertextLength()), ss(decapsulator.SharedSecretLength());
+	std::memset(ct, 0, ct.size());
+
+	bool threw = false;
+	try { decapsulator.Decapsulate(ct.begin(), ss.begin()); }
+	catch (const InvalidArgument&) { threw = true; }
+
+	if (!threw)
+	{
+		std::cout << "FAILED:  X-Wing unset key decapsulated" << std::endl;
+		return false;
+	}
+
+	std::cout << "passed:  X-Wing unset key does not decapsulate" << std::endl;
+	return true;
+}
+
 bool ValidateXWing()
 {
 	std::cout << "\nX-Wing (Hybrid KEM) validation suite running...\n\n";
@@ -2379,6 +2562,7 @@ bool ValidateXWing()
 	pass = TestXWingKAT() && pass;
 	pass = TestXWingSmallOrderShare() && pass;
 	pass = TestXWingUnsetKeys() && pass;
+	pass = TestXWingUnsetDecapsulate() && pass;
 
 	return pass;
 }
