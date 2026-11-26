@@ -301,11 +301,10 @@ struct XWingDecapsulator
     /// \brief Decapsulate to recover shared secret from ciphertext
     /// \param ciphertext input ciphertext (CIPHERTEXT_LENGTH bytes)
     /// \param sharedSecret output buffer for shared secret (SHARED_SECRET_LENGTH bytes)
-    /// \returns true (always succeeds per X-Wing spec; implicit rejection via combiner)
+    /// \returns true on completion, including ML-KEM implicit rejection
+    /// \throw InvalidArgument if no private key has been set
     /// \details Performs ML-KEM-768 decapsulation and X25519 key exchange, then
     ///  combines the shared secrets using SHA3-256 with the X-Wing domain separator.
-    ///  Per the X-Wing spec, decapsulation never fails -- if either component
-    ///  encounters an invalid ciphertext, a pseudorandom shared secret is produced.
     bool Decapsulate(const byte *ciphertext, byte *sharedSecret) const;
 
     /// \brief Access the private key
