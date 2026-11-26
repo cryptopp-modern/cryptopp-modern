@@ -1687,6 +1687,89 @@ static bool TestLMSMalformedSignatures(const char* name)
 	}
 }
 
+// A public key whose typecode fields do not match the verifier's parameter
+// set must not verify. The altered keys keep their length, so the import
+// accepts them; both the raw and the SPKI import are covered.
+template <class LMS_PARAMS, class OTS_PARAMS>
+static bool TestLMSKeyTypeMismatch(const char* name)
+{
+	AutoSeededRandomPool rng;
+
+	try {
+		typedef LMSPublicKey<LMS_PARAMS, OTS_PARAMS> PubKeyType;
+		typedef LMSVerifier<LMS_PARAMS, OTS_PARAMS> VerifierType;
+
+		LMSPrivateKey<LMS_PARAMS, OTS_PARAMS> privKey;
+		privKey.GenerateRandom(rng, g_nullNameValuePairs);
+		PubKeyType pubKey;
+		privKey.MakePublicKey(pubKey);
+
+		InsecureMemoryStateStore store(LMS_PARAMS::TOTAL_LEAVES);
+		LMSSigner<LMS_PARAMS, OTS_PARAMS> signer(privKey, store);
+
+		const std::string message = "Key typecode mismatch test message";
+		const byte *msg = reinterpret_cast<const byte*>(message.data());
+		SecByteBlock signature(signer.SignatureLength());
+		signer.SignMessage(rng, msg, message.size(), signature.begin());
+
+		const size_t keyLen = pubKey.GetPublicKeyByteLength();
+		std::string spki;
+		StringSink spkiSink(spki);
+		pubKey.DEREncode(spkiSink);
+		if (spki.size() < keyLen ||
+		    std::memcmp(spki.data() + spki.size() - keyLen, pubKey.GetPublicKeyBytePtr(), keyLen) != 0) {
+			std::cout << "FAILED:  " << name << " key typecode: SPKI does not end with the key (setup)" << std::endl;
+			return false;
+		}
+
+		// Byte offsets into the raw key: the low byte of each typecode field.
+		// The altered cases write another supported typecode (H10, W4) there.
+		// The first case alters nothing and must verify.
+		static const struct { size_t offset; byte value; const char *label; bool valid; } cases[] = {
+			{ 0, 0, "unaltered key", true },
+			{ 3, LMS_SHA256_M32_H10::TYPE_ID, "LMS typecode", false },
+			{ 7, LMOTS_SHA256_N32_W4::TYPE_ID, "LM-OTS typecode", false }
+		};
+
+		bool pass = true;
+		for (size_t i = 0; i < COUNTOF(cases); i++)
+		{
+			SecByteBlock raw(pubKey.GetPublicKeyBytePtr(), keyLen);
+			std::string der(spki);
+			if (!cases[i].valid) {
+				raw[cases[i].offset] = cases[i].value;
+				der[der.size() - keyLen + cases[i].offset] = static_cast<char>(cases[i].value);
+			}
+
+			VerifierType rawVerifier(raw.begin(), raw.size());
+			if (rawVerifier.VerifyMessage(msg, message.size(),
+			        signature.begin(), signature.size()) != cases[i].valid) {
+				std::cout << "FAILED:  " << name << " key typecode: " << cases[i].label
+				          << ", raw import" << std::endl;
+				pass = false;
+			}
+
+			VerifierType spkiVerifier;
+			StringSource source(der, true);
+			spkiVerifier.AccessKey().BERDecode(source);
+			if (spkiVerifier.VerifyMessage(msg, message.size(),
+			        signature.begin(), signature.size()) != cases[i].valid) {
+				std::cout << "FAILED:  " << name << " key typecode: " << cases[i].label
+				          << ", SPKI import" << std::endl;
+				pass = false;
+			}
+		}
+
+		if (pass)
+			std::cout << "passed:  " << name << " key typecode mismatch rejected" << std::endl;
+		return pass;
+	}
+	catch (const Exception& e) {
+		std::cout << "FAILED:  " << name << " key typecode mismatch - " << e.what() << std::endl;
+		return false;
+	}
+}
+
 static bool TestLMSSigGenKAT()
 {
 	const char *name = "LMS ACVP sigGen KAT";
@@ -2437,6 +2520,8 @@ bool ValidateLMS()
 	pass = TestLMSMalformedSignatures<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 	pass = TestLMSCrossKeyNegative<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
+		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
+	pass = TestLMSKeyTypeMismatch<LMS_SHA256_M32_H5, LMOTS_SHA256_N32_W8>(
 		"LMS-SHA256-M32-H5/LMOTS-SHA256-N32-W8") && pass;
 
 	// LMS-SHA256-M32-H10 / LMOTS-SHA256-N32-W8

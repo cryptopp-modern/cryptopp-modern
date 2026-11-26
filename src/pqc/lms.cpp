@@ -747,6 +747,13 @@ bool LMSVerifier<LMS_PARAMS, OTS_PARAMS>::VerifyAndRestart(
     const OTSParams otsP = MakeOTSParams<OTS_PARAMS>();
     const LMSParams lmsP = MakeLMSParams<LMS_PARAMS>();
 
+    // The key's typecodes must match the parameter set (RFC 8554, Section 5.4.2).
+    if (!m_key.Validate(NullRNG(), 0))
+    {
+        accum.Restart();
+        return false;
+    }
+
     // Parse LMS signature: q(4) + OTS sig(ots_sig_len) + LMS type(4) + auth path(h*m)
     const size_t otsSigLen = otsP.SigLen();
     const size_t expectedSigLen = 4 + otsSigLen + 4 + static_cast<size_t>(h) * m;
