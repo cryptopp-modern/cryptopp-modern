@@ -890,6 +890,23 @@ bool mlkem_check_decaps_key(const byte *sk)
     return VerifyBufsEqual(h, h_pk, MLKEM_SYMBYTES);
 }
 
+// FIPS 203 Section 7.2 modulus check: every 12-bit coefficient must be below q.
+template <class PARAMS>
+bool mlkem_check_encaps_key(const byte *pk)
+{
+    typedef typename ParamTraits<PARAMS>::Internal InternalParams;
+    // Public key = polyvec_bytes || rho(32), each 3 bytes encode 2 coefficients
+    const size_t polyBytes = InternalParams::PUBLICKEYBYTES - MLKEM_SYMBYTES;
+    for (size_t i = 0; i + 2 < polyBytes; i += 3)
+    {
+        uint16_t c0 = (uint16_t(pk[i]) | (uint16_t(pk[i+1]) << 8)) & 0xFFF;
+        uint16_t c1 = (uint16_t(pk[i+1]) >> 4) | (uint16_t(pk[i+2]) << 4);
+        if (c0 >= MLKEM_Q || c1 >= MLKEM_Q)
+            return false;
+    }
+    return true;
+}
+
 }  // namespace MLKEM_Internal
 
 // ******************** Public API Implementation ************************* //
@@ -1036,21 +1053,8 @@ bool MLKEMPublicKey<PARAMS>::Validate(RandomNumberGenerator &rng, unsigned int l
     if (m_pk.size() != PUBLIC_KEYLENGTH)
         return false;
 
-    // FIPS 203 Section 7.2: Encapsulation key type check
-    // Verify all 12-bit encoded polynomial coefficients are < q (3329)
-    if (level >= 1)
-    {
-        // Public key = polyvec_bytes || rho(32), each 3 bytes encode 2 coefficients
-        const size_t polyBytes = PUBLIC_KEYLENGTH - MLKEM_Internal::MLKEM_SYMBYTES;
-        const byte *pk = m_pk.begin();
-        for (size_t i = 0; i + 2 < polyBytes; i += 3)
-        {
-            uint16_t c0 = (uint16_t(pk[i]) | (uint16_t(pk[i+1]) << 8)) & 0xFFF;
-            uint16_t c1 = (uint16_t(pk[i+1]) >> 4) | (uint16_t(pk[i+2]) << 4);
-            if (c0 >= MLKEM_Internal::MLKEM_Q || c1 >= MLKEM_Internal::MLKEM_Q)
-                return false;
-        }
-    }
+    if (level >= 1 && !mlkem_check_encaps_key<PARAMS>(m_pk.begin()))
+        return false;
 
     return true;
 }
@@ -1075,6 +1079,9 @@ void MLKEMPublicKey<PARAMS>::SetPublicKey(const byte *key, size_t len)
 {
     if (len != PUBLIC_KEYLENGTH)
         throw InvalidKeyLength(PARAMS::StaticAlgorithmName(), len);
+    // Check before the copy so a rejected key leaves the object unchanged.
+    if (!mlkem_check_encaps_key<PARAMS>(key))
+        throw InvalidArgument("MLKEMPublicKey: encapsulation key modulus check failed");
     std::memcpy(m_pk.begin(), key, PUBLIC_KEYLENGTH);
 }
 

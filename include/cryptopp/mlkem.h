@@ -201,6 +201,9 @@ struct MLKEMPublicKey : public PublicKey
     /// \brief Set the public key bytes
     /// \param key pointer to the public key data
     /// \param len length of the public key (must be PUBLIC_KEYLENGTH)
+    /// \throw InvalidKeyLength if len is not PUBLIC_KEYLENGTH
+    /// \throw InvalidArgument if the key fails the FIPS 203 Section 7.2 modulus check
+    /// \details A rejected key leaves the object unchanged.
     void SetPublicKey(const byte *key, size_t len);
 
     /// \brief Get pointer to public key bytes
